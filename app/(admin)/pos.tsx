@@ -167,7 +167,7 @@ const pm = StyleSheet.create({
   methodLabel:     { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   bottomBar:    { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
   btn:          { borderRadius: Radius.full, overflow: "hidden" },
-  btnGrad:      { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 16 },
+  btnGrad: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
   btnText:      { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 });
 

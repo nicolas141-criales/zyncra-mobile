@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Switch,
+  ActivityIndicator, Switch, Modal, FlatList,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInDown } from "react-native-reanimated";
@@ -12,14 +12,27 @@ import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
 
 const DAYS = [
-  { key: "1", label: "Lunes" },
-  { key: "2", label: "Martes" },
-  { key: "3", label: "Miércoles" },
-  { key: "4", label: "Jueves" },
-  { key: "5", label: "Viernes" },
-  { key: "6", label: "Sábado" },
-  { key: "0", label: "Domingo" },
+  { key: "1", label: "Lunes",     short: "Lun" },
+  { key: "2", label: "Martes",    short: "Mar" },
+  { key: "3", label: "Miercoles", short: "Mie" },
+  { key: "4", label: "Jueves",    short: "Jue" },
+  { key: "5", label: "Viernes",   short: "Vie" },
+  { key: "6", label: "Sabado",    short: "Sab" },
+  { key: "0", label: "Domingo",   short: "Dom" },
 ];
+
+const TIME_OPTIONS = [
+  "06:00","07:00","08:00","09:00","10:00","11:00","12:00",
+  "13:00","14:00","15:00","16:00","17:00","18:00","19:00",
+  "20:00","21:00","22:00","23:00",
+];
+
+function fmt12(t: string): string {
+  const h = parseInt(t.slice(0, 2), 10);
+  const period = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 || 12;
+  return `${h12}:00 ${period}`;
+}
 
 type DayConfig = { open: boolean; start: string; end: string };
 type Schedule  = Record<string, DayConfig>;
@@ -27,29 +40,62 @@ type Schedule  = Record<string, DayConfig>;
 const DEFAULT_DAY: DayConfig = { open: false, start: "09:00", end: "18:00" };
 
 function buildDefault(): Schedule {
-  const s: Schedule = {};
+  const sc: Schedule = {};
   DAYS.forEach(d => {
-    s[d.key] = { open: d.key !== "0", start: "09:00", end: "18:00" };
+    sc[d.key] = { open: d.key !== "0", start: "09:00", end: "18:00" };
   });
-  return s;
+  return sc;
 }
 
-function TimeInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function TimePicker({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
+  const [open, setOpen] = useState(false);
   return (
-    <TextInput
-      style={s.timeInput}
-      value={value}
-      onChangeText={t => {
-        const clean = t.replace(/[^0-9:]/g, "");
-        onChange(clean);
-      }}
-      placeholder="09:00"
-      placeholderTextColor={Colors.subtle}
-      keyboardType="numbers-and-punctuation"
-      maxLength={5}
-    />
+    <>
+      <TouchableOpacity style={tp.btn} onPress={() => setOpen(true)} activeOpacity={0.7}>
+        <Text style={tp.labelTxt}>{label}</Text>
+        <Text style={tp.valueTxt}>{fmt12(value)}</Text>
+        <Ionicons name="chevron-down" size={13} color={Colors.subtle} />
+      </TouchableOpacity>
+
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <TouchableOpacity style={tp.overlay} onPress={() => setOpen(false)} activeOpacity={1}>
+          <View style={tp.sheet}>
+            <Text style={tp.sheetTitle}>{label}</Text>
+            <FlatList
+              data={TIME_OPTIONS}
+              keyExtractor={i => i}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[tp.option, item === value && tp.optionActive]}
+                  onPress={() => { onChange(item); setOpen(false); }}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[tp.optionText, item === value && tp.optionTextActive]}>{fmt12(item)}</Text>
+                  {item === value && <Ionicons name="checkmark" size={16} color={Colors.red} />}
+                </TouchableOpacity>
+              )}
+              showsVerticalScrollIndicator={false}
+              style={{ maxHeight: 320 }}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </>
   );
 }
+
+const tp = StyleSheet.create({
+  btn:           { flex: 1, backgroundColor: Colors.cream2, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 12, paddingVertical: 10, alignItems: "center", gap: 2 },
+  labelTxt:      { fontSize: 9, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.8 },
+  valueTxt:      { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
+  overlay:       { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
+  sheet:         { backgroundColor: Colors.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40 },
+  sheetTitle:    { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 14, textAlign: "center" },
+  option:        { paddingVertical: 13, paddingHorizontal: 16, borderRadius: Radius.md, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  optionActive:  { backgroundColor: Colors.red + "0f" },
+  optionText:    { fontSize: 15, fontFamily: "SpaceGrotesk_500Medium", color: Colors.text },
+  optionTextActive: { fontFamily: "SpaceGrotesk_700Bold", color: Colors.red },
+});
 
 export default function ScheduleScreen() {
   const router = useRouter();
@@ -89,6 +135,8 @@ export default function ScheduleScreen() {
     setTimeout(() => setSaved(false), 2500);
   };
 
+  const openCount = DAYS.filter(d => schedule[d.key]?.open).length;
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
@@ -97,8 +145,8 @@ export default function ScheduleScreen() {
             <Ionicons name="arrow-back" size={20} color="white" />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={s.headerTitle}>Horario de atención</Text>
-            <Text style={s.headerSub}>Días y horas disponibles</Text>
+            <Text style={s.headerTitle}>Horario de atencion</Text>
+            <Text style={s.headerSub}>{openCount} dia{openCount !== 1 ? "s" : ""} activo{openCount !== 1 ? "s" : ""}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -108,82 +156,105 @@ export default function ScheduleScreen() {
           <ActivityIndicator color={Colors.red} size="large" />
         </View>
       ) : (
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
-            <Animated.View entering={FadeInDown.duration(350)} style={{ gap: 10 }}>
+        <>
+          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 130 }}>
+            <Animated.View entering={FadeInDown.duration(350)} style={{ gap: 8 }}>
               {DAYS.map((day, i) => {
                 const cfg = schedule[day.key] ?? DEFAULT_DAY;
                 return (
                   <Animated.View key={day.key} entering={FadeInDown.delay(i * 40).duration(300)}>
-                    <View style={[s.dayCard, Shadow.sm]}>
+                    <View style={[s.dayCard, Shadow.sm, !cfg.open && s.dayCardClosed]}>
                       <View style={s.dayTop}>
-                        <View style={[s.dayDot, { backgroundColor: cfg.open ? Colors.success : Colors.border }]} />
-                        <Text style={[s.dayName, !cfg.open && { color: Colors.muted }]}>{day.label}</Text>
-                        <Switch
-                          value={cfg.open}
-                          onValueChange={v => update(day.key, { open: v })}
-                          trackColor={{ false: Colors.border, true: Colors.success + "aa" }}
-                          thumbColor={cfg.open ? Colors.success : Colors.subtle}
-                        />
+                        <View style={[s.dayPill, cfg.open ? s.dayPillOpen : s.dayPillClosed]}>
+                          <Text style={[s.dayShort, cfg.open ? s.dayShortOpen : s.dayShortClosed]}>
+                            {day.short}
+                          </Text>
+                        </View>
+                        <Text style={[s.dayName, !cfg.open && s.dayNameClosed]}>{day.label}</Text>
+                        <View style={s.switchWrap}>
+                          {cfg.open && <Text style={s.openLabel}>Abierto</Text>}
+                          <Switch
+                            value={cfg.open}
+                            onValueChange={v => update(day.key, { open: v })}
+                            trackColor={{ false: Colors.border, true: Colors.success + "99" }}
+                            thumbColor={cfg.open ? Colors.success : Colors.subtle}
+                          />
+                        </View>
                       </View>
+
                       {cfg.open && (
                         <View style={s.timeRow}>
-                          <View style={s.timeBlock}>
-                            <Text style={s.timeLabel}>Apertura</Text>
-                            <TimeInput value={cfg.start} onChange={v => update(day.key, { start: v })} />
+                          <TimePicker label="Apertura" value={cfg.start} onChange={v => update(day.key, { start: v })} />
+                          <View style={s.timeSep}>
+                            <View style={s.timeLine} />
+                            <Ionicons name="arrow-forward" size={12} color={Colors.subtle} />
+                            <View style={s.timeLine} />
                           </View>
-                          <Ionicons name="arrow-forward" size={16} color={Colors.subtle} style={{ marginTop: 20 }} />
-                          <View style={s.timeBlock}>
-                            <Text style={s.timeLabel}>Cierre</Text>
-                            <TimeInput value={cfg.end} onChange={v => update(day.key, { end: v })} />
-                          </View>
+                          <TimePicker label="Cierre" value={cfg.end} onChange={v => update(day.key, { end: v })} />
                         </View>
+                      )}
+
+                      {!cfg.open && (
+                        <Text style={s.closedLabel}>Cerrado este dia</Text>
                       )}
                     </View>
                   </Animated.View>
                 );
               })}
             </Animated.View>
-
-            {saved && (
-              <Animated.View entering={FadeInDown.duration(300)} style={[s.savedBanner, Shadow.sm]}>
-                <Ionicons name="checkmark-circle" size={18} color={Colors.success} />
-                <Text style={s.savedText}>Horario guardado</Text>
-              </Animated.View>
-            )}
           </ScrollView>
+
+          {saved && (
+            <Animated.View entering={FadeInDown.duration(300)} style={[s.savedToast, Shadow.md]}>
+              <Ionicons name="checkmark-circle" size={18} color={Colors.success} />
+              <Text style={s.savedText}>Horario guardado</Text>
+            </Animated.View>
+          )}
 
           <View style={s.bottomBar}>
             <TouchableOpacity style={s.btn} onPress={handleSave} disabled={saving} activeOpacity={0.85}>
-              <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.btnGrad}>
+              <View style={s.btnInner}>
                 {saving ? <ActivityIndicator color="white" /> : <Text style={s.btnText}>Guardar horario</Text>}
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
+        </>
       )}
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
-  header:      { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
-  headerRow:   { flexDirection: "row", alignItems: "center", gap: 12 },
-  backBtn:     { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.4 },
-  headerSub:   { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
-  dayCard:     { backgroundColor: Colors.white, borderRadius: Radius.md, padding: 14 },
-  dayTop:      { flexDirection: "row", alignItems: "center", gap: 10 },
-  dayDot:      { width: 8, height: 8, borderRadius: 4 },
-  dayName:     { flex: 1, fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
-  timeRow:     { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: Colors.border },
-  timeBlock:   { flex: 1 },
-  timeLabel:   { fontSize: 10, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 },
-  timeInput:   { backgroundColor: Colors.cream2, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.sm, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, textAlign: "center" },
-  savedBanner: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.success + "12", borderRadius: Radius.md, padding: 14, marginTop: 12 },
-  savedText:   { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.success },
-  bottomBar:   { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
-  btn:         { borderRadius: Radius.full, overflow: "hidden" },
-  btnGrad:     { paddingVertical: 16, alignItems: "center" },
-  btnText:     { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
+  header:        { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
+  headerRow:     { flexDirection: "row", alignItems: "center", gap: 12 },
+  backBtn:       { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
+  headerTitle:   { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.4 },
+  headerSub:     { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
+
+  dayCard:       { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14, borderWidth: 1.5, borderColor: "transparent" },
+  dayCardClosed: { backgroundColor: Colors.cream2, borderColor: Colors.border },
+  dayTop:        { flexDirection: "row", alignItems: "center", gap: 10 },
+  dayPill:       { width: 36, height: 36, borderRadius: Radius.md, alignItems: "center", justifyContent: "center" },
+  dayPillOpen:   { backgroundColor: Colors.success + "18" },
+  dayPillClosed: { backgroundColor: Colors.border },
+  dayShort:      { fontSize: 10, fontFamily: "SpaceGrotesk_700Bold", textTransform: "uppercase", letterSpacing: 0.5 },
+  dayShortOpen:  { color: Colors.success },
+  dayShortClosed:{ color: Colors.subtle },
+  dayName:       { flex: 1, fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
+  dayNameClosed: { color: Colors.muted },
+  switchWrap:    { flexDirection: "row", alignItems: "center", gap: 6 },
+  openLabel:     { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.success },
+
+  timeRow:       { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: Colors.border },
+  timeSep:       { alignItems: "center", gap: 2 },
+  timeLine:      { width: 1, height: 6, backgroundColor: Colors.border },
+  closedLabel:   { marginTop: 6, fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.subtle, paddingLeft: 46 },
+
+  savedToast:    { position: "absolute", bottom: 110, left: 20, right: 20, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14, zIndex: 10 },
+  savedText:     { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.success },
+
+  bottomBar:     { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
+  btn:           { borderRadius: Radius.full, overflow: "hidden" },
+  btnInner:      { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
+  btnText:       { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 });

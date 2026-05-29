@@ -319,6 +319,6 @@ const s = StyleSheet.create({
 
   bottomBar:    { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
   btn:          { borderRadius: Radius.full, overflow: "hidden" },
-  btnGrad:      { paddingVertical: 16, alignItems: "center" },
+  btnGrad: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
   btnText:      { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 });

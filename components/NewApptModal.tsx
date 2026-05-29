@@ -563,9 +563,9 @@ export default function NewApptModal({ visible, onClose, tenantId, initialDate, 
                   disabled={!stepCanProceed[step]}
                   activeOpacity={0.85}
                 >
-                  <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.btnGrad}>
+                  <View style={s.btnGrad}>
                     <Text style={s.btnText}>Siguiente →</Text>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
@@ -574,12 +574,12 @@ export default function NewApptModal({ visible, onClose, tenantId, initialDate, 
                   disabled={!canSave || saving}
                   activeOpacity={0.85}
                 >
-                  <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.btnGrad}>
+                  <View style={s.btnGrad}>
                     {saving
                       ? <ActivityIndicator color="white" />
                       : <Text style={s.btnText}>✓  Confirmar cita</Text>
                     }
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               )}
             </View>
@@ -676,7 +676,7 @@ const s = StyleSheet.create({
   // Bottom
   bottomBar: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 34, backgroundColor: Colors.cream2, borderTopWidth: 1, borderTopColor: Colors.border },
   btn:       { borderRadius: Radius.full, overflow: "hidden" },
-  btnGrad:   { paddingVertical: 16, alignItems: "center" },
+  btnGrad: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
   btnText:   { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: 0.3 },
 
   emptyTitle: { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },

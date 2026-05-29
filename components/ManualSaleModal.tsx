@@ -186,14 +186,14 @@ export default function ManualSaleModal({ visible, tenantId, onClose, onSaved }:
               disabled={!canSave || saving}
               activeOpacity={0.85}
             >
-              <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.btnGrad}>
+              <View style={s.btnGrad}>
                 {saving
                   ? <ActivityIndicator color="white" />
                   : <Text style={s.btnText}>
                       {total > 0 ? `Cobrar $${Math.round(total).toLocaleString("es-CO")}` : "Crear venta"}
                     </Text>
                 }
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -224,6 +224,6 @@ const s = StyleSheet.create({
   clientRowName: { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
   bottomBar:     { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
   btn:           { borderRadius: Radius.full, overflow: "hidden" },
-  btnGrad:       { paddingVertical: 16, alignItems: "center" },
+  btnGrad: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
   btnText:       { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 });

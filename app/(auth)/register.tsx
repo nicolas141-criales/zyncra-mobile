@@ -74,14 +74,11 @@ function GradientBtn({ label, onPress, disabled }: { label: string; onPress: () 
   const scale = useSharedValue(1);
   const st = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
-    <AnimatedPressable style={[st, { opacity: disabled ? 0.45 : 1 }]}
+    <AnimatedPressable style={[st, c.gradBtn, { opacity: disabled ? 0.45 : 1 }]}
       onPressIn={() => { if (!disabled) scale.value = withSpring(0.97, { stiffness: 400 }); }}
       onPressOut={() => { scale.value = withSpring(1, { stiffness: 400 }); }}
       onPress={() => { if (!disabled) onPress(); }}>
-      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-        style={[c.gradBtn, Shadow.red]}>
-        <Text style={c.gradBtnText}>{label}</Text>
-      </LinearGradient>
+      <Text style={c.gradBtnText}>{label}</Text>
     </AnimatedPressable>
   );
 }
@@ -382,7 +379,7 @@ const c = StyleSheet.create({
     borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13,
     fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text, marginBottom: 18,
   },
-  gradBtn: { borderRadius: Radius.md, paddingVertical: 16, alignItems: "center" },
+  gradBtn: { borderRadius: Radius.md, paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
   gradBtnText: { color: "white", fontSize: 15, fontFamily: "SpaceGrotesk_700Bold" },
   backBtn: { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingVertical: 16, paddingHorizontal: 18, justifyContent: "center" },
   backBtnText: { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },

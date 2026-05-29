@@ -635,7 +635,7 @@ const em = StyleSheet.create({
   emptySub:       { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
   bottomBar:      { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 34, backgroundColor: Colors.cream2, borderTopWidth: 1, borderTopColor: Colors.border },
   btn:            { borderRadius: Radius.full, overflow: "hidden" },
-  btnGrad:        { paddingVertical: 16, alignItems: "center" },
+  btnGrad: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
   btnText:        { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: 0.3 },
 });
 

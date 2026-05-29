@@ -288,9 +288,9 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
 
           <View style={s.bottomBar}>
             <TouchableOpacity style={[s.btn, !canSave && { opacity: 0.4 }]} onPress={handleSave} disabled={!canSave || saving} activeOpacity={0.85}>
-              <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.btnGrad}>
+              <View style={s.btnGrad}>
                 {saving ? <ActivityIndicator color="white" /> : <Text style={s.btnText}>{isEdit ? "Guardar cambios" : "Agregar profesional"}</Text>}
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -299,21 +299,23 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
   );
 }
 
-function Avatar({ name, photoUrl, size = 44 }: { name: string; photoUrl?: string | null; size?: number }) {
+function Avatar({ name, photoUrl, size = 52 }: { name: string; photoUrl?: string | null; size?: number }) {
   if (photoUrl) {
     return (
-      <Image
-        source={{ uri: photoUrl }}
-        style={{ width: size, height: size, borderRadius: size / 2 }}
-      />
+      <View style={{ width: size, height: size, borderRadius: size / 2, overflow: "hidden", borderWidth: 2, borderColor: Colors.border }}>
+        <Image
+          source={{ uri: photoUrl }}
+          style={{ width: "100%", height: "100%" }}
+          resizeMode="cover"
+        />
+      </View>
     );
   }
   const initials = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
   return (
-    <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-      style={{ width: size, height: size, borderRadius: size / 2, alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ color: "white", fontSize: size * 0.35, fontFamily: "SpaceGrotesk_700Bold" }}>{initials}</Text>
-    </LinearGradient>
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: Colors.red + "18", borderWidth: 1.5, borderColor: Colors.red + "30", alignItems: "center", justifyContent: "center" }}>
+      <Text style={{ color: Colors.red, fontSize: size * 0.34, fontFamily: "SpaceGrotesk_700Bold" }}>{initials}</Text>
+    </View>
   );
 }
 
@@ -374,7 +376,7 @@ export default function TeamScreen() {
           pros.map((p, i) => (
             <Animated.View key={p.id} entering={FadeInRight.delay(i * 50).duration(320)}>
               <TouchableOpacity
-                style={[s.row, Shadow.sm, !p.is_active && { opacity: 0.6 }]}
+                style={[s.row, Shadow.sm, !p.is_active && { opacity: 0.55 }]}
                 onPress={() => setModal({ visible: true, pro: p })}
                 activeOpacity={0.75}
               >
@@ -382,21 +384,26 @@ export default function TeamScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={s.name}>{p.name}</Text>
                   <Text style={s.role}>{p.role}</Text>
+                  <View style={{ flexDirection: "row", gap: 6, marginTop: 5 }}>
+                    {p.user_id && (
+                      <View style={s.activeBadge}>
+                        <Ionicons name="shield-checkmark" size={10} color={Colors.success} />
+                        <Text style={[s.badgeText, { color: Colors.success }]}>Cuenta activa</Text>
+                      </View>
+                    )}
+                    {!p.is_active && (
+                      <View style={s.inactiveBadge}>
+                        <Text style={s.inactiveBadgeText}>Inactivo</Text>
+                      </View>
+                    )}
+                    {p.photo_url && (
+                      <View style={s.photoBadge}>
+                        <Ionicons name="camera" size={10} color={Colors.blue} />
+                      </View>
+                    )}
+                  </View>
                 </View>
-                <View style={{ alignItems: "flex-end", gap: 4 }}>
-                  {p.user_id && (
-                    <View style={s.activeBadge}>
-                      <Ionicons name="shield-checkmark" size={11} color={Colors.success} />
-                      <Text style={[s.badgeText, { color: Colors.success }]}>Cuenta</Text>
-                    </View>
-                  )}
-                  {!p.is_active && (
-                    <View style={s.inactiveBadge}>
-                      <Text style={s.inactiveBadgeText}>Inactivo</Text>
-                    </View>
-                  )}
-                  <Ionicons name="chevron-forward" size={16} color={Colors.subtle} />
-                </View>
+                <Ionicons name="chevron-forward" size={16} color={Colors.subtle} />
               </TouchableOpacity>
             </Animated.View>
           ))
@@ -430,6 +437,7 @@ const s = StyleSheet.create({
   badgeText:        { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold" },
   inactiveBadge:    { backgroundColor: Colors.border, borderRadius: Radius.full, paddingHorizontal: 8, paddingVertical: 3 },
   inactiveBadgeText:{ fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
+  photoBadge:       { width: 20, height: 20, borderRadius: 10, backgroundColor: Colors.blue + "14", alignItems: "center", justifyContent: "center" },
   empty:            { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 48, alignItems: "center", marginTop: 20 },
   emptyTitle:       { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:         { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
@@ -458,6 +466,6 @@ const s = StyleSheet.create({
   accBtnText:       { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   bottomBar:        { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
   btn:              { borderRadius: Radius.full, overflow: "hidden" },
-  btnGrad:          { paddingVertical: 16, alignItems: "center" },
+  btnGrad: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
   btnText:          { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 });

@@ -4,7 +4,6 @@ import {
   KeyboardAvoidingView, Platform, ScrollView, Pressable,
   Image, Dimensions,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import Animated, {
   FadeInDown, FadeIn, useSharedValue, useAnimatedStyle, withSpring,
@@ -12,26 +11,21 @@ import Animated, {
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
-import { Colors, Gradients, Radius } from "@/constants/theme";
+import { Colors, Radius } from "@/constants/theme";
 
 const { height } = Dimensions.get("window");
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-function GradientButton({ label, onPress, loading }: { label: string; onPress: () => void; loading?: boolean }) {
+function SolidButton({ label, onPress, loading }: { label: string; onPress: () => void; loading?: boolean }) {
   const scale = useSharedValue(1);
   const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
     <AnimatedPressable
-      style={anim}
+      style={[anim, btn.solid]}
       onPressIn={() => { scale.value = withSpring(0.97, { stiffness: 400 }); }}
       onPressOut={() => { scale.value = withSpring(1,    { stiffness: 400 }); }}
       onPress={onPress}>
-      <LinearGradient
-        colors={Gradients.brand}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-        style={btn.gradient}>
-        <Text style={btn.label}>{loading ? "Entrando…" : label}</Text>
-      </LinearGradient>
+      <Text style={btn.label}>{loading ? "Entrando…" : label}</Text>
     </AnimatedPressable>
   );
 }
@@ -71,7 +65,7 @@ export default function LoginScreen() {
       <View style={s.bg}>
         {/* Ambient blobs */}
         <View style={[s.blob, { top: -100, left: -70,  backgroundColor: "rgba(251,15,5,0.2)"   }]} />
-        <View style={[s.blob, { top: height * 0.3, right: -90, backgroundColor: "rgba(155,63,200,0.16)" }]} />
+        <View style={[s.blob, { top: height * 0.3, right: -90, backgroundColor: "rgba(0,39,254,0.16)" }]} />
         <View style={[s.blob, { bottom: -80, left: -50, backgroundColor: "rgba(0,39,254,0.16)" }]} />
 
         {/* Corner accents */}
@@ -166,7 +160,7 @@ export default function LoginScreen() {
 
             {/* CTA */}
             <Animated.View entering={FadeInDown.delay(440).duration(400)} style={{ marginTop: 8 }}>
-              <GradientButton label="Iniciar sesión" onPress={handleLogin} loading={loading} />
+              <SolidButton label="Iniciar sesión" onPress={handleLogin} loading={loading} />
             </Animated.View>
 
             {/* Register link */}
@@ -186,17 +180,13 @@ export default function LoginScreen() {
   );
 }
 
-// ── Gradient button ────────────────────────────────────────────────────────────
+// ── Solid button ───────────────────────────────────────────────────────────────
 const btn = StyleSheet.create({
-  gradient: {
+  solid: {
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: "center",
-    shadowColor: "#fb0f05",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45,
-    shadowRadius: 18,
-    elevation: 10,
+    backgroundColor: Colors.red,
   },
   label: {
     color: "white",

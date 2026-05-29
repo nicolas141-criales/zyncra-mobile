@@ -129,9 +129,9 @@ function ServiceModal({ visible, service, tenantId, onClose, onSaved }: {
           </ScrollView>
           <View style={s.bottomBar}>
             <TouchableOpacity style={[s.btn, !canSave && { opacity: 0.4 }]} onPress={handleSave} disabled={!canSave || saving} activeOpacity={0.85}>
-              <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.btnGrad}>
+              <View style={s.btnGrad}>
                 {saving ? <ActivityIndicator color="white" /> : <Text style={s.btnText}>{isEdit ? "Guardar cambios" : "Crear servicio"}</Text>}
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -252,6 +252,6 @@ const s = StyleSheet.create({
   mTitle:     { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   bottomBar:  { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
   btn:        { borderRadius: Radius.full, overflow: "hidden" },
-  btnGrad:    { paddingVertical: 16, alignItems: "center" },
+  btnGrad: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
   btnText:    { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 });
