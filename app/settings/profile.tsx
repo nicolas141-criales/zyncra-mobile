@@ -257,12 +257,7 @@ export default function ProfileScreen() {
               disabled={saving}
               activeOpacity={0.85}
             >
-              <LinearGradient
-                colors={savedOk ? ["#16a34a", "#16a34a"] : Gradients.brand}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={s.btnGrad}
-              >
+              <View style={[s.btnGrad, { backgroundColor: savedOk ? Colors.success : Colors.red }]}>
                 {saving ? (
                   <ActivityIndicator color="white" />
                 ) : savedOk ? (
@@ -273,7 +268,7 @@ export default function ProfileScreen() {
                 ) : (
                   <Text style={s.btnText}>Guardar cambios</Text>
                 )}
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>

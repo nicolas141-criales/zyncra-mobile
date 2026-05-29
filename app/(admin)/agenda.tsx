@@ -571,9 +571,9 @@ function EditApptModal({ appt, tenantId, professionals, onClose, onSaved }: {
                   disabled={!stepCanProceed[step]}
                   activeOpacity={0.85}
                 >
-                  <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={em.btnGrad}>
+                  <View style={em.btnGrad}>
                     <Text style={em.btnText}>Siguiente →</Text>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
@@ -582,9 +582,9 @@ function EditApptModal({ appt, tenantId, professionals, onClose, onSaved }: {
                   disabled={!canSave || saving}
                   activeOpacity={0.85}
                 >
-                  <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={em.btnGrad}>
+                  <View style={em.btnGrad}>
                     {saving ? <ActivityIndicator color="white" /> : <Text style={em.btnText}>Guardar cambios</Text>}
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               )}
             </View>

@@ -133,7 +133,7 @@ function PaymentModal({ appt, onConfirm, onClose }: {
             disabled={saving}
             activeOpacity={0.85}
           >
-            <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={pm.btnGrad}>
+            <View style={pm.btnGrad}>
               {saving
                 ? <ActivityIndicator color="white" />
                 : <>
@@ -141,7 +141,7 @@ function PaymentModal({ appt, onConfirm, onClose }: {
                     <Text style={pm.btnText}>{price > 0 ? `Confirmar cobro · ${fmt(price)}` : "Completar cita"}</Text>
                   </>
               }
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </View>
       </View>

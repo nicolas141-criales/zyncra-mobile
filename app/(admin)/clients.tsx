@@ -122,9 +122,9 @@ function EditModal({ visible, client, tenantId, onClose, onSaved }: {
           <View style={em.bottomBar}>
             <TouchableOpacity style={[em.btn, !canSave && { opacity: 0.4 }]}
               onPress={handleSave} disabled={!canSave || saving} activeOpacity={0.85}>
-              <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={em.btnGrad}>
+              <View style={em.btnGrad}>
                 {saving ? <ActivityIndicator color="white" /> : <Text style={em.btnText}>{isNew ? "Crear cliente" : "Guardar cambios"}</Text>}
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>

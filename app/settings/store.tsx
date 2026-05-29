@@ -298,10 +298,10 @@ export default function StoreScreen() {
                   <Text style={s.linkBtnText}>Copiar</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={s.linkBtnPrimary} onPress={handleShare} activeOpacity={0.8}>
-                  <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.linkBtnGrad}>
+                  <View style={s.linkBtnGrad}>
                     <Ionicons name="share-social-outline" size={15} color="white" />
                     <Text style={s.linkBtnPrimaryText}>Compartir</Text>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               </View>
             </Animated.View>
@@ -382,11 +382,11 @@ export default function StoreScreen() {
               onPress={handleSave}
               disabled={saving}
               activeOpacity={0.85}>
-              <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.saveBtnGrad}>
+              <View style={s.saveBtnGrad}>
                 {saving
                   ? <ActivityIndicator color="white" />
                   : <Text style={s.saveBtnText}>Guardar cambios</Text>}
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -417,7 +417,7 @@ const s = StyleSheet.create({
   linkBtn:      { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 11, borderRadius: 10, borderWidth: 1, borderColor: "rgba(255,255,255,0.15)", backgroundColor: "rgba(255,255,255,0.07)" },
   linkBtnText:  { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,0.8)" },
   linkBtnPrimary: { flex: 1, borderRadius: 10, overflow: "hidden" },
-  linkBtnGrad:    { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 11 },
+  linkBtnGrad:    { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 11, backgroundColor: Colors.red, borderRadius: 10 },
   linkBtnPrimaryText: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "white" },
 
   // Logo
@@ -442,6 +442,6 @@ const s = StyleSheet.create({
   // Bottom bar
   bottomBar:   { padding: 16, paddingBottom: 28, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
   saveBtn:     { borderRadius: Radius.full, overflow: "hidden" },
-  saveBtnGrad: { paddingVertical: 16, alignItems: "center" },
+  saveBtnGrad: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
   saveBtnText: { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 });
