@@ -34,10 +34,9 @@ function fmtDate(d: string) {
 function Avatar({ name, size = 44 }: { name: string; size?: number }) {
   const initials = name.split(" ").map(w => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase() || "?";
   return (
-    <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-      style={{ width: size, height: size, borderRadius: size / 2, alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ color: "white", fontSize: size * 0.33, fontFamily: "SpaceGrotesk_700Bold" }}>{initials}</Text>
-    </LinearGradient>
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: Colors.blue + "14", borderWidth: 1.5, borderColor: Colors.blue + "30", alignItems: "center", justifyContent: "center" }}>
+      <Text style={{ color: Colors.blue, fontSize: size * 0.33, fontFamily: "SpaceGrotesk_700Bold" }}>{initials}</Text>
+    </View>
   );
 }
 
