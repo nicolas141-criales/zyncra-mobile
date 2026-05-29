@@ -13,9 +13,11 @@ import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
 
 type Client = { id: string; name: string; phone?: string; email?: string; no_shows?: number; created_at?: string };
 type Appt = {
-  id: string; date: string; time: string; status: string; notes?: string;
+  id: string; appointment_date: string; appointment_time: string; status: string; notes?: string;
   services: { name: string; price: number } | null;
 };
+type CustomField = { id: string; name: string; field_type: string };
+type FieldValue  = { field_id: string; value: string | null };
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
   pending:   { label: "Pendiente",  color: "#f59e0b", bg: "#fef9eb" },
@@ -138,22 +140,38 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
   client: Client; tenantId: string; onClose: () => void; onRefresh: () => void;
 }) {
   const insets = useSafeAreaInsets();
-  const [client, setClient] = useState<Client>(initialClient);
-  const [appts, setAppts]   = useState<Appt[]>([]);
+  const [client, setClient]   = useState<Client>(initialClient);
+  const [appts, setAppts]     = useState<Appt[]>([]);
   const [loading, setLoading] = useState(true);
   const [editOpen, setEditOpen] = useState(false);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [fieldValues, setFieldValues]   = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data: a } = await supabase
-      .from("appointments")
-      .select("id,date,time,status,notes,services(name,price)")
-      .eq("client_id", initialClient.id)
-      .order("date", { ascending: false })
-      .limit(50);
-    setAppts((a ?? []) as Appt[]);
+    const [apptRes, cfRes, fvRes] = await Promise.all([
+      supabase.from("appointments")
+        .select("id,appointment_date,appointment_time,status,notes,services(name,price)")
+        .eq("client_id", initialClient.id)
+        .order("appointment_date", { ascending: false })
+        .limit(50),
+      supabase.from("custom_fields")
+        .select("id,name,field_type")
+        .eq("tenant_id", tenantId)
+        .eq("applies_to", "client")
+        .eq("active", true)
+        .order("position"),
+      supabase.from("client_field_values")
+        .select("field_id,value")
+        .eq("client_id", initialClient.id),
+    ]);
+    setAppts((apptRes.data ?? []) as Appt[]);
+    setCustomFields((cfRes.data ?? []) as CustomField[]);
+    const map: Record<string, string> = {};
+    (fvRes.data ?? []).forEach((r: any) => { map[r.field_id] = r.value ?? ""; });
+    setFieldValues(map);
     setLoading(false);
-  }, [initialClient.id]);
+  }, [initialClient.id, tenantId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -260,6 +278,24 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
             </Animated.View>
           )}
 
+          {/* Custom fields */}
+          {customFields.length > 0 && (
+            <Animated.View entering={FadeInDown.delay(90).duration(300)}>
+              <Text style={p.sectionLabel}>Datos adicionales</Text>
+              <View style={[p.card, Shadow.sm]}>
+                {customFields.map((f, i) => (
+                  <View key={f.id}>
+                    {i > 0 && <View style={p.infoDivider} />}
+                    <View style={p.infoRow}>
+                      <Text style={p.infoLabel}>{f.name}</Text>
+                      <Text style={p.infoValue}>{fieldValues[f.id] || "—"}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </Animated.View>
+          )}
+
           {/* History */}
           <Animated.View entering={FadeInDown.delay(120).duration(300)}>
             <Text style={[p.sectionLabel, { marginTop: 24 }]}>
@@ -277,7 +313,7 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
             ) : (
               appts.map((a, i) => {
                 const meta = STATUS_META[a.status] ?? STATUS_META.pending;
-                const dt   = new Date(a.date + "T00:00:00");
+                const dt   = new Date(a.appointment_date + "T00:00:00");
                 return (
                   <Animated.View key={a.id} entering={FadeInRight.delay(i * 35).duration(260)}>
                     <View style={[p.apptRow, Shadow.sm]}>
@@ -287,7 +323,7 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={p.apptService} numberOfLines={1}>{a.services?.name ?? "Servicio"}</Text>
-                        <Text style={p.apptTime}>{a.time?.slice(0, 5) ?? "—"}</Text>
+                        <Text style={p.apptTime}>{a.appointment_time?.slice(0, 5) ?? "—"}</Text>
                       </View>
                       <View style={{ alignItems: "flex-end", gap: 5 }}>
                         {a.services?.price ? (
@@ -482,13 +518,15 @@ const p = StyleSheet.create({
   statsCard:   { backgroundColor: Colors.white, borderRadius: Radius.lg, flexDirection: "row", padding: 16 },
   statBox:     { flex: 1, alignItems: "center", gap: 4 },
   statVal:     { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold" },
-  statLabel:   { fontSize: 10, fontFamily: "SpaceGrotesk_500Medium", color: Colors.subtle, textAlign: "center" },
+  statLabel:   { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle, textAlign: "center" },
   statDiv:     { width: 1, backgroundColor: Colors.border, marginVertical: 4 },
 
   infoRow:     { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 4 },
   infoIcon:    { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  infoText:    { fontSize: 14, fontFamily: "SpaceGrotesk_500Medium", color: Colors.text },
+  infoText:    { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   infoDivider: { height: 1, backgroundColor: Colors.border, marginVertical: 8 },
+  infoLabel:   { flex: 1, fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
+  infoValue:   { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
 
   emptyCard:   { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 40, alignItems: "center" },
   emptyTitle:  { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
