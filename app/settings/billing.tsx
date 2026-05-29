@@ -86,7 +86,7 @@ function FeatureRow({ label, ok, delay }: { label: string; ok: boolean; delay: n
 const f = StyleSheet.create({
   row:   { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
   dot:   { width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center" },
-  label: { fontSize: 13, fontFamily: "SpaceGrotesk_500Medium", color: Colors.text, flex: 1 },
+  label: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text, flex: 1 },
 });
 
 function daysLeft(createdAt: string, expiresAt: string | null): number {
@@ -100,9 +100,10 @@ function daysLeft(createdAt: string, expiresAt: string | null): number {
   return Math.max(0, Math.ceil(diff / 86400000));
 }
 
+const SALES_PHONE = "573160000000"; // número de ventas Zyncra
+
 function openWhatsApp(msg: string) {
-  const phone = "573001234567"; // replace with actual sales number
-  const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  const url = `https://wa.me/${SALES_PHONE}?text=${encodeURIComponent(msg)}`;
   Linking.openURL(url);
 }
 
@@ -238,7 +239,7 @@ export default function BillingScreen() {
           )}
 
           {/* ── Business card ── */}
-          {!isPro || true ? (
+          {!isPro ? (
             <Animated.View entering={FadeInDown.delay(300).duration(400)} style={{ marginTop: isTrial ? 16 : 20 }}>
               {!isTrial && <Text style={s.sectionLabel}>Más opciones</Text>}
               <TouchableOpacity
@@ -287,12 +288,12 @@ const s = StyleSheet.create({
   headerSub:        { fontSize: 12, color: "rgba(255,255,255,.7)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
   planBadge:        { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "rgba(255,255,255,.14)", borderRadius: Radius.lg, padding: 14 },
   planBadgeIcon:    { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  planBadgeLabel:   { fontSize: 11, fontFamily: "SpaceGrotesk_500Medium", color: "rgba(255,255,255,.7)" },
+  planBadgeLabel:   { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.7)" },
   planBadgeName:    { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.3 },
   trialPill:        { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(255,255,255,.18)", borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 6 },
   trialPillText:    { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   warnCard:         { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: "#fffbeb", borderRadius: Radius.md, padding: 14, borderWidth: 1, borderColor: "#f59e0b33", marginBottom: 16 },
-  warnText:         { flex: 1, fontSize: 13, fontFamily: "SpaceGrotesk_500Medium", color: "#92400e", lineHeight: 19 },
+  warnText:         { flex: 1, fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "#92400e", lineHeight: 19 },
   card:             { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 18 },
   cardTitle:        { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 14 },
   sectionLabel:     { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 12 },
