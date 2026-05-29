@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useFonts, SpaceGrotesk_400Regular, SpaceGrotesk_500Medium, SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold } from "@expo-google-fonts/space-grotesk";
+import { useFonts, SpaceGrotesk_400Regular, SpaceGrotesk_600SemiBold, SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold } from "@expo-google-fonts/space-grotesk";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { View, ActivityIndicator } from "react-native";
 import { Colors } from "@/constants/theme";
@@ -18,7 +18,7 @@ export default function RootLayout() {
 
   const [fontsLoaded] = useFonts({
     SpaceGrotesk_400Regular,
-    SpaceGrotesk_500Medium,
+    SpaceGrotesk_600SemiBold,
     SpaceGrotesk_600SemiBold,
     SpaceGrotesk_700Bold,
   });

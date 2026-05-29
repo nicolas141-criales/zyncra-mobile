@@ -104,9 +104,9 @@ export default function RemindersScreen() {
                       activeOpacity={0.75}
                     >
                       {hours === h ? (
-                        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.hourGrad}>
+                        <View style={s.hourGrad}>
                           <Text style={[s.hourLabel, { color: "white" }]}>{h}h</Text>
-                        </LinearGradient>
+                        </View>
                       ) : (
                         <Text style={s.hourLabel}>{h}h</Text>
                       )}
@@ -187,7 +187,7 @@ const s = StyleSheet.create({
   cardSub:       { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginBottom: 12 },
   hoursGrid:     { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   hourBtn:       { borderRadius: Radius.md, borderWidth: 1.5, borderColor: Colors.border, overflow: "hidden", minWidth: 52 },
-  hourGrad:      { paddingVertical: 10, paddingHorizontal: 16, alignItems: "center" },
+  hourGrad:      { paddingVertical: 10, paddingHorizontal: 16, alignItems: "center", backgroundColor: Colors.red },
   hourLabel:     { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, paddingVertical: 10, paddingHorizontal: 16 },
   variablesRow:  { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 14 },
   varChip:       { backgroundColor: Colors.purple + "12", borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 5 },

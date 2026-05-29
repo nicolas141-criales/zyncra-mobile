@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+﻿import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -18,7 +18,7 @@ const BOOKING_BASE = "https://zyncra.app/book/";
 const COLOR_PRESETS = [
   "#fb0f05","#ef4444","#f97316","#f59e0b",
   "#22c55e","#10b981","#0ea5e9","#0027fe",
-  "#8b5cf6","#0027fe","#ec4899","#111118",
+  "#8b5cf6","#4f46e5","#ec4899","#111118",
 ];
 
 // ── Color picker ──────────────────────────────────────────────────────────────
@@ -412,7 +412,7 @@ const s = StyleSheet.create({
   linkTitle:    { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: "white", marginBottom: 3 },
   linkSub:      { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,0.45)", lineHeight: 15 },
   linkUrlBox:   { backgroundColor: "rgba(255,255,255,0.07)", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11, marginBottom: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.1)" },
-  linkUrl:      { fontSize: 13, fontFamily: "SpaceGrotesk_500Medium", color: Colors.red, letterSpacing: 0.2 },
+  linkUrl:      { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.red, letterSpacing: 0.2 },
   linkActions:  { flexDirection: "row", gap: 10 },
   linkBtn:      { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 11, borderRadius: 10, borderWidth: 1, borderColor: "rgba(255,255,255,0.15)", backgroundColor: "rgba(255,255,255,0.07)" },
   linkBtnText:  { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,0.8)" },

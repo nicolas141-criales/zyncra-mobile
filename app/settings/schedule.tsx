@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   ActivityIndicator, Switch, Modal, FlatList,
@@ -93,7 +93,7 @@ const tp = StyleSheet.create({
   sheetTitle:    { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 14, textAlign: "center" },
   option:        { paddingVertical: 13, paddingHorizontal: 16, borderRadius: Radius.md, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   optionActive:  { backgroundColor: Colors.red + "0f" },
-  optionText:    { fontSize: 15, fontFamily: "SpaceGrotesk_500Medium", color: Colors.text },
+  optionText:    { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   optionTextActive: { fontFamily: "SpaceGrotesk_700Bold", color: Colors.red },
 });
 

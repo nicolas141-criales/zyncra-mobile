@@ -60,21 +60,25 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
     if (!result.canceled) setPhotoUri(result.assets[0].uri);
   };
 
-  const uploadPhoto = async (proId: string): Promise<string | null> => {
-    if (!photoUri) return null;
-    try {
-      const response = await fetch(photoUri);
-      const blob = await response.blob();
-      const path = `${proId}.jpg`;
-      const { error } = await supabase.storage
-        .from("professionals")
-        .upload(path, blob, { contentType: "image/jpeg", upsert: true });
-      if (error) return null;
-      const { data } = supabase.storage.from("professionals").getPublicUrl(path);
-      return `${data.publicUrl}?t=${Date.now()}`;
-    } catch {
-      return null;
-    }
+  const uploadPhoto = (proId: string): Promise<string | null> => {
+    if (!photoUri) return Promise.resolve(null);
+    return new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", photoUri);
+      xhr.responseType = "blob";
+      xhr.onload = async () => {
+        const blob: Blob = xhr.response;
+        const path = `${proId}.jpg`;
+        const { error } = await supabase.storage
+          .from("professionals")
+          .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+        if (error) { resolve(null); return; }
+        const { data } = supabase.storage.from("professionals").getPublicUrl(path);
+        resolve(`${data.publicUrl}?t=${Date.now()}`);
+      };
+      xhr.onerror = () => resolve(null);
+      xhr.send();
+    });
   };
 
   const canSave = name.trim().length >= 2;

@@ -1,8 +1,7 @@
-import { Tabs } from "expo-router";
+﻿import { Tabs } from "expo-router";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, Gradients, Shadow } from "@/constants/theme";
+import { Colors, Shadow } from "@/constants/theme";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -37,14 +36,9 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
               <View style={s.tabInner}>
                 {focused ? (
                   <>
-                    <LinearGradient
-                      colors={Gradients.brand}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={s.iconBox}
-                    >
+                    <View style={s.iconBox}>
                       <Ionicons name={tab.iconFocused} size={20} color="white" />
-                    </LinearGradient>
+                    </View>
                     <Text style={s.labelFocused}>{tab.label}</Text>
                   </>
                 ) : (
@@ -69,9 +63,9 @@ const s = StyleSheet.create({
   bar:             { backgroundColor: "white", borderRadius: 22, flexDirection: "row", paddingVertical: 10, paddingHorizontal: 4 },
   tab:             { flex: 1, alignItems: "center" },
   tabInner:        { alignItems: "center", gap: 4 },
-  iconBox:         { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  iconBox:         { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: Colors.red },
   iconBoxInactive: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  label:           { fontSize: 10, fontFamily: "SpaceGrotesk_500Medium", color: Colors.subtle, textAlign: "center" },
+  label:           { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle, textAlign: "center" },
   labelFocused:    { fontSize: 10, fontFamily: "SpaceGrotesk_700Bold", color: Colors.red, textAlign: "center" },
 });
 
@@ -91,8 +85,17 @@ export default function AdminLayout() {
       <Tabs.Screen name="business-info" options={{ tabBarButton: () => null }} />
       <Tabs.Screen name="schedule"      options={{ tabBarButton: () => null }} />
       <Tabs.Screen name="reminders"     options={{ tabBarButton: () => null }} />
-      <Tabs.Screen name="profile"       options={{ tabBarButton: () => null }} />
-      <Tabs.Screen name="billing"       options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="profile"         options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="billing"         options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="whatsapp"        options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="reviews-google"  options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="reviews-site"    options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="caja"            options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="commissions"     options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="invoices"        options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="custom-fields"   options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="reports"          options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="pos-history"     options={{ tabBarButton: () => null }} />
     </Tabs>
   );
 }

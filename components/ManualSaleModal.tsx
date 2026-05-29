@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import {
   View, Text, Modal, ScrollView, StyleSheet, TouchableOpacity,
   TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -136,10 +136,10 @@ export default function ManualSaleModal({ visible, tenantId, onClose, onSaved }:
                   activeOpacity={0.75}
                 >
                   {method === m.key ? (
-                    <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.methodGrad}>
+                    <View style={s.methodGrad}>
                       <Ionicons name={m.icon} size={18} color="white" />
                       <Text style={s.methodLabelActive}>{m.label}</Text>
-                    </LinearGradient>
+                    </View>
                   ) : (
                     <View style={s.methodInner}>
                       <Ionicons name={m.icon} size={18} color={Colors.subtle} />
@@ -214,9 +214,9 @@ const s = StyleSheet.create({
   methodGrid:    { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   methodBtn:     { flex: 1, minWidth: "45%", borderRadius: Radius.md, borderWidth: 1.5, borderColor: Colors.border, overflow: "hidden" },
   methodBtnActive:{ borderColor: "transparent" },
-  methodGrad:    { paddingVertical: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 8 },
+  methodGrad:    { paddingVertical: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.red },
   methodInner:   { paddingVertical: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.white },
-  methodLabel:   { fontSize: 13, fontFamily: "SpaceGrotesk_500Medium", color: Colors.muted },
+  methodLabel:   { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
   methodLabelActive: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "white" },
   selectedClient:{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Colors.white, borderRadius: Radius.md, padding: 12 },
   selectedClientName: { flex: 1, fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },

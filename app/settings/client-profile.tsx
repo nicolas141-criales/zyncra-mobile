@@ -1,8 +1,8 @@
-import { useEffect, useState, useCallback } from "react";
+﻿import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   ActivityIndicator, Linking, Alert, Modal,
-  TextInput, KeyboardAvoidingView, Platform,
+  TextInput, KeyboardAvoidingView, Platform, Switch,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
@@ -12,9 +12,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
 
+type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
+
 type Client = {
   id: string; name: string; phone?: string; email?: string;
-  no_shows?: number; created_at?: string;
+  no_shows?: number; created_at?: string; tenant_id?: string;
 };
 
 type Appt = {
@@ -23,12 +25,28 @@ type Appt = {
   services: { name: string; price: number } | null;
 };
 
+type CustomField = {
+  id: string; name: string; field_key: string;
+  type: "text" | "number" | "date" | "select" | "boolean";
+  options?: string[] | null; required: boolean;
+};
+
+type FieldValue = { field_id: string; value: string };
+
 const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
   pending:   { label: "Pendiente",   color: "#f59e0b", bg: "#fef9eb" },
   confirmed: { label: "Confirmada",  color: Colors.blue, bg: "#eff2ff" },
   completed: { label: "Completada",  color: Colors.success, bg: "#f0fdf4" },
   cancelled: { label: "Cancelada",   color: Colors.subtle, bg: Colors.cream2 },
   no_show:   { label: "No asistió",  color: Colors.red, bg: "#fff0f0" },
+};
+
+const FIELD_ICON: Record<string, IoniconName> = {
+  text:    "text-outline",
+  number:  "calculator-outline",
+  date:    "calendar-outline",
+  select:  "list-outline",
+  boolean: "checkmark-circle-outline",
 };
 
 const MONTHS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -145,21 +163,146 @@ function EditModal({ visible, client, onClose, onSaved }: {
   );
 }
 
+// ─── Custom fields edit modal ─────────────────────────────────────────────────
+
+function FieldsModal({ visible, fields, values, clientId, onClose, onSaved }: {
+  visible: boolean;
+  fields: CustomField[];
+  values: FieldValue[];
+  clientId: string;
+  onClose: () => void;
+  onSaved: (newVals: FieldValue[]) => void;
+}) {
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (visible) {
+      const initial: Record<string, string> = {};
+      values.forEach(v => { initial[v.field_id] = v.value; });
+      setDraft(initial);
+    }
+  }, [visible, values]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    const upserts = fields
+      .filter(f => draft[f.id] !== undefined && draft[f.id] !== "")
+      .map(f => ({ client_id: clientId, field_id: f.id, value: draft[f.id] }));
+
+    if (upserts.length > 0) {
+      await supabase.from("client_field_values").upsert(upserts, { onConflict: "client_id,field_id" });
+    }
+
+    const clearedIds = fields.filter(f => draft[f.id] === "").map(f => f.id);
+    if (clearedIds.length > 0) {
+      await supabase.from("client_field_values").delete().eq("client_id", clientId).in("field_id", clearedIds);
+    }
+
+    setSaving(false);
+    const updated = fields
+      .map(f => ({ field_id: f.id, value: draft[f.id] ?? "" }))
+      .filter(v => v.value !== "");
+    onSaved(updated);
+    onClose();
+  };
+
+  const set = (fieldId: string, val: string) => setDraft(d => ({ ...d, [fieldId]: val }));
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={fm.header}>
+          <View style={fm.headerRow}>
+            <TouchableOpacity onPress={onClose} style={fm.iconBtn}>
+              <Ionicons name="close" size={20} color="white" />
+            </TouchableOpacity>
+            <Text style={fm.headerTitle}>Campos personalizados</Text>
+            <View style={{ width: 40 }} />
+          </View>
+        </LinearGradient>
+
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
+            {fields.map(field => (
+              <View key={field.id} style={fm.field}>
+                <Text style={fm.fieldLabel}>{field.name}{field.required ? " *" : ""}</Text>
+
+                {field.type === "boolean" ? (
+                  <View style={fm.boolRow}>
+                    <Switch
+                      value={draft[field.id] === "true"}
+                      onValueChange={v => set(field.id, v ? "true" : "false")}
+                      trackColor={{ false: Colors.border, true: Colors.red + "80" }}
+                      thumbColor={draft[field.id] === "true" ? Colors.red : Colors.subtle}
+                    />
+                    <Text style={fm.boolLabel}>{draft[field.id] === "true" ? "Sí" : "No"}</Text>
+                  </View>
+
+                ) : field.type === "select" && field.options ? (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 4 }}>
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      {field.options.map(opt => {
+                        const active = draft[field.id] === opt;
+                        return (
+                          <TouchableOpacity
+                            key={opt}
+                            style={[fm.chip, active && fm.chipActive]}
+                            onPress={() => set(field.id, active ? "" : opt)}
+                            activeOpacity={0.75}
+                          >
+                            <Text style={[fm.chipText, active && { color: "white" }]}>{opt}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </ScrollView>
+
+                ) : (
+                  <TextInput
+                    style={fm.input}
+                    value={draft[field.id] ?? ""}
+                    onChangeText={v => set(field.id, v)}
+                    placeholder={field.type === "number" ? "0" : field.type === "date" ? "YYYY-MM-DD" : "—"}
+                    placeholderTextColor={Colors.subtle}
+                    keyboardType={field.type === "number" ? "numeric" : "default"}
+                  />
+                )}
+              </View>
+            ))}
+          </ScrollView>
+
+          <View style={fm.bottomBar}>
+            <TouchableOpacity style={[fm.btn, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving} activeOpacity={0.85}>
+              <View style={fm.btnGrad}>
+                {saving ? <ActivityIndicator color="white" /> : <Text style={fm.btnText}>Guardar</Text>}
+              </View>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function ClientProfileScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const [client, setClient]   = useState<Client | null>(null);
-  const [appts, setAppts]     = useState<Appt[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [editOpen, setEditOpen] = useState(false);
+  const [client, setClient]           = useState<Client | null>(null);
+  const [appts, setAppts]             = useState<Appt[]>([]);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [fieldValues, setFieldValues]  = useState<FieldValue[]>([]);
+  const [loading, setLoading]          = useState(true);
+  const [editOpen, setEditOpen]        = useState(false);
+  const [fieldsOpen, setFieldsOpen]    = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
     const [{ data: c }, { data: a }] = await Promise.all([
-      supabase.from("clients").select("id,name,phone,email,no_shows,created_at").eq("id", id).single(),
+      supabase.from("clients").select("id,name,phone,email,no_shows,created_at,tenant_id").eq("id", id).single(),
       supabase.from("appointments")
         .select("id,date,time,status,notes,services(name,price)")
         .eq("client_id", id)
@@ -168,6 +311,23 @@ export default function ClientProfileScreen() {
     ]);
     if (c) setClient(c);
     setAppts((a ?? []) as Appt[]);
+
+    if (c?.tenant_id) {
+      const [{ data: cf }, { data: fv }] = await Promise.all([
+        supabase.from("custom_fields")
+          .select("id,name,field_key,type,options,required")
+          .eq("tenant_id", c.tenant_id)
+          .in("applies_to", ["cliente", "ambos"])
+          .eq("active", true)
+          .order("order_index"),
+        supabase.from("client_field_values")
+          .select("field_id,value")
+          .eq("client_id", id),
+      ]);
+      setCustomFields((cf ?? []) as CustomField[]);
+      setFieldValues((fv ?? []) as FieldValue[]);
+    }
+
     setLoading(false);
   }, [id]);
 
@@ -193,6 +353,13 @@ export default function ClientProfileScreen() {
 
   const fmtMoney = (n: number) =>
     n >= 1000 ? `$${(n / 1000).toFixed(0)}k` : `$${n}`;
+
+  const displayValue = (field: CustomField) => {
+    const val = fieldValues.find(v => v.field_id === field.id)?.value;
+    if (!val) return "—";
+    if (field.type === "boolean") return val === "true" ? "Sí" : "No";
+    return val;
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
@@ -292,8 +459,41 @@ export default function ClientProfileScreen() {
           </View>
         </Animated.View>
 
+        {/* Custom fields */}
+        {customFields.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(120).duration(340)}>
+            <View style={s.sectionRow}>
+              <Text style={s.sectionLabel}>Campos personalizados</Text>
+              <TouchableOpacity onPress={() => setFieldsOpen(true)} style={s.editBtn}>
+                <Ionicons name="create-outline" size={12} color={Colors.blue} />
+                <Text style={s.editBtnText}>Editar</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={[s.card, Shadow.sm]}>
+              {customFields.map((field, i) => {
+                const val = displayValue(field);
+                const hasVal = val !== "—";
+                return (
+                  <View key={field.id}>
+                    {i > 0 && <View style={s.infoDivider} />}
+                    <View style={s.infoRow}>
+                      <View style={[s.infoIcon, { backgroundColor: Colors.purple + "15" }]}>
+                        <Ionicons name={FIELD_ICON[field.type] ?? "text-outline"} size={15} color={Colors.purple} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.fieldName}>{field.name}</Text>
+                        <Text style={[s.fieldVal, !hasVal && { color: Colors.subtle }]}>{val}</Text>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </Animated.View>
+        )}
+
         {/* Appointment history */}
-        <Animated.View entering={FadeInDown.delay(120).duration(340)}>
+        <Animated.View entering={FadeInDown.delay(180).duration(340)}>
           <Text style={[s.sectionLabel, { marginTop: 24 }]}>
             Historial de citas
             {appts.length > 0 && <Text style={{ color: Colors.subtle }}> · {appts.length}</Text>}
@@ -348,6 +548,15 @@ export default function ClientProfileScreen() {
         onClose={() => setEditOpen(false)}
         onSaved={handleEditSaved}
       />
+
+      <FieldsModal
+        visible={fieldsOpen}
+        fields={customFields}
+        values={fieldValues}
+        clientId={client.id}
+        onClose={() => setFieldsOpen(false)}
+        onSaved={newVals => setFieldValues(newVals)}
+      />
     </SafeAreaView>
   );
 }
@@ -368,18 +577,23 @@ const s = StyleSheet.create({
   actionLabel:  { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "white" },
 
   sectionLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.9, marginBottom: 10, marginTop: 20 },
+  sectionRow:   { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 20, marginBottom: 10 },
+  editBtn:      { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.blue + "12", borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 5 },
+  editBtnText:  { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.blue },
 
   statsCard:    { backgroundColor: Colors.white, borderRadius: Radius.lg, flexDirection: "row", padding: 16 },
   statBox:      { flex: 1, alignItems: "center", gap: 4 },
   statVal:      { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
-  statLabel:    { fontSize: 10, fontFamily: "SpaceGrotesk_500Medium", color: Colors.subtle, textAlign: "center" },
+  statLabel:    { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle, textAlign: "center" },
   statDivider:  { width: 1, backgroundColor: Colors.border, marginVertical: 4 },
 
   card:         { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16 },
   infoRow:      { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 4 },
   infoIcon:     { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  infoText:     { fontSize: 14, fontFamily: "SpaceGrotesk_500Medium", color: Colors.text },
+  infoText:     { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   infoDivider:  { height: 1, backgroundColor: Colors.border, marginVertical: 8 },
+  fieldName:    { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
+  fieldVal:     { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text, marginTop: 2 },
 
   emptyCard:    { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 40, alignItems: "center" },
   emptyTitle:   { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
@@ -406,6 +620,25 @@ const em = StyleSheet.create({
   input:      { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
   bottomBar:  { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
   btn:        { borderRadius: Radius.full, overflow: "hidden" },
-  btnGrad: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
+  btnGrad:    { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
+  btnText:    { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
+});
+
+const fm = StyleSheet.create({
+  header:     { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 20 },
+  headerRow:  { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  iconBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
+  headerTitle:{ fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
+  field:      { marginBottom: 20 },
+  fieldLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 },
+  input:      { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
+  boolRow:    { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 12 },
+  boolLabel:  { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
+  chip:       { borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.full, paddingHorizontal: 14, paddingVertical: 9, backgroundColor: Colors.white },
+  chipActive: { backgroundColor: Colors.red, borderColor: Colors.red },
+  chipText:   { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
+  bottomBar:  { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
+  btn:        { borderRadius: Radius.full, overflow: "hidden" },
+  btnGrad:    { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
   btnText:    { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 });

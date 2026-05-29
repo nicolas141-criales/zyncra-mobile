@@ -187,7 +187,7 @@ const dm = StyleSheet.create({
   summaryBox:  { backgroundColor: "rgba(255,255,255,.15)", borderRadius: Radius.lg, padding: 16, alignItems: "center", gap: 4 },
   clientName:  { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   meta:        { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.8)" },
-  proMeta:     { fontSize: 12, fontFamily: "SpaceGrotesk_500Medium", color: "rgba(255,255,255,.65)", fontStyle: "italic" },
+  proMeta:     { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.65)", fontStyle: "italic" },
   price:       { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", marginTop: 4 },
   sectionLabel:{ fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 14 },
   statusBtn:   { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.white, borderRadius: Radius.md, padding: 14, borderWidth: 1.5, borderColor: Colors.border, overflow: "hidden" },
@@ -432,9 +432,9 @@ function EditApptModal({ appt, tenantId, professionals, onClose, onSaved }: {
                       onPress={() => setSelectedClient(c)}
                       activeOpacity={0.75}
                     >
-                      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={em.avatar}>
+                      <View style={[em.avatar, { backgroundColor: Colors.red }]}>
                         <Text style={em.avatarWhite}>{c.name[0].toUpperCase()}</Text>
-                      </LinearGradient>
+                      </View>
                       <View style={{ flex: 1 }}>
                         <Text style={[em.cardTitle, selectedClient?.id === c.id && { color: Colors.red }]}>{c.name}</Text>
                         <Text style={em.cardSub}>{c.phone}</Text>
@@ -501,9 +501,9 @@ function EditApptModal({ appt, tenantId, professionals, onClose, onSaved }: {
                       >
                         <Text style={[em.dayName, isSel && !blocked && { color: Colors.red }]}>{DAYS[d.getDay()]}</Text>
                         {isSel && !blocked ? (
-                          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={em.dayCircle}>
+                          <View style={[em.dayCircle, { backgroundColor: Colors.red }]}>
                             <Text style={[em.dayNum, { color: "white" }]}>{d.getDate()}</Text>
-                          </LinearGradient>
+                          </View>
                         ) : (
                           <View style={[em.dayCircle, isToday && !blocked && { backgroundColor: Colors.red + "15" }]}>
                             <Text style={[em.dayNum, isToday && !blocked && { color: Colors.red }]}>{d.getDate()}</Text>
@@ -546,7 +546,7 @@ function EditApptModal({ appt, tenantId, professionals, onClose, onSaved }: {
                               activeOpacity={0.75}
                             >
                               {selectedTime === t && (
-                                <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+                                <View style={[StyleSheet.absoluteFill, { backgroundColor: Colors.red }]} />
                               )}
                               <Text style={[em.timeSlotText, selectedTime === t && { color: "white" }]}>{fmt12(t)}</Text>
                             </TouchableOpacity>
@@ -647,12 +647,7 @@ function ProChip({ label, initials, color, active, onPress }: {
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.75} style={[pc.chip, active && pc.chipActive]}>
       {active && (
-        <LinearGradient
-          colors={color ? [color, color] : Gradients.brand}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-          style={StyleSheet.absoluteFill}
-          borderRadius={Radius.full}
-        />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: color ?? Colors.red, borderRadius: Radius.full }]} />
       )}
       {initials ? (
         <View style={[pc.avatar, { backgroundColor: active ? "rgba(255,255,255,.25)" : (color ?? Colors.red) + "18" }]}>
@@ -876,7 +871,7 @@ export default function AgendaScreen() {
                 {DAYS[d.getDay()]}
               </Text>
               <View style={[s.dayNum, isSel && s.dayNumSel, isToday && !isSel && { backgroundColor: Colors.red + "15" }]}>
-                {isSel && <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} borderRadius={12} />}
+                {isSel && <View style={[StyleSheet.absoluteFill, { backgroundColor: Colors.red, borderRadius: 12 }]} />}
                 <Text style={[s.dayNumText, isSel && { color: "white" }, isToday && !isSel && { color: Colors.red }]}>
                   {d.getDate()}
                 </Text>

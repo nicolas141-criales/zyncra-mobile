@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ScrollView, Pressable,
@@ -263,7 +263,7 @@ const s = StyleSheet.create({
   },
   tagline: {
     fontSize: 9.5,
-    fontFamily: "SpaceGrotesk_500Medium",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     color: "rgba(255,255,255,0.32)",
     letterSpacing: 2.2,
     textTransform: "uppercase",
@@ -333,7 +333,7 @@ const s = StyleSheet.create({
     flex: 1,
     color: "#ff6060",
     fontSize: 13,
-    fontFamily: "SpaceGrotesk_500Medium",
+    fontFamily: "SpaceGrotesk_600SemiBold",
   },
   footer: {
     flexDirection: "row",

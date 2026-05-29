@@ -147,14 +147,9 @@ export default function RemindersScreen() {
                         activeOpacity={0.75}
                       >
                         {active ? (
-                          <LinearGradient
-                            colors={Gradients.brand}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={s.hourPillGrad}
-                          >
+                          <View style={s.hourPillGrad}>
                             <Text style={s.hourLabelActive}>{opt.label}</Text>
-                          </LinearGradient>
+                          </View>
                         ) : (
                           <Text style={s.hourLabel}>{opt.label}</Text>
                         )}
@@ -289,7 +284,7 @@ const s = StyleSheet.create({
   hoursRow:     { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   hourPill:     { borderRadius: Radius.full, borderWidth: 1.5, borderColor: Colors.border, overflow: "hidden" },
   hourPillActive:{ borderColor: "transparent" },
-  hourPillGrad: { paddingVertical: 9, paddingHorizontal: 16, alignItems: "center" },
+  hourPillGrad: { paddingVertical: 9, paddingHorizontal: 16, alignItems: "center", backgroundColor: Colors.red },
   hourLabel:    { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted, paddingVertical: 9, paddingHorizontal: 16 },
   hourLabelActive:{ fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 

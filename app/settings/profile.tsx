@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
@@ -287,7 +287,7 @@ const s = StyleSheet.create({
   avatarWrap:     { alignItems: "center" },
   avatar:         { width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(255,255,255,.25)", alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: "rgba(255,255,255,.5)", marginBottom: 10 },
   avatarText:     { fontSize: 26, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
-  avatarEmail:    { fontSize: 13, fontFamily: "SpaceGrotesk_500Medium", color: "rgba(255,255,255,.85)" },
+  avatarEmail:    { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.85)" },
 
   sectionLabel:   { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.9, marginBottom: 10 },
 
@@ -313,7 +313,7 @@ const s = StyleSheet.create({
   strengthBar:    { flex: 1, height: 3, borderRadius: 4 },
   strengthLabel:  { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", width: 42 },
 
-  mismatchText:   { fontSize: 11, fontFamily: "SpaceGrotesk_500Medium", color: Colors.red, marginTop: 6 },
+  mismatchText:   { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.red, marginTop: 6 },
 
   bottomBar:      { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
   btn:            { borderRadius: Radius.full, overflow: "hidden" },

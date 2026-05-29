@@ -71,7 +71,30 @@ export default function SettingsScreen() {
     {
       title: "Comunicación",
       items: [
-        { icon: "notifications-outline" as IoniconName, color: Colors.success, label: "Recordatorios",  sub: "Alertas automáticas a clientes", route: "/settings/reminders" },
+        { icon: "notifications-outline" as IoniconName, color: Colors.success, label: "Recordatorios",          sub: "Alertas automáticas a clientes",      route: "/settings/reminders" },
+      ],
+    },
+    {
+      title: "Marketing",
+      items: [
+        { icon: "logo-whatsapp" as IoniconName,        color: "#25D366",      label: "Campañas WhatsApp",       sub: "Mensajes masivos personalizados",      route: "/(admin)/whatsapp" },
+        { icon: "star-outline" as IoniconName,         color: "#f59e0b",      label: "Reseñas Google",           sub: "Solicita reseñas a tus clientes",      route: "/(admin)/reviews-google" },
+        { icon: "chatbubbles-outline" as IoniconName,  color: Colors.purple,  label: "Reseñas del sitio",        sub: "Modera las opiniones de tu negocio",   route: "/(admin)/reviews-site" },
+      ],
+    },
+    {
+      title: "Finanzas",
+      items: [
+        { icon: "wallet-outline" as IoniconName,      color: Colors.success, label: "Caja",                sub: "Control de ingresos y egresos",   route: "/(admin)/caja" },
+        { icon: "ribbon-outline" as IoniconName,      color: "#f59e0b",      label: "Comisiones",          sub: "Paga a tu equipo de trabajo",     route: "/(admin)/commissions" },
+        { icon: "document-text-outline" as IoniconName, color: Colors.blue,  label: "Factura Electrónica", sub: "Emite facturas DIAN vía Factus",  route: "/(admin)/invoices" },
+      ],
+    },
+    {
+      title: "Herramientas",
+      items: [
+        { icon: "bar-chart-outline" as IoniconName,   color: Colors.red,     label: "Reportes",              sub: "Ingresos, servicios y rendimiento", route: "/(admin)/reports" },
+        { icon: "options-outline" as IoniconName,     color: "#8b5cf6",      label: "Campos Personalizados", sub: "Datos extra para clientes y citas", route: "/(admin)/custom-fields" },
       ],
     },
     {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { View, Text, StyleSheet, Dimensions, Image } from "react-native";
 import Animated, {
   useSharedValue, useAnimatedStyle,
@@ -305,7 +305,7 @@ const s = StyleSheet.create({
   },
   tagline: {
     fontSize: 12,
-    fontFamily: "SpaceGrotesk_500Medium",
+    fontFamily: "SpaceGrotesk_600SemiBold",
     color: "rgba(255,255,255,.45)",
     letterSpacing: 1.2,
     textTransform: "uppercase",

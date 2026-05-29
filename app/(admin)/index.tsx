@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInDown, FadeInRight, FadeInUp } from "react-native-reanimated";
@@ -66,7 +66,7 @@ const sc = StyleSheet.create({
   chip:    { flex: 1, backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14, alignItems: "center", gap: 6 },
   iconBox: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   value:   { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", letterSpacing: -0.5 },
-  label:   { fontSize: 10, fontFamily: "SpaceGrotesk_500Medium", color: Colors.muted, textAlign: "center" },
+  label:   { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted, textAlign: "center" },
 });
 
 // ─── Appointment row ──────────────────────────────────────────────────────────
@@ -241,13 +241,30 @@ export default function DashboardScreen() {
             <StatChip icon="people-outline"           value={String(metrics.clients)}   label="Clientes"     color={Colors.purple}  delay={280} />
           </View>
 
+          {/* ── Quick access ── */}
+          <Animated.View entering={FadeInDown.delay(300).duration(380)}>
+            <TouchableOpacity
+              style={s.reportsBtn}
+              onPress={() => router.navigate("/(admin)/reports" as any)}
+              activeOpacity={0.85}
+            >
+              <View style={s.reportsBtnIcon}>
+                <Ionicons name="bar-chart-outline" size={16} color={Colors.red} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.reportsBtnTitle}>Ver Reportes</Text>
+                <Text style={s.reportsBtnSub}>Ingresos, servicios, equipo</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={Colors.subtle} />
+            </TouchableOpacity>
+          </Animated.View>
+
           {/* ── Today's agenda ── */}
-          <Animated.View entering={FadeInDown.delay(320).duration(380)} style={{ marginTop: 8 }}>
+          <Animated.View entering={FadeInDown.delay(360).duration(380)} style={{ marginTop: 8 }}>
             <View style={s.sectionHeader}>
               <Text style={s.sectionTitle}>Agenda de hoy</Text>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <TouchableOpacity style={s.newCitaBtn} onPress={() => setShowNew(true)} activeOpacity={0.8}>
-                  <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} borderRadius={Radius.full} />
                   <Ionicons name="add" size={14} color="white" />
                   <Text style={s.newCitaBtnText}>Nueva cita</Text>
                 </TouchableOpacity>
@@ -266,7 +283,6 @@ export default function DashboardScreen() {
                   <Text style={s.emptyTitle}>Sin citas para hoy</Text>
                   <Text style={s.emptySub}>Agenda la primera cita del día</Text>
                   <TouchableOpacity style={s.emptyBtn} onPress={() => setShowNew(true)} activeOpacity={0.8}>
-                    <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} borderRadius={Radius.full} />
                     <Ionicons name="add" size={15} color="white" />
                     <Text style={s.emptyBtnText}>Agendar cita</Text>
                   </TouchableOpacity>
@@ -305,7 +321,7 @@ const s = StyleSheet.create({
   headerGrad:    { paddingTop: 24, paddingHorizontal: 24, paddingBottom: 28, overflow: "hidden" },
   headerBlob1:   { position: "absolute", width: 220, height: 220, borderRadius: 110, backgroundColor: "rgba(255,255,255,.08)", top: -70, right: -50 },
   headerBlob2:   { position: "absolute", width: 120, height: 120, borderRadius: 60, backgroundColor: "rgba(0,0,0,.06)", bottom: -30, left: -20 },
-  greeting:      { fontSize: 13, fontFamily: "SpaceGrotesk_500Medium", color: "rgba(255,255,255,.8)", marginBottom: 4 },
+  greeting:      { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.8)", marginBottom: 4 },
   bizName:       { fontSize: 28, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.8 },
   date:          { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.65)", marginTop: 4, textTransform: "capitalize" },
   summaryPill:   { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.15)", borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 6, marginTop: 14, alignSelf: "flex-start" },
@@ -314,11 +330,11 @@ const s = StyleSheet.create({
   revenueCard:   { borderRadius: Radius.xl, overflow: "hidden" },
   revenueGrad:   { padding: 20, overflow: "hidden" },
   revenueBlob:   { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(255,255,255,.04)", top: -50, right: -40 },
-  revenueLabel:  { fontSize: 12, fontFamily: "SpaceGrotesk_500Medium", color: "rgba(255,255,255,.55)", marginBottom: 6 },
+  revenueLabel:  { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.55)", marginBottom: 6 },
   revenueValue:  { fontSize: 36, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -1.5 },
   revenueSub:    { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 },
   revenueDot:    { width: 7, height: 7, borderRadius: 4 },
-  revenueSubText:{ fontSize: 12, fontFamily: "SpaceGrotesk_500Medium", color: "rgba(255,255,255,.6)" },
+  revenueSubText:{ fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.6)" },
   revenueBadge:  { width: 44, height: 44, borderRadius: 14, backgroundColor: "rgba(255,255,255,.1)", alignItems: "center", justifyContent: "center" },
   projectedRow:  { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,.08)" },
   projectedText: { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.45)" },
@@ -326,14 +342,19 @@ const s = StyleSheet.create({
   sectionHeader:    { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
   sectionTitle:     { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, letterSpacing: -0.3 },
   sectionLink:      { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.red },
-  newCitaBtn:       { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: Radius.full, paddingVertical: 6, paddingHorizontal: 12, overflow: "hidden" },
+  newCitaBtn:       { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: Radius.full, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: Colors.red },
   newCitaBtnText:   { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
+
+  reportsBtn:       { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14, ...Shadow.sm },
+  reportsBtnIcon:   { width: 36, height: 36, borderRadius: 11, backgroundColor: Colors.red + "14", alignItems: "center", justifyContent: "center" },
+  reportsBtnTitle:  { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
+  reportsBtnSub:    { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 1 },
 
   empty:         { borderRadius: Radius.xl, overflow: "hidden" },
   emptyInner:    { padding: 36, alignItems: "center" },
   emptyIcon:     { width: 60, height: 60, borderRadius: 20, backgroundColor: Colors.white, alignItems: "center", justifyContent: "center", marginBottom: 14, ...Shadow.sm },
   emptyTitle:    { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:      { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center", lineHeight: 19, marginBottom: 20 },
-  emptyBtn:      { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: Radius.full, paddingVertical: 11, paddingHorizontal: 20, overflow: "hidden" },
+  emptyBtn:      { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: Radius.full, paddingVertical: 11, paddingHorizontal: 20, backgroundColor: Colors.red },
   emptyBtnText:  { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 });

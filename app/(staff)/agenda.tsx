@@ -249,7 +249,7 @@ const s = StyleSheet.create({
   weekStrip:    { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, paddingHorizontal: 4, paddingVertical: 10 },
   weekArrow:    { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
   dayBtn:       { flex: 1, alignItems: "center", gap: 4 },
-  dayLabel:     { fontSize: 10, fontFamily: "SpaceGrotesk_500Medium", color: Colors.muted },
+  dayLabel:     { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
   dayLabelSel:  { color: Colors.red, fontFamily: "SpaceGrotesk_700Bold" },
   dayNum:       { width: 30, height: 30, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   dayNumSel:    { backgroundColor: Colors.red },

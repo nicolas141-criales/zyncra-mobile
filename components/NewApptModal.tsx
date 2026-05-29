@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import {
   Modal, View, Text, TouchableOpacity, StyleSheet,
   ScrollView, TextInput, ActivityIndicator,
@@ -627,7 +627,7 @@ const s = StyleSheet.create({
 
   card:       { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, marginBottom: 12 },
   fieldLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.6 },
-  input:      { fontSize: 15, fontFamily: "SpaceGrotesk_500Medium", color: Colors.text, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, padding: 12 },
+  input:      { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, padding: 12 },
 
   searchBar:   { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, borderRadius: Radius.lg, paddingHorizontal: 14, paddingVertical: 11, marginBottom: 12, gap: 8 },
   searchInput: { flex: 1, fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },

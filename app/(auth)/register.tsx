@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ScrollView, Pressable, KeyboardAvoidingView, Platform,
@@ -216,7 +216,7 @@ export default function RegisterScreen() {
               onChangeText={setBusinessName} />
             <GradientBtn label="Continuar →" onPress={() => setStep(2)} disabled={!can1} />
             <TouchableOpacity style={{ alignItems: "center", marginTop: 20 }} onPress={() => router.back()}>
-              <Text style={{ color: Colors.muted, fontSize: 14, fontFamily: "SpaceGrotesk_500Medium" }}>
+              <Text style={{ color: Colors.muted, fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold" }}>
                 ¿Ya tienes cuenta? <Text style={{ color: Colors.red, fontFamily: "SpaceGrotesk_700Bold" }}>Inicia sesión</Text>
               </Text>
             </TouchableOpacity>
@@ -275,7 +275,7 @@ export default function RegisterScreen() {
                 );
               })}
             </View>
-            <Text style={{ textAlign: "center", color: Colors.subtle, fontSize: 12, fontFamily: "SpaceGrotesk_500Medium", marginTop: 12 }}>
+            <Text style={{ textAlign: "center", color: Colors.subtle, fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", marginTop: 12 }}>
               {goals.length}/3 seleccionados
             </Text>
             <View style={c.btnRow}>
@@ -416,6 +416,6 @@ const c = StyleSheet.create({
   goalTextActive: { color: Colors.red },
   goalCheck: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.red },
   errorBox: { backgroundColor: "#fff0f0", borderWidth: 1, borderColor: "rgba(251,15,5,.2)", borderRadius: Radius.md, padding: 12, marginBottom: 16 },
-  errorText: { color: "#d90d04", fontSize: 13, fontFamily: "SpaceGrotesk_500Medium" },
+  errorText: { color: "#d90d04", fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
   planCard: { width: "100%", borderRadius: Radius.xl, padding: 22 },
 });

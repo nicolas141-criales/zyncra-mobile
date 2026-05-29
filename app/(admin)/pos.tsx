@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+﻿import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "expo-router";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   RefreshControl, ActivityIndicator, Modal, Alert,
@@ -115,7 +116,7 @@ function PaymentModal({ appt, onConfirm, onClose }: {
                 onPress={() => setMethod(m.key)}
                 activeOpacity={0.75}
               >
-                {active && <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} borderRadius={Radius.md} />}
+                {active && <View style={[StyleSheet.absoluteFill, { backgroundColor: Colors.red, borderRadius: Radius.md }]} />}
                 <View style={[pm.methodIcon, { backgroundColor: active ? "rgba(255,255,255,.2)" : m.color + "15" }]}>
                   <Ionicons name={m.icon} size={20} color={active ? "white" : m.color} />
                 </View>
@@ -223,7 +224,6 @@ function ApptCard({ appt, linkedSale, onCobrar, onCancel, index }: {
                 <Text style={ac.cancelText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity style={ac.cobraBtn} onPress={onCobrar} activeOpacity={0.85}>
-                <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} borderRadius={Radius.md} />
                 <Ionicons name="card-outline" size={15} color="white" />
                 <Text style={ac.cobraText}>Cobrar{price > 0 ? ` ${fmt(price)}` : ""}</Text>
               </TouchableOpacity>
@@ -268,7 +268,7 @@ const ac = StyleSheet.create({
   actionRow:   { flexDirection: "row", gap: 8, marginTop: 14 },
   cancelBtn:   { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: Radius.md, borderWidth: 1.5, borderColor: Colors.red + "40", paddingHorizontal: 12, paddingVertical: 10 },
   cancelText:  { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.red },
-  cobraBtn:    { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: Radius.md, paddingVertical: 11, overflow: "hidden" },
+  cobraBtn:    { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderRadius: Radius.md, paddingVertical: 11, backgroundColor: Colors.red },
   cobraText:   { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   paidRow:     { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10 },
   paidBadge:   { flexDirection: "row", alignItems: "center", gap: 4 },
@@ -280,6 +280,7 @@ const ac = StyleSheet.create({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function PosScreen() {
+  const router = useRouter();
   const [tenantId, setTenantId]     = useState<string | null>(null);
   const [date, setDate]             = useState(new Date());
   const [appts, setAppts]           = useState<Appt[]>([]);
@@ -408,6 +409,9 @@ export default function PosScreen() {
                 <Ionicons name="chevron-forward" size={16} color={isToday ? "rgba(255,255,255,.3)" : "white"} />
               </TouchableOpacity>
             </View>
+            <TouchableOpacity style={s.addBtn} onPress={() => router.push("/(admin)/pos-history" as any)} activeOpacity={0.8}>
+              <Ionicons name="time-outline" size={19} color="white" />
+            </TouchableOpacity>
             <TouchableOpacity style={s.addBtn} onPress={() => setShowManual(true)} activeOpacity={0.8}>
               <Ionicons name="add" size={22} color="white" />
             </TouchableOpacity>
@@ -477,7 +481,7 @@ export default function PosScreen() {
                   activeOpacity={0.75}
                 >
                   {active && (
-                    <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+                    <View style={[StyleSheet.absoluteFill, { backgroundColor: Colors.red }]} />
                   )}
                   <Text style={[s.tabLabel, active && { color: "white" }]}>{tab.label}</Text>
                 </TouchableOpacity>
@@ -601,7 +605,7 @@ const s = StyleSheet.create({
 
   heroCard:       { borderRadius: Radius.xl, overflow: "hidden" },
   heroGrad:       { flexDirection: "row", alignItems: "center", padding: 22, gap: 16 },
-  heroLabel:      { fontSize: 12, fontFamily: "SpaceGrotesk_500Medium", color: "rgba(255,255,255,.6)", marginBottom: 4 },
+  heroLabel:      { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.6)", marginBottom: 4 },
   heroValue:      { fontSize: 34, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -1 },
   heroSub:        { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.5)", marginTop: 4 },
   projectedBox:   { backgroundColor: "rgba(255,255,255,.08)", borderRadius: Radius.lg, padding: 14, alignItems: "center", minWidth: 110 },
