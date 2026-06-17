@@ -112,8 +112,24 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
-        <Text style={s.headerTitle}>Ajustes</Text>
-        <Text style={s.headerSub}>Configura tu negocio</Text>
+        <View style={s.headerBlob1} />
+        <View style={s.headerBlob2} />
+
+        <View style={s.headerTopRow}>
+          <View style={s.headerIconBox}>
+            <Ionicons name="settings" size={16} color="white" />
+          </View>
+          <Text style={s.headerLabel}>Ajustes</Text>
+        </View>
+
+        <Text style={s.headerTitle}>Configura tu negocio</Text>
+
+        {tenant && (
+          <View style={s.headerPill}>
+            <Ionicons name="storefront" size={12} color="rgba(255,255,255,.9)" />
+            <Text style={s.headerPillText}>{tenant.name}</Text>
+          </View>
+        )}
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 110 }}>
@@ -176,9 +192,15 @@ export default function SettingsScreen() {
 }
 
 const s = StyleSheet.create({
-  header:       { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
-  headerTitle:  { fontSize: 24, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.5 },
-  headerSub:    { fontSize: 13, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
+  header:          { paddingTop: 14, paddingHorizontal: 20, paddingBottom: 16, overflow: "hidden" },
+  headerBlob1:     { position: "absolute", width: 200, height: 200, borderRadius: 100, backgroundColor: "rgba(255,255,255,.06)", top: -80, right: -40 },
+  headerBlob2:     { position: "absolute", width: 100, height: 100, borderRadius: 50, backgroundColor: "rgba(0,0,0,.05)", bottom: -30, left: -20 },
+  headerTopRow:    { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14, position: "relative", zIndex: 1 },
+  headerIconBox:   { width: 32, height: 32, borderRadius: 10, backgroundColor: "rgba(255,255,255,.15)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" },
+  headerLabel:     { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.8)" },
+  headerTitle:     { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.5, marginBottom: 12, position: "relative", zIndex: 1 },
+  headerPill:      { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.14)", borderRadius: Radius.full, paddingVertical: 8, paddingHorizontal: 14, alignSelf: "flex-start", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)", position: "relative", zIndex: 1 },
+  headerPillText:  { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.9)" },
   sectionTitle: { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10, marginTop: 20 },
   group:        { ...Glass.cardStrong, borderRadius: Radius.lg, overflow: "hidden" },
   row:          { flexDirection: "row", alignItems: "center", gap: 14, padding: 16 },

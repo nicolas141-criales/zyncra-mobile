@@ -397,28 +397,42 @@ export default function PosScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
-        <View style={s.headerRow}>
-          <View>
-            <Text style={s.headerTitle}>Cobros</Text>
-            <Text style={s.headerSub}>Gestiona los pagos del día</Text>
+        <View style={s.headerBlob1} />
+        <View style={s.headerBlob2} />
+
+        <View style={s.headerTopRow}>
+          <View style={s.headerIconBox}>
+            <Ionicons name="card" size={16} color="white" />
           </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <Text style={s.headerLabel}>Cobros</Text>
+          <View style={{ flex: 1 }} />
+          <TouchableOpacity style={s.headerActionBtn} onPress={() => router.push("/(admin)/pos-history" as any)} activeOpacity={0.8}>
+            <Ionicons name="time-outline" size={17} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity style={s.headerActionBtn} onPress={() => setShowManual(true)} activeOpacity={0.8}>
+            <Ionicons name="add" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={s.headerHeroRow}>
+          <View>
+            <Text style={s.headerTitle}>Gestión de pagos</Text>
             <View style={s.dateNav}>
               <TouchableOpacity onPress={() => setDate(d => addDays(d, -1))} style={s.navBtn}>
-                <Ionicons name="chevron-back" size={16} color="white" />
+                <Ionicons name="chevron-back" size={14} color="white" />
               </TouchableOpacity>
               <Text style={s.dateLabel}>{dateLabel}</Text>
               <TouchableOpacity onPress={() => setDate(d => addDays(d, 1))} style={s.navBtn} disabled={isToday}>
-                <Ionicons name="chevron-forward" size={16} color={isToday ? "rgba(255,255,255,.3)" : "white"} />
+                <Ionicons name="chevron-forward" size={14} color={isToday ? "rgba(255,255,255,.3)" : "white"} />
               </TouchableOpacity>
             </View>
-            <TouchableOpacity style={s.addBtn} onPress={() => router.push("/(admin)/pos-history" as any)} activeOpacity={0.8}>
-              <Ionicons name="time-outline" size={19} color="white" />
-            </TouchableOpacity>
-            <TouchableOpacity style={s.addBtn} onPress={() => setShowManual(true)} activeOpacity={0.8}>
-              <Ionicons name="add" size={22} color="white" />
-            </TouchableOpacity>
           </View>
+          {cobrado > 0 && (
+            <View style={s.headerAmountBox}>
+              <Text style={s.headerAmountLabel}>Cobrado</Text>
+              <Text style={s.headerAmountValue}>{fmt(cobrado)}</Text>
+            </View>
+          )}
         </View>
       </LinearGradient>
 
@@ -597,14 +611,21 @@ export default function PosScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  header:         { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
-  headerRow:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  headerTitle:    { fontSize: 24, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.5 },
-  headerSub:      { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
-  dateNav:        { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.18)", borderRadius: Radius.full, paddingVertical: 6, paddingHorizontal: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
-  navBtn:         { padding: 2 },
-  dateLabel:      { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: "white", minWidth: 40, textAlign: "center" },
-  addBtn:         { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,.2)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
+  header:          { paddingTop: 14, paddingHorizontal: 20, paddingBottom: 18, overflow: "hidden" },
+  headerBlob1:     { position: "absolute", width: 200, height: 200, borderRadius: 100, backgroundColor: "rgba(255,255,255,.06)", top: -80, right: -40 },
+  headerBlob2:     { position: "absolute", width: 100, height: 100, borderRadius: 50, backgroundColor: "rgba(0,0,0,.05)", bottom: -30, left: -20 },
+  headerTopRow:    { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14, position: "relative", zIndex: 1 },
+  headerIconBox:   { width: 32, height: 32, borderRadius: 10, backgroundColor: "rgba(255,255,255,.15)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" },
+  headerLabel:     { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.8)" },
+  headerActionBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.15)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)", marginLeft: 6 },
+  headerHeroRow:   { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", position: "relative", zIndex: 1 },
+  headerTitle:     { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.4, marginBottom: 10 },
+  dateNav:         { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(255,255,255,.14)", borderRadius: Radius.full, paddingVertical: 6, paddingHorizontal: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" },
+  navBtn:          { padding: 2 },
+  dateLabel:       { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: "white", minWidth: 36, textAlign: "center" },
+  headerAmountBox: { backgroundColor: "rgba(255,255,255,.15)", borderRadius: Radius.lg, paddingVertical: 10, paddingHorizontal: 14, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" },
+  headerAmountLabel:{ fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.65)", textTransform: "uppercase", letterSpacing: 0.5 },
+  headerAmountValue:{ fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white", marginTop: 2 },
 
   heroCard:       { borderRadius: Radius.xl, overflow: "hidden" },
   heroGrad:       { flexDirection: "row", alignItems: "center", padding: 22, gap: 16 },

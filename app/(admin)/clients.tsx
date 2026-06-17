@@ -400,14 +400,27 @@ export default function ClientsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <View>
-            <Text style={s.headerTitle}>Clientes</Text>
-            <Text style={s.headerSub}>{clients.length} en tu base de datos</Text>
+        <View style={s.headerBlob1} />
+        <View style={s.headerBlob2} />
+
+        <View style={s.headerTopRow}>
+          <View style={s.headerIconBox}>
+            <Ionicons name="people" size={16} color="white" />
           </View>
+          <Text style={s.headerLabel}>Clientes</Text>
+          <View style={{ flex: 1 }} />
           <TouchableOpacity style={s.addBtn} onPress={() => setNewModal(true)} activeOpacity={0.8}>
-            <Ionicons name="person-add-outline" size={20} color="white" />
+            <Ionicons name="person-add-outline" size={18} color="white" />
           </TouchableOpacity>
+        </View>
+
+        <Text style={s.headerTitle}>Tu base de clientes</Text>
+
+        <View style={s.headerStatsRow}>
+          <View style={s.headerStatPill}>
+            <Ionicons name="people" size={12} color="rgba(255,255,255,.9)" />
+            <Text style={s.headerStatText}>{clients.length} cliente{clients.length !== 1 ? "s" : ""}</Text>
+          </View>
         </View>
       </LinearGradient>
 
@@ -489,10 +502,17 @@ export default function ClientsScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  header:      { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
-  headerTitle: { fontSize: 24, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.5 },
-  headerSub:   { fontSize: 13, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
-  addBtn:      { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.2)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
+  header:          { paddingTop: 14, paddingHorizontal: 20, paddingBottom: 16, overflow: "hidden" },
+  headerBlob1:     { position: "absolute", width: 200, height: 200, borderRadius: 100, backgroundColor: "rgba(255,255,255,.06)", top: -80, right: -40 },
+  headerBlob2:     { position: "absolute", width: 100, height: 100, borderRadius: 50, backgroundColor: "rgba(0,0,0,.05)", bottom: -30, left: -20 },
+  headerTopRow:    { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14, position: "relative", zIndex: 1 },
+  headerIconBox:   { width: 32, height: 32, borderRadius: 10, backgroundColor: "rgba(255,255,255,.15)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" },
+  headerLabel:     { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.8)" },
+  headerTitle:     { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.5, marginBottom: 12, position: "relative", zIndex: 1 },
+  headerStatsRow:  { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,.14)", borderRadius: Radius.full, paddingVertical: 8, paddingHorizontal: 14, alignSelf: "flex-start", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)", position: "relative", zIndex: 1 },
+  headerStatPill:  { flexDirection: "row", alignItems: "center", gap: 6 },
+  headerStatText:  { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.9)" },
+  addBtn:          { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,.15)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
   searchWrap:  { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.65)", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.5)" },
   search:      { flex: 1, fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
   row:         { ...Glass.cardStrong, borderRadius: Radius.md, padding: 14, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 },
