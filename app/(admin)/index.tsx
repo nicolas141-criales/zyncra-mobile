@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from "react-native";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, { FadeInDown, FadeInRight, FadeInUp } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInRight, FadeInUp, FadeIn } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -169,8 +169,16 @@ export default function DashboardScreen() {
   useEffect(() => { load(); refreshAllReminders(); }, []);
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
-  const todayLabel = new Date().toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
+  const now = new Date();
+  const todayLabel = now.toLocaleDateString("es-CO", { weekday: "short", day: "numeric", month: "short" });
   const pendingCount = appts.filter(a => a.status === "pending" || a.status === "confirmed").length;
+
+  const nextAppt = appts.find(a => {
+    const dt = new Date(`${a.appointment_date}T${a.appointment_time}`);
+    return dt > now && (a.status === "confirmed" || a.status === "pending");
+  });
+  const nextTime = nextAppt ? nextAppt.appointment_time.substring(0, 5) : null;
+  const nextHour = nextTime ? (() => { const h = parseInt(nextTime.slice(0, 2), 10); return `${h % 12 || 12}:${nextTime.slice(3)} ${h >= 12 ? "PM" : "AM"}`; })() : null;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
@@ -182,20 +190,61 @@ export default function DashboardScreen() {
         <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.headerGrad}>
           <View style={s.headerBlob1} />
           <View style={s.headerBlob2} />
-          <Animated.View entering={FadeInDown.duration(400)} style={{ position: "relative", zIndex: 1 }}>
-            <Text style={s.greeting}>{greeting()} 👋</Text>
-            <Text style={s.bizName} numberOfLines={1}>{tenantName}</Text>
-            <Text style={s.date}>{todayLabel}</Text>
+          <View style={s.headerBlob3} />
 
-            {/* Summary pill */}
-            {metrics.total > 0 && (
-              <View style={s.summaryPill}>
-                <Ionicons name="calendar-outline" size={12} color="rgba(255,255,255,.9)" />
-                <Text style={s.summaryText}>
-                  {metrics.total} cita{metrics.total !== 1 ? "s" : ""} hoy
-                  {metrics.revenueDay > 0 ? `  ·  ${fmtMoney(metrics.revenueDay)} cobrado` : ""}
-                </Text>
-              </View>
+          {/* Top bar: logo + bell */}
+          <Animated.View entering={FadeIn.duration(350)} style={s.topBar}>
+            <View style={s.logoRow}>
+              <Image source={require("@/assets/zyncra-logo.png")} style={s.logoImg} />
+              <Text style={s.logoText}>Zyncra</Text>
+            </View>
+            <TouchableOpacity style={s.bellBtn} activeOpacity={0.7}>
+              <Ionicons name="notifications-outline" size={18} color="white" />
+            </TouchableOpacity>
+          </Animated.View>
+
+          {/* Hero content */}
+          <Animated.View entering={FadeInDown.duration(400)} style={s.heroContent}>
+            <View style={s.heroLeft}>
+              <Text style={s.greeting}>{greeting()} 👋</Text>
+              <Text style={s.bizName} numberOfLines={2}>{tenantName}</Text>
+              <Text style={s.date}>{todayLabel}</Text>
+            </View>
+
+            {nextAppt && (
+              <Animated.View entering={FadeIn.delay(300).duration(400)} style={s.nextCard}>
+                <Ionicons name="time-outline" size={14} color="white" />
+                <Text style={s.nextTime}>{nextHour}</Text>
+                <Text style={s.nextLabel}>próxima</Text>
+              </Animated.View>
+            )}
+          </Animated.View>
+
+          {/* Glass summary strip */}
+          <Animated.View entering={FadeInDown.delay(150).duration(400)} style={s.summaryStrip}>
+            <View style={s.summaryItem}>
+              <Ionicons name="calendar" size={13} color="rgba(255,255,255,.9)" />
+              <Text style={s.summaryText}>
+                {metrics.total} cita{metrics.total !== 1 ? "s" : ""} hoy
+              </Text>
+            </View>
+            {metrics.revenueDay > 0 && (
+              <>
+                <View style={s.summaryDivider} />
+                <View style={s.summaryItem}>
+                  <Ionicons name="cash" size={13} color="rgba(255,255,255,.9)" />
+                  <Text style={s.summaryText}>{fmtMoney(metrics.revenueDay)} cobrado</Text>
+                </View>
+              </>
+            )}
+            {metrics.confirmed > 0 && (
+              <>
+                <View style={s.summaryDivider} />
+                <View style={s.summaryItem}>
+                  <Ionicons name="checkmark-circle" size={13} color="rgba(255,255,255,.9)" />
+                  <Text style={s.summaryText}>{metrics.confirmed} confirm.</Text>
+                </View>
+              </>
             )}
           </Animated.View>
         </LinearGradient>
@@ -318,14 +367,31 @@ export default function DashboardScreen() {
 }
 
 const s = StyleSheet.create({
-  headerGrad:    { paddingTop: 24, paddingHorizontal: 24, paddingBottom: 28, overflow: "hidden" },
-  headerBlob1:   { position: "absolute", width: 220, height: 220, borderRadius: 110, backgroundColor: "rgba(255,255,255,.08)", top: -70, right: -50 },
-  headerBlob2:   { position: "absolute", width: 120, height: 120, borderRadius: 60, backgroundColor: "rgba(0,0,0,.06)", bottom: -30, left: -20 },
-  greeting:      { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.8)", marginBottom: 4 },
-  bizName:       { fontSize: 28, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.8 },
-  date:          { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.65)", marginTop: 4, textTransform: "capitalize" },
-  summaryPill:   { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.18)", borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 6, marginTop: 14, alignSelf: "flex-start", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
-  summaryText:   { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.92)" },
+  headerGrad:    { paddingTop: 14, paddingBottom: 20, overflow: "hidden" },
+  headerBlob1:   { position: "absolute", width: 260, height: 260, borderRadius: 130, backgroundColor: "rgba(255,255,255,.07)", top: -90, right: -70 },
+  headerBlob2:   { position: "absolute", width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(0,0,0,.06)", bottom: -40, left: -30 },
+  headerBlob3:   { position: "absolute", width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(255,255,255,.05)", top: 60, left: "40%" as any },
+
+  topBar:        { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, marginBottom: 20, position: "relative", zIndex: 1 },
+  logoRow:       { flexDirection: "row", alignItems: "center", gap: 8 },
+  logoImg:       { width: 28, height: 28, borderRadius: 8 },
+  logoText:      { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.3 },
+  bellBtn:       { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,.15)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
+
+  heroContent:   { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 24, marginBottom: 18, position: "relative", zIndex: 1 },
+  heroLeft:      { flex: 1, marginRight: 16 },
+  greeting:      { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.75)", marginBottom: 6 },
+  bizName:       { fontSize: 30, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -1, lineHeight: 34 },
+  date:          { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.6)", marginTop: 6, textTransform: "capitalize" },
+
+  nextCard:      { backgroundColor: "rgba(255,255,255,.18)", borderRadius: Radius.lg, paddingVertical: 12, paddingHorizontal: 14, alignItems: "center", gap: 4, borderWidth: 1, borderColor: "rgba(255,255,255,0.25)", minWidth: 76 },
+  nextTime:      { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
+  nextLabel:     { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.7)", textTransform: "uppercase", letterSpacing: 0.5 },
+
+  summaryStrip:  { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 0, marginHorizontal: 20, backgroundColor: "rgba(255,255,255,.14)", borderRadius: Radius.full, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.2)", position: "relative", zIndex: 1 },
+  summaryItem:   { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 6 },
+  summaryDivider:{ width: 1, height: 14, backgroundColor: "rgba(255,255,255,.25)", marginHorizontal: 4 },
+  summaryText:   { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.9)" },
 
   revenueCard:   { borderRadius: Radius.xl, overflow: "hidden" },
   revenueGrad:   { padding: 20, overflow: "hidden" },
