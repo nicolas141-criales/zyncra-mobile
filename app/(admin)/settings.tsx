@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Switch } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -15,6 +16,7 @@ function SettingRow({
 }: {
   icon: IoniconName; color?: string; label: string; sub?: string; onPress?: () => void; danger?: boolean;
 }) {
+  const { t } = useTheme();
   const iconColor = danger ? Colors.red : (color ?? Colors.purple);
   const iconBg    = danger ? Colors.red + "12" : (color ?? Colors.purple) + "12";
   return (
@@ -23,10 +25,10 @@ function SettingRow({
         <Ionicons name={icon} size={18} color={iconColor} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={[s.rowLabel, danger && { color: Colors.red }]}>{label}</Text>
-        {sub && <Text style={s.rowSub}>{sub}</Text>}
+        <Text style={[s.rowLabel, { color: danger ? Colors.red : t.text }]}>{label}</Text>
+        {sub && <Text style={[s.rowSub, { color: t.muted }]}>{sub}</Text>}
       </View>
-      {!danger && <Ionicons name="chevron-forward" size={16} color={Colors.subtle} />}
+      {!danger && <Ionicons name="chevron-forward" size={16} color={t.subtle} />}
     </TouchableOpacity>
   );
 }
@@ -35,6 +37,7 @@ type Tenant = { name: string; phone?: string };
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { mode, t, toggle } = useTheme();
   const [tenant, setTenant] = useState<Tenant | null>(null);
 
   useEffect(() => {
@@ -107,17 +110,39 @@ export default function SettingsScreen() {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <Text style={s.headerTitle}>Ajustes</Text>
         <Text style={s.headerSub}>Configura tu negocio</Text>
       </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 110 }}>
+        {/* ── Theme toggle ── */}
+        <Animated.View entering={FadeInDown.duration(400)}>
+          <Text style={[s.sectionTitle, { color: t.subtle }]}>Apariencia</Text>
+          <View style={[s.group, Shadow.sm, { backgroundColor: t.card, borderColor: t.cardBorder }]}>
+            <View style={s.row}>
+              <View style={[s.rowIcon, { backgroundColor: mode === "dark" ? "#6366f1" + "18" : "#f59e0b" + "18" }]}>
+                <Ionicons name={mode === "dark" ? "moon" : "sunny"} size={18} color={mode === "dark" ? "#6366f1" : "#f59e0b"} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.rowLabel, { color: t.text }]}>Modo oscuro</Text>
+                <Text style={[s.rowSub, { color: t.muted }]}>{mode === "dark" ? "Activado" : "Desactivado"}</Text>
+              </View>
+              <Switch
+                value={mode === "dark"}
+                onValueChange={toggle}
+                trackColor={{ false: "rgba(20,15,30,0.12)", true: Colors.red + "60" }}
+                thumbColor={mode === "dark" ? Colors.red : "#f4f3f4"}
+              />
+            </View>
+          </View>
+        </Animated.View>
+
         {SECTIONS.map((sec, si) => (
-          <Animated.View key={si} entering={FadeInDown.delay(si * 80).duration(400)}>
-            <Text style={s.sectionTitle}>{sec.title}</Text>
-            <View style={[s.group, Shadow.sm]}>
+          <Animated.View key={si} entering={FadeInDown.delay((si + 1) * 80).duration(400)}>
+            <Text style={[s.sectionTitle, { color: t.subtle }]}>{sec.title}</Text>
+            <View style={[s.group, Shadow.sm, { backgroundColor: t.card, borderColor: t.cardBorder }]}>
               {sec.items.map((item, ii) => (
                 <View key={ii}>
                   <SettingRow
@@ -127,21 +152,21 @@ export default function SettingsScreen() {
                     sub={item.sub}
                     onPress={item.route ? () => router.push(item.route as any) : undefined}
                   />
-                  {ii < sec.items.length - 1 && <View style={s.divider} />}
+                  {ii < sec.items.length - 1 && <View style={[s.divider, { backgroundColor: t.divider }]} />}
                 </View>
               ))}
             </View>
           </Animated.View>
         ))}
 
-        <Animated.View entering={FadeInDown.delay(320).duration(400)}>
-          <View style={[s.group, Shadow.sm]}>
+        <Animated.View entering={FadeInDown.delay(400).duration(400)}>
+          <View style={[s.group, Shadow.sm, { backgroundColor: t.card, borderColor: t.cardBorder }]}>
             <SettingRow icon="log-out-outline" label="Cerrar sesión" onPress={handleLogout} danger />
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(400).duration(400)} style={{ alignItems: "center", marginTop: 24 }}>
-          <Text style={{ fontSize: 12, color: Colors.subtle, fontFamily: "SpaceGrotesk_400Regular" }}>
+        <Animated.View entering={FadeInDown.delay(480).duration(400)} style={{ alignItems: "center", marginTop: 24 }}>
+          <Text style={{ fontSize: 12, color: t.subtle, fontFamily: "SpaceGrotesk_400Regular" }}>
             Zyncra · v1.0.0 · Hecho en Colombia 🇨🇴
           </Text>
         </Animated.View>

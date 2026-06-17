@@ -1,11 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Redirect } from "expo-router";
 import { supabase } from "@/lib/supabase";
-import { useState } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { Colors } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 
 export default function Index() {
+  const { t } = useTheme();
   const [loading, setLoading] = useState(true);
   const [authed, setAuthed] = useState(false);
 
@@ -18,7 +19,7 @@ export default function Index() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: Colors.cream }}>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: t.bg }}>
         <ActivityIndicator color={Colors.red} size="large" />
       </View>
     );

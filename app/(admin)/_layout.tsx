@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { Colors, Shadow, Glass } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -18,11 +19,12 @@ const TABS: { name: string; label: string; icon: IoniconName; iconFocused: Ionic
 function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const currentRouteName = state.routes[state.index].name;
   const isSubScreen = !TABS.some(t => t.name === currentRouteName);
+  const { t: theme } = useTheme();
   if (isSubScreen) return null;
 
   return (
     <View style={s.wrapper}>
-      <BlurView tint={Glass.blurStrong.tint} intensity={Glass.blurStrong.intensity} style={[s.bar, Shadow.md]}>
+      <BlurView tint={theme.blurTint} intensity={Glass.blurStrong.intensity} style={[s.bar, Shadow.md, { backgroundColor: theme.tabBarBg, borderColor: theme.tabBarBorder }]}>
         {state.routes.filter(r => TABS.some(t => t.name === r.name)).map((route) => {
           const focused = state.routes[state.index].name === route.name;
           const tab = TABS.find(t => t.name === route.name) ?? TABS[0];
@@ -45,9 +47,9 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                 ) : (
                   <>
                     <View style={s.iconBoxInactive}>
-                      <Ionicons name={tab.icon} size={20} color={Colors.subtle} />
+                      <Ionicons name={tab.icon} size={20} color={theme.subtle} />
                     </View>
-                    <Text style={s.label}>{tab.label}</Text>
+                    <Text style={[s.label, { color: theme.subtle }]}>{tab.label}</Text>
                   </>
                 )}
               </View>

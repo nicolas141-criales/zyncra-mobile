@@ -10,6 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 import NewApptModal from "@/components/NewApptModal";
 import { scheduleAppointmentReminder, cancelAppointmentReminder } from "@/lib/notifications";
 
@@ -120,6 +121,7 @@ function ApptDetailModal({ appt, onClose, onStatusChange, onEdit }: {
   onStatusChange: (id: string, status: string) => void;
   onEdit: () => void;
 }) {
+  const { t } = useTheme();
   if (!appt) return null;
   const time = appt.appointment_time.substring(0, 5);
 
@@ -201,6 +203,7 @@ function EditApptModal({ appt, tenantId, professionals, onClose, onSaved }: {
   appt: Appt | null; tenantId: string; professionals: Professional[];
   onClose: () => void; onSaved: () => void;
 }) {
+  const { t } = useTheme();
   const [step, setStep]                       = useState(0);
   const [loading, setLoading]                 = useState(false);
   const [saving, setSaving]                   = useState(false);
@@ -349,7 +352,7 @@ function EditApptModal({ appt, tenantId, professionals, onClose, onSaved }: {
 
   return (
     <Modal visible={!!appt} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
         {/* Header */}
         <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={em.header}>
           <View style={em.headerRow}>
@@ -747,6 +750,7 @@ const tl = StyleSheet.create({
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function AgendaScreen() {
+  const { t } = useTheme();
   const [selected, setSelected]       = useState(new Date());
   const [week, setWeek]               = useState(() => buildWeek(new Date()));
   const [appts, setAppts]             = useState<Appt[]>([]);
@@ -831,7 +835,7 @@ export default function AgendaScreen() {
   const conflictCount = timeSlots.filter(([, s]) => s.length > 1).length;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* ── Header ── */}
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>

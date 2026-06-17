@@ -10,6 +10,7 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 
 type Client = { id: string; name: string; phone?: string; email?: string; no_shows?: number; created_at?: string };
 type Appt = {
@@ -48,6 +49,7 @@ function EditModal({ visible, client, tenantId, onClose, onSaved }: {
   visible: boolean; client: Client | null; tenantId: string;
   onClose: () => void; onSaved: (c?: Client) => void;
 }) {
+  const { t } = useTheme();
   const isNew = client === null;
   const [name, setName]   = useState("");
   const [phone, setPhone] = useState("");
@@ -91,7 +93,7 @@ function EditModal({ visible, client, tenantId, onClose, onSaved }: {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
         <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={em.header}>
           <View style={em.headerRow}>
             <TouchableOpacity onPress={onClose} style={em.iconBtn}>
@@ -139,6 +141,7 @@ function EditModal({ visible, client, tenantId, onClose, onSaved }: {
 function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefresh }: {
   client: Client; tenantId: string; onClose: () => void; onRefresh: () => void;
 }) {
+  const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const [client, setClient]   = useState<Client>(initialClient);
   const [appts, setAppts]     = useState<Appt[]>([]);
@@ -356,6 +359,7 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function ClientsScreen() {
+  const { t } = useTheme();
   const [clients, setClients]       = useState<Client[]>([]);
   const [filtered, setFiltered]     = useState<Client[]>([]);
   const [search, setSearch]         = useState("");
@@ -394,7 +398,7 @@ export default function ClientsScreen() {
   const onRefresh = async () => { setRefreshing(true); await loadClients(); setRefreshing(false); };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <View>

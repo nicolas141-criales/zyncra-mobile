@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 import { refreshAllReminders } from "@/lib/notifications";
 import NewApptModal from "@/components/NewApptModal";
 
@@ -51,13 +52,14 @@ const STATUS_LABEL: Record<string, string> = {
 function StatChip({ icon, value, label, color, delay }: {
   icon: IoniconName; value: string; label: string; color: string; delay: number;
 }) {
+  const { t } = useTheme();
   return (
-    <Animated.View entering={FadeInUp.delay(delay).duration(350).springify()} style={[sc.chip, Shadow.sm]}>
+    <Animated.View entering={FadeInUp.delay(delay).duration(350).springify()} style={[sc.chip, Shadow.sm, { backgroundColor: t.card, borderColor: t.cardBorder }]}>
       <View style={[sc.iconBox, { backgroundColor: color + "15" }]}>
         <Ionicons name={icon} size={15} color={color} />
       </View>
       <Text style={[sc.value, { color }]}>{value}</Text>
-      <Text style={sc.label}>{label}</Text>
+      <Text style={[sc.label, { color: t.muted }]}>{label}</Text>
     </Animated.View>
   );
 }
@@ -72,17 +74,17 @@ const sc = StyleSheet.create({
 // ─── Appointment row ──────────────────────────────────────────────────────────
 
 function ApptRow({ a, i, onPress }: { a: Appt; i: number; onPress: () => void }) {
+  const { t } = useTheme();
   const time  = a.appointment_time.substring(0, 5);
   const color = STATUS_COLOR[a.status] ?? Colors.subtle;
   const label = STATUS_LABEL[a.status] ?? a.status;
-  const now   = new Date();
+  const nowD  = new Date();
   const apptDt = new Date(`${a.appointment_date}T${a.appointment_time}`);
-  const isNext = apptDt > now && (a.status === "confirmed" || a.status === "pending");
+  const isNext = apptDt > nowD && (a.status === "confirmed" || a.status === "pending");
 
   return (
     <Animated.View entering={FadeInRight.delay(i * 60).duration(320)}>
-      <TouchableOpacity style={[ar.row, Shadow.sm]} onPress={onPress} activeOpacity={0.8}>
-        {/* status left accent */}
+      <TouchableOpacity style={[ar.row, Shadow.sm, { backgroundColor: t.card, borderColor: t.cardBorder }]} onPress={onPress} activeOpacity={0.8}>
         <View style={[ar.accent, { backgroundColor: color }]} />
 
         <View style={[ar.timePill, { backgroundColor: color + "12" }]}>
@@ -90,8 +92,8 @@ function ApptRow({ a, i, onPress }: { a: Appt; i: number; onPress: () => void })
         </View>
 
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={ar.client} numberOfLines={1}>{a.clients?.name ?? "Sin cliente"}</Text>
-          <Text style={ar.service} numberOfLines={1}>{a.services?.name ?? "Sin servicio"}</Text>
+          <Text style={[ar.client, { color: t.text }]} numberOfLines={1}>{a.clients?.name ?? "Sin cliente"}</Text>
+          <Text style={[ar.service, { color: t.muted }]} numberOfLines={1}>{a.services?.name ?? "Sin servicio"}</Text>
         </View>
 
         <View style={{ alignItems: "flex-end", gap: 4 }}>
@@ -126,6 +128,7 @@ const ar = StyleSheet.create({
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const [tenantName, setTenantName] = useState("Tu negocio");
   const [tenantId, setTenantId]     = useState<string | null>(null);
   const [appts, setAppts]           = useState<Appt[]>([]);
@@ -181,7 +184,7 @@ export default function DashboardScreen() {
   const nextHour = nextTime ? (() => { const h = parseInt(nextTime.slice(0, 2), 10); return `${h % 12 || 12}:${nextTime.slice(3)} ${h >= 12 ? "PM" : "AM"}`; })() : null;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.red} />}
@@ -293,7 +296,7 @@ export default function DashboardScreen() {
           {/* ── Quick access ── */}
           <Animated.View entering={FadeInDown.delay(300).duration(380)}>
             <TouchableOpacity
-              style={s.reportsBtn}
+              style={[s.reportsBtn, { backgroundColor: t.card, borderColor: t.cardBorder }]}
               onPress={() => router.navigate("/(admin)/reports" as any)}
               activeOpacity={0.85}
             >
@@ -301,17 +304,17 @@ export default function DashboardScreen() {
                 <Ionicons name="bar-chart-outline" size={16} color={Colors.red} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={s.reportsBtnTitle}>Ver Reportes</Text>
-                <Text style={s.reportsBtnSub}>Ingresos, servicios, equipo</Text>
+                <Text style={[s.reportsBtnTitle, { color: t.text }]}>Ver Reportes</Text>
+                <Text style={[s.reportsBtnSub, { color: t.muted }]}>Ingresos, servicios, equipo</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={Colors.subtle} />
+              <Ionicons name="chevron-forward" size={16} color={t.subtle} />
             </TouchableOpacity>
           </Animated.View>
 
           {/* ── Today's agenda ── */}
           <Animated.View entering={FadeInDown.delay(360).duration(380)} style={{ marginTop: 8 }}>
             <View style={s.sectionHeader}>
-              <Text style={s.sectionTitle}>Agenda de hoy</Text>
+              <Text style={[s.sectionTitle, { color: t.text }]}>Agenda de hoy</Text>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <TouchableOpacity style={s.newCitaBtn} onPress={() => setShowNew(true)} activeOpacity={0.8}>
                   <Ionicons name="add" size={14} color="white" />
