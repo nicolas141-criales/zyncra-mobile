@@ -7,7 +7,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
 
 const METHODS = [
   { key: "efectivo",      label: "Efectivo",      icon: "cash-outline" as const },
@@ -205,24 +205,24 @@ export default function ManualSaleModal({ visible, tenantId, onClose, onSaved }:
 const s = StyleSheet.create({
   header:        { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 20 },
   headerRow:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  closeBtn:      { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
+  closeBtn:      { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.2)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
   headerTitle:   { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   label:         { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8, marginTop: 16 },
-  input:         { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
+  input:         { ...Glass.cardStrong, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
   amountWrap:    { flexDirection: "row", alignItems: "center" },
-  currencySymbol:{ backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderTopLeftRadius: Radius.md, borderBottomLeftRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, borderRightWidth: 0 },
+  currencySymbol:{ backgroundColor: "rgba(255,255,255,0.72)", borderWidth: 1, borderColor: "rgba(255,255,255,0.75)", borderTopLeftRadius: Radius.md, borderBottomLeftRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, borderRightWidth: 0 },
   methodGrid:    { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  methodBtn:     { flex: 1, minWidth: "45%", borderRadius: Radius.md, borderWidth: 1.5, borderColor: Colors.border, overflow: "hidden" },
+  methodBtn:     { flex: 1, minWidth: "45%", borderRadius: Radius.md, ...Glass.card, overflow: "hidden" },
   methodBtnActive:{ borderColor: "transparent" },
   methodGrad:    { paddingVertical: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.red },
-  methodInner:   { paddingVertical: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.white },
+  methodInner:   { paddingVertical: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 8 },
   methodLabel:   { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
   methodLabelActive: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "white" },
-  selectedClient:{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Colors.white, borderRadius: Radius.md, padding: 12 },
+  selectedClient:{ flexDirection: "row", alignItems: "center", gap: 10, ...Glass.cardStrong, borderRadius: Radius.md, padding: 12 },
   selectedClientName: { flex: 1, fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
-  clientRow:     { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Colors.white, borderRadius: Radius.md, padding: 12, marginTop: 6 },
+  clientRow:     { flexDirection: "row", alignItems: "center", gap: 10, ...Glass.card, borderRadius: Radius.md, padding: 12, marginTop: 6 },
   clientRowName: { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
-  bottomBar:     { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
+  bottomBar:     { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.6)", backgroundColor: "rgba(244,244,249,0.85)" },
   btn:           { borderRadius: Radius.full, overflow: "hidden" },
   btnGrad: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
   btnText:       { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },

@@ -8,7 +8,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { supabase } from "@/lib/supabase";
-import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
 import { scheduleAppointmentReminder } from "@/lib/notifications";
 
 type Service      = { id: string; name: string; duration_minutes: number; price: number };
@@ -602,38 +602,38 @@ function SummaryRow({ label, value, highlight }: { label: string; value: string;
 const s = StyleSheet.create({
   header:        { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 18 },
   headerRow:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
-  backBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
+  backBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.2)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
   backBtnText:   { color: "white", fontSize: 18, fontFamily: "SpaceGrotesk_600SemiBold" },
   headerTitle:   { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   headerSub:     { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
   progressRow:   { flexDirection: "row", gap: 6 },
-  progressDot:   { height: 4, flex: 1, borderRadius: 2, backgroundColor: "rgba(255,255,255,.3)" },
+  progressDot:   { height: 4, flex: 1, borderRadius: 2, backgroundColor: "rgba(255,255,255,.25)" },
   progressActive:{ backgroundColor: "rgba(255,255,255,.95)" },
 
   // Professional picker
-  proCard:       { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14, marginBottom: 10, borderWidth: 1.5, borderColor: "transparent", gap: 14 },
-  proCardActive: { borderColor: Colors.red, backgroundColor: Colors.red + "08" },
+  proCard:       { flexDirection: "row", alignItems: "center", ...Glass.cardStrong, borderRadius: Radius.lg, padding: 14, marginBottom: 10, gap: 14 },
+  proCardActive: { borderColor: Colors.red, backgroundColor: "rgba(251,15,5,0.08)" },
   proAvatar:     { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   proAvatarText: { color: "white", fontSize: 16, fontFamily: "SpaceGrotesk_700Bold" },
   proName:       { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text, marginBottom: 2 },
   proRole:       { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
 
   // Client picker
-  toggleRow:       { flexDirection: "row", backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 4, marginBottom: 16 },
+  toggleRow:       { flexDirection: "row", ...Glass.card, borderRadius: Radius.lg, padding: 4, marginBottom: 16 },
   toggleBtn:       { flex: 1, paddingVertical: 10, borderRadius: Radius.md, alignItems: "center" },
   toggleActive:    { backgroundColor: Colors.red },
   toggleText:      { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
   toggleTextActive:{ color: "white" },
 
-  card:       { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, marginBottom: 12 },
+  card:       { ...Glass.cardStrong, borderRadius: Radius.lg, padding: 16, marginBottom: 12 },
   fieldLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.6 },
   input:      { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, padding: 12 },
 
-  searchBar:   { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, borderRadius: Radius.lg, paddingHorizontal: 14, paddingVertical: 11, marginBottom: 12, gap: 8 },
+  searchBar:   { flexDirection: "row", alignItems: "center", ...Glass.card, borderRadius: Radius.lg, paddingHorizontal: 14, paddingVertical: 11, marginBottom: 12, gap: 8 },
   searchInput: { flex: 1, fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
 
-  clientRow:       { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 12, marginBottom: 8, gap: 12, borderWidth: 1.5, borderColor: "transparent" },
-  clientRowActive: { borderColor: Colors.red, backgroundColor: Colors.red + "08" },
+  clientRow:       { flexDirection: "row", alignItems: "center", ...Glass.cardStrong, borderRadius: Radius.lg, padding: 12, marginBottom: 8, gap: 12 },
+  clientRowActive: { borderColor: Colors.red, backgroundColor: "rgba(251,15,5,0.08)" },
   avatarGrad:      { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
   avatarText:      { color: "white", fontSize: 15, fontFamily: "SpaceGrotesk_700Bold" },
   clientName:      { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
@@ -641,8 +641,8 @@ const s = StyleSheet.create({
   check:           { width: 22, height: 22, borderRadius: 11, backgroundColor: Colors.red, alignItems: "center", justifyContent: "center" },
 
   // Service picker
-  svcCard:       { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, marginBottom: 10, borderWidth: 1.5, borderColor: "transparent" },
-  svcCardActive: { borderColor: Colors.red, backgroundColor: Colors.red + "08" },
+  svcCard:       { flexDirection: "row", alignItems: "center", ...Glass.cardStrong, borderRadius: Radius.lg, padding: 16, marginBottom: 10 },
+  svcCardActive: { borderColor: Colors.red, backgroundColor: "rgba(251,15,5,0.08)" },
   svcName:       { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text, marginBottom: 4 },
   svcMeta:       { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
   svcPrice:      { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
@@ -651,7 +651,7 @@ const s = StyleSheet.create({
   durationNote:     { backgroundColor: Colors.red + "10", borderRadius: Radius.md, padding: 12 },
   durationNoteText: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.red },
 
-  weekStrip: { backgroundColor: Colors.white, flexDirection: "row", alignItems: "center", paddingVertical: 13, paddingHorizontal: 2 },
+  weekStrip: { ...Glass.cardStrong, flexDirection: "row", alignItems: "center", paddingVertical: 13, paddingHorizontal: 2 },
   arrow:     { width: 34, alignItems: "center" },
   arrowText: { fontSize: 26, color: Colors.muted, lineHeight: 30 },
   dayCol:    { flex: 1, alignItems: "center", gap: 6 },
@@ -662,19 +662,19 @@ const s = StyleSheet.create({
 
   sectionLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 },
   timeGrid:     { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  timeSlot:     { paddingVertical: 13, borderRadius: Radius.md, overflow: "hidden", backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, alignItems: "center" },
+  timeSlot:     { paddingVertical: 13, borderRadius: Radius.md, overflow: "hidden", ...Glass.card, alignItems: "center" },
   timeSlotActive:{ borderWidth: 0 },
   timeSlotText: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
 
   // Summary
-  summary:      { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 20, marginTop: 22 },
+  summary:      { ...Glass.cardStrong, borderRadius: Radius.xl, padding: 20, marginTop: 22 },
   summaryTitle: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 14 },
   summaryRow:   { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
   summaryLabel: { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
   summaryValue: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
 
   // Bottom
-  bottomBar: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 34, backgroundColor: Colors.cream2, borderTopWidth: 1, borderTopColor: Colors.border },
+  bottomBar: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 34, backgroundColor: "rgba(244,244,249,0.85)", borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.6)" },
   btn:       { borderRadius: Radius.full, overflow: "hidden" },
   btnGrad: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
   btnText:   { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: 0.3 },

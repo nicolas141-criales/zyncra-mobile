@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
 import { refreshAllReminders } from "@/lib/notifications";
 import NewApptModal from "@/components/NewApptModal";
 
@@ -63,7 +63,7 @@ function StatChip({ icon, value, label, color, delay }: {
 }
 
 const sc = StyleSheet.create({
-  chip:    { flex: 1, backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14, alignItems: "center", gap: 6 },
+  chip:    { flex: 1, ...Glass.card, borderRadius: Radius.lg, padding: 14, alignItems: "center", gap: 6 },
   iconBox: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   value:   { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", letterSpacing: -0.5 },
   label:   { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted, textAlign: "center" },
@@ -110,7 +110,7 @@ function ApptRow({ a, i, onPress }: { a: Appt; i: number; onPress: () => void })
 }
 
 const ar = StyleSheet.create({
-  row:       { backgroundColor: Colors.white, borderRadius: Radius.md, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10, overflow: "hidden" },
+  row:       { ...Glass.cardStrong, borderRadius: Radius.md, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10, overflow: "hidden" },
   accent:    { width: 4, alignSelf: "stretch" },
   timePill:  { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, minWidth: 48, alignItems: "center" },
   time:      { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold" },
@@ -324,7 +324,7 @@ const s = StyleSheet.create({
   greeting:      { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.8)", marginBottom: 4 },
   bizName:       { fontSize: 28, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.8 },
   date:          { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.65)", marginTop: 4, textTransform: "capitalize" },
-  summaryPill:   { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.15)", borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 6, marginTop: 14, alignSelf: "flex-start" },
+  summaryPill:   { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.18)", borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 6, marginTop: 14, alignSelf: "flex-start", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
   summaryText:   { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.92)" },
 
   revenueCard:   { borderRadius: Radius.xl, overflow: "hidden" },
@@ -335,7 +335,7 @@ const s = StyleSheet.create({
   revenueSub:    { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 },
   revenueDot:    { width: 7, height: 7, borderRadius: 4 },
   revenueSubText:{ fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.6)" },
-  revenueBadge:  { width: 44, height: 44, borderRadius: 14, backgroundColor: "rgba(255,255,255,.1)", alignItems: "center", justifyContent: "center" },
+  revenueBadge:  { width: 44, height: 44, borderRadius: 14, backgroundColor: "rgba(255,255,255,.12)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
   projectedRow:  { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,.08)" },
   projectedText: { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.45)" },
 
@@ -345,7 +345,7 @@ const s = StyleSheet.create({
   newCitaBtn:       { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: Radius.full, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: Colors.red },
   newCitaBtnText:   { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 
-  reportsBtn:       { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14, ...Shadow.sm },
+  reportsBtn:       { flexDirection: "row", alignItems: "center", gap: 12, ...Glass.cardStrong, borderRadius: Radius.lg, padding: 14, ...Shadow.sm },
   reportsBtnIcon:   { width: 36, height: 36, borderRadius: 11, backgroundColor: Colors.red + "14", alignItems: "center", justifyContent: "center" },
   reportsBtnTitle:  { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   reportsBtnSub:    { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 1 },

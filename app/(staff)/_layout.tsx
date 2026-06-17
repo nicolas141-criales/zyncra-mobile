@@ -1,7 +1,8 @@
 ﻿import { Tabs } from "expo-router";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, Shadow } from "@/constants/theme";
+import { BlurView } from "expo-blur";
+import { Colors, Shadow, Glass } from "@/constants/theme";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -15,7 +16,7 @@ const TABS: { name: string; label: string; icon: IoniconName; iconFocused: Ionic
 function StaffTabBar({ state, navigation }: BottomTabBarProps) {
   return (
     <View style={s.wrapper}>
-      <View style={[s.bar, Shadow.md]}>
+      <BlurView tint={Glass.blurStrong.tint} intensity={Glass.blurStrong.intensity} style={[s.bar, Shadow.md]}>
         {state.routes.filter(r => TABS.some(t => t.name === r.name)).map((route) => {
           const focused = state.routes[state.index].name === route.name;
           const tab = TABS.find(t => t.name === route.name) ?? TABS[0];
@@ -46,14 +47,14 @@ function StaffTabBar({ state, navigation }: BottomTabBarProps) {
             </TouchableOpacity>
           );
         })}
-      </View>
+      </BlurView>
     </View>
   );
 }
 
 const s = StyleSheet.create({
   wrapper:         { position: "absolute", bottom: 0, left: 0, right: 0, paddingBottom: 24, paddingHorizontal: 12 },
-  bar:             { backgroundColor: "white", borderRadius: 22, flexDirection: "row", paddingVertical: 10, paddingHorizontal: 4 },
+  bar:             { backgroundColor: "rgba(255,255,255,0.55)", borderRadius: 22, flexDirection: "row", paddingVertical: 10, paddingHorizontal: 4, overflow: "hidden", borderWidth: 1, borderColor: "rgba(255,255,255,0.6)" },
   tab:             { flex: 1, alignItems: "center" },
   tabInner:        { alignItems: "center", gap: 4 },
   iconBox:         { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: Colors.red },

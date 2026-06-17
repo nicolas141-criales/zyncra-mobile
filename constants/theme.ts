@@ -57,3 +57,29 @@ export const Shadow = {
     elevation: 6,
   },
 };
+
+export const Glass = {
+  card: {
+    backgroundColor: "rgba(255,255,255,0.55)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.6)",
+  },
+  cardStrong: {
+    backgroundColor: "rgba(255,255,255,0.72)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.75)",
+  },
+  dark: {
+    backgroundColor: "rgba(20,17,28,0.35)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+  },
+  blur: {
+    tint: "light" as const,
+    intensity: 60,
+  },
+  blurStrong: {
+    tint: "light" as const,
+    intensity: 85,
+  },
+};

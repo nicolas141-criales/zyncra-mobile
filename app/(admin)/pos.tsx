@@ -9,7 +9,7 @@ import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
 import ManualSaleModal from "@/components/ManualSaleModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -153,20 +153,20 @@ function PaymentModal({ appt, onConfirm, onClose }: {
 const pm = StyleSheet.create({
   header:       { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 24 },
   headerRow:    { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
-  closeBtn:     { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
+  closeBtn:     { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.2)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
   title:        { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
-  receipt:      { backgroundColor: "rgba(255,255,255,.15)", borderRadius: Radius.lg, paddingHorizontal: 16, paddingVertical: 8 },
+  receipt:      { backgroundColor: "rgba(255,255,255,.18)", borderRadius: Radius.lg, paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
   receiptRow:   { flexDirection: "row", justifyContent: "space-between", paddingVertical: 11 },
   receiptLabel: { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.75)" },
   receiptVal:   { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "white" },
   totalVal:     { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   divider:      { height: 1, backgroundColor: "rgba(255,255,255,.15)" },
   sectionLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 12 },
-  methodRow:       { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: Colors.white, borderRadius: Radius.md, padding: 14, marginBottom: 10, borderWidth: 1.5, borderColor: Colors.border, overflow: "hidden" },
+  methodRow:       { flexDirection: "row", alignItems: "center", gap: 14, ...Glass.cardStrong, borderRadius: Radius.md, padding: 14, marginBottom: 10, overflow: "hidden" },
   methodRowActive: { borderWidth: 0 },
   methodIcon:      { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   methodLabel:     { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
-  bottomBar:    { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
+  bottomBar:    { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.6)", backgroundColor: "rgba(244,244,249,0.85)" },
   btn:          { borderRadius: Radius.full, overflow: "hidden" },
   btnGrad: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
   btnText:      { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
@@ -257,7 +257,7 @@ function ApptCard({ appt, linkedSale, onCobrar, onCancel, index }: {
 }
 
 const ac = StyleSheet.create({
-  card:        { backgroundColor: Colors.white, borderRadius: Radius.lg, flexDirection: "row", marginBottom: 10, overflow: "hidden" },
+  card:        { ...Glass.cardStrong, borderRadius: Radius.lg, flexDirection: "row", marginBottom: 10, overflow: "hidden" },
   accent:      { width: 5 },
   topRow:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
   timePill:    { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 5 },
@@ -598,22 +598,22 @@ const s = StyleSheet.create({
   headerRow:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   headerTitle:    { fontSize: 24, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.5 },
   headerSub:      { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
-  dateNav:        { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.15)", borderRadius: Radius.full, paddingVertical: 6, paddingHorizontal: 8 },
+  dateNav:        { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.18)", borderRadius: Radius.full, paddingVertical: 6, paddingHorizontal: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
   navBtn:         { padding: 2 },
   dateLabel:      { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: "white", minWidth: 40, textAlign: "center" },
-  addBtn:         { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,.22)", alignItems: "center", justifyContent: "center" },
+  addBtn:         { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,.2)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
 
   heroCard:       { borderRadius: Radius.xl, overflow: "hidden" },
   heroGrad:       { flexDirection: "row", alignItems: "center", padding: 22, gap: 16 },
   heroLabel:      { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.6)", marginBottom: 4 },
   heroValue:      { fontSize: 34, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -1 },
   heroSub:        { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.5)", marginTop: 4 },
-  projectedBox:   { backgroundColor: "rgba(255,255,255,.08)", borderRadius: Radius.lg, padding: 14, alignItems: "center", minWidth: 110 },
+  projectedBox:   { backgroundColor: "rgba(255,255,255,.1)", borderRadius: Radius.lg, padding: 14, alignItems: "center", minWidth: 110, borderWidth: 1, borderColor: "rgba(255,255,255,0.15)" },
   projectedLabel: { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.6)", textTransform: "uppercase", letterSpacing: 0.5 },
   projectedValue: { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white", marginTop: 4 },
   projectedSub:   { fontSize: 10, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.5)", marginTop: 2 },
 
-  methodsCard:    { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16 },
+  methodsCard:    { ...Glass.cardStrong, borderRadius: Radius.lg, padding: 16 },
   methodsTitle:   { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 12 },
   methodsRow:     { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   methodChip:     { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 8 },
@@ -621,7 +621,7 @@ const s = StyleSheet.create({
   methodChipValue:{ fontSize: 13, fontFamily: "SpaceGrotesk_700Bold" },
 
   tabs:           { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingVertical: 16 },
-  tab:            { flex: 1, borderRadius: Radius.full, overflow: "hidden", borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.white, alignItems: "center" },
+  tab:            { flex: 1, borderRadius: Radius.full, overflow: "hidden", ...Glass.card, alignItems: "center" },
   tabActive:      { borderWidth: 0 },
   tabLabel:       { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted, paddingVertical: 11, textAlign: "center" },
 
@@ -629,7 +629,7 @@ const s = StyleSheet.create({
   sectionDot:     { width: 8, height: 8, borderRadius: 4 },
   sectionTitle:   { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.5 },
 
-  saleCard:       { backgroundColor: Colors.white, borderRadius: Radius.lg, flexDirection: "row", marginBottom: 10, overflow: "hidden" },
+  saleCard:       { ...Glass.cardStrong, borderRadius: Radius.lg, flexDirection: "row", marginBottom: 10, overflow: "hidden" },
   saleAccent:     { width: 5 },
   saleTopRow:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
   saleTimePill:   { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 5 },
@@ -642,7 +642,7 @@ const s = StyleSheet.create({
   methodTagText:  { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold" },
   voidBtn:        { width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.red + "12", alignItems: "center", justifyContent: "center" },
 
-  empty:          { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 44, alignItems: "center", marginTop: 4 },
+  empty:          { ...Glass.cardStrong, borderRadius: Radius.xl, padding: 44, alignItems: "center", marginTop: 4 },
   emptyTitle:     { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:       { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
 });

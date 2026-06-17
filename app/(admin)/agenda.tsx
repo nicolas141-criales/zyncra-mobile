@@ -9,7 +9,7 @@ import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
 import NewApptModal from "@/components/NewApptModal";
 import { scheduleAppointmentReminder, cancelAppointmentReminder } from "@/lib/notifications";
 
@@ -182,15 +182,15 @@ function ApptDetailModal({ appt, onClose, onStatusChange, onEdit }: {
 const dm = StyleSheet.create({
   header:      { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 24 },
   headerRow:   { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
-  closeBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
+  closeBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.2)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
   headerTitle: { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
-  summaryBox:  { backgroundColor: "rgba(255,255,255,.15)", borderRadius: Radius.lg, padding: 16, alignItems: "center", gap: 4 },
+  summaryBox:  { backgroundColor: "rgba(255,255,255,.18)", borderRadius: Radius.lg, padding: 16, alignItems: "center", gap: 4, borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
   clientName:  { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   meta:        { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.8)" },
   proMeta:     { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.65)", fontStyle: "italic" },
   price:       { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", marginTop: 4 },
   sectionLabel:{ fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 14 },
-  statusBtn:   { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.white, borderRadius: Radius.md, padding: 14, borderWidth: 1.5, borderColor: Colors.border, overflow: "hidden" },
+  statusBtn:   { flexDirection: "row", alignItems: "center", gap: 12, ...Glass.cardStrong, borderRadius: Radius.md, padding: 14, overflow: "hidden" },
   statusIcon:  { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   statusLabel: { flex: 1, fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
 });
@@ -598,7 +598,7 @@ function EditApptModal({ appt, tenantId, professionals, onClose, onSaved }: {
 const em = StyleSheet.create({
   header:         { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 18 },
   headerRow:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
-  headerBtn:      { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
+  headerBtn:      { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.2)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
   backText:       { color: "white", fontSize: 18, fontFamily: "SpaceGrotesk_600SemiBold" },
   headerTitle:    { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   headerSub:      { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
@@ -606,9 +606,9 @@ const em = StyleSheet.create({
   progressDot:    { height: 4, flex: 1, borderRadius: 2, backgroundColor: "rgba(255,255,255,.3)" },
   progressActive: { backgroundColor: "rgba(255,255,255,.95)" },
   sectionLabel:   { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 },
-  selectCard:     { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14, marginBottom: 10, borderWidth: 1.5, borderColor: "transparent", gap: 14 },
-  selectCardActive:{ borderColor: Colors.red, backgroundColor: Colors.red + "08" },
-  svcCard:        { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, marginBottom: 10, borderWidth: 1.5, borderColor: "transparent" },
+  selectCard:     { flexDirection: "row", alignItems: "center", ...Glass.cardStrong, borderRadius: Radius.lg, padding: 14, marginBottom: 10, gap: 14 },
+  selectCardActive:{ borderColor: Colors.red, backgroundColor: "rgba(251,15,5,0.08)" },
+  svcCard:        { flexDirection: "row", alignItems: "center", ...Glass.cardStrong, borderRadius: Radius.lg, padding: 16, marginBottom: 10 },
   svcPrice:       { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
   avatar:         { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   avatarText:     { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold" },
@@ -616,24 +616,24 @@ const em = StyleSheet.create({
   cardTitle:      { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text, marginBottom: 2 },
   cardSub:        { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
   check:          { width: 22, height: 22, borderRadius: 11, backgroundColor: Colors.red, alignItems: "center", justifyContent: "center" },
-  searchBar:      { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, borderRadius: Radius.lg, paddingHorizontal: 14, paddingVertical: 11, marginBottom: 12, gap: 8 },
+  searchBar:      { flexDirection: "row", alignItems: "center", ...Glass.card, borderRadius: Radius.lg, paddingHorizontal: 14, paddingVertical: 11, marginBottom: 12, gap: 8 },
   searchInput:    { flex: 1, fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
   durationNote:   { backgroundColor: Colors.red + "10", paddingHorizontal: 20, paddingVertical: 12 },
   durationNoteText:{ fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.red },
-  weekStrip:      { backgroundColor: Colors.white, flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 2 },
+  weekStrip:      { ...Glass.cardStrong, flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 2 },
   arrow:          { width: 32, alignItems: "center" },
   arrowText:      { fontSize: 24, color: Colors.muted, lineHeight: 28 },
   dayCol:         { flex: 1, alignItems: "center", gap: 5 },
   dayName:        { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle, textTransform: "uppercase" },
   dayCircle:      { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
   dayNum:         { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
-  timeSlot:       { paddingVertical: 13, borderRadius: Radius.md, overflow: "hidden", backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, alignItems: "center" },
+  timeSlot:       { paddingVertical: 13, borderRadius: Radius.md, overflow: "hidden", ...Glass.card, alignItems: "center" },
   timeSlotActive: { borderWidth: 0 },
   timeSlotText:   { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
-  emptyBox:       { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 32, alignItems: "center" },
+  emptyBox:       { ...Glass.cardStrong, borderRadius: Radius.lg, padding: 32, alignItems: "center" },
   emptyTitle:     { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 4 },
   emptySub:       { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
-  bottomBar:      { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 34, backgroundColor: Colors.cream2, borderTopWidth: 1, borderTopColor: Colors.border },
+  bottomBar:      { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 34, backgroundColor: "rgba(244,244,249,0.85)", borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.6)" },
   btn:            { borderRadius: Radius.full, overflow: "hidden" },
   btnGrad: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
   btnText:        { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: 0.3 },
@@ -662,7 +662,7 @@ function ProChip({ label, initials, color, active, onPress }: {
 }
 
 const pc = StyleSheet.create({
-  chip:       { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: Radius.full, paddingVertical: 7, paddingHorizontal: 12, backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, overflow: "hidden" },
+  chip:       { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: Radius.full, paddingVertical: 7, paddingHorizontal: 12, ...Glass.card, overflow: "hidden" },
   chipActive: { borderWidth: 0 },
   avatar:     { width: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center" },
   avatarText: { fontSize: 9, fontFamily: "SpaceGrotesk_700Bold" },
@@ -733,7 +733,7 @@ const tl = StyleSheet.create({
   conflictText:{ fontSize: 9, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   line:        { flex: 1, width: 1.5, backgroundColor: Colors.border, marginTop: 6, minHeight: 20 },
   cardsCol:    { flex: 1 },
-  card:        { backgroundColor: Colors.white, borderRadius: Radius.md, flexDirection: "row", alignItems: "stretch", overflow: "hidden" },
+  card:        { ...Glass.cardStrong, borderRadius: Radius.md, flexDirection: "row", alignItems: "stretch", overflow: "hidden" },
   accent:      { width: 4 },
   clientName:  { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text, paddingLeft: 10 },
   serviceName: { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2, paddingLeft: 10 },
@@ -977,11 +977,11 @@ const s = StyleSheet.create({
   header:       { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 16 },
   headerTitle:  { fontSize: 24, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.5 },
   headerSub:    { fontSize: 13, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2, textTransform: "capitalize" },
-  addBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.22)", alignItems: "center", justifyContent: "center" },
+  addBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.2)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
   conflictWarn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(0,0,0,.15)", borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 6, marginTop: 12, alignSelf: "flex-start" },
   conflictWarnText: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "#fbbf24" },
 
-  weekStrip:    { backgroundColor: Colors.white, flexDirection: "row", paddingVertical: 12, paddingHorizontal: 4, alignItems: "center" },
+  weekStrip:    { ...Glass.cardStrong, flexDirection: "row", paddingVertical: 12, paddingHorizontal: 4, alignItems: "center" },
   weekArrow:    { width: 32, alignItems: "center", justifyContent: "center" },
   dayCol:       { flex: 1, alignItems: "center", gap: 6 },
   dayName:      { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle, textTransform: "uppercase" },
@@ -989,10 +989,10 @@ const s = StyleSheet.create({
   dayNumSel:    { borderRadius: 10 },
   dayNumText:   { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
 
-  filterStrip:  { backgroundColor: Colors.white, borderBottomWidth: 1, borderBottomColor: Colors.border, maxHeight: 56 },
+  filterStrip:  { backgroundColor: "rgba(255,255,255,0.65)", borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.5)", maxHeight: 56 },
   filterRow:    { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingVertical: 10 },
 
-  empty:        { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 44, alignItems: "center", marginTop: 8 },
+  empty:        { ...Glass.cardStrong, borderRadius: Radius.xl, padding: 44, alignItems: "center", marginTop: 8 },
   emptyTitle:   { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:     { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
 });
