@@ -11,6 +11,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
 import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
+import { fmtMoneyFull, fmt12 } from "@/lib/format";
 import ManualSaleModal from "@/components/ManualSaleModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -42,15 +44,6 @@ const METHODS = [
   { key: "transferencia", label: "Transferencia",   icon: "phone-portrait-outline" as const, color: Colors.purple },
   { key: "nequi",         label: "Nequi",           icon: "logo-whatsapp" as const,          color: "#00b5a5" },
 ];
-
-function fmt(n: number) {
-  return `$${Math.round(n).toLocaleString("es-CO")}`;
-}
-
-function fmt12(t: string) {
-  const h = parseInt(t.slice(0, 2), 10);
-  return `${h % 12 || 12}:${t.slice(3, 5)} ${h >= 12 ? "PM" : "AM"}`;
-}
 
 function addDays(d: Date, n: number) {
   const r = new Date(d); r.setDate(r.getDate() + n); return r;
@@ -102,7 +95,7 @@ function PaymentModal({ appt, onConfirm, onClose }: {
             <View style={[pm.divider, { backgroundColor: "rgba(255,255,255,.3)" }]} />
             <View style={pm.receiptRow}>
               <Text style={[pm.receiptLabel, { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold" }]}>Total</Text>
-              <Text style={pm.totalVal}>{price > 0 ? fmt(price) : "—"}</Text>
+              <Text style={pm.totalVal}>{price > 0 ? fmtMoneyFull(price) : "—"}</Text>
             </View>
           </View>
         </LinearGradient>
@@ -141,7 +134,7 @@ function PaymentModal({ appt, onConfirm, onClose }: {
                 ? <ActivityIndicator color="white" />
                 : <>
                     <Ionicons name="checkmark-circle" size={18} color="white" />
-                    <Text style={pm.btnText}>{price > 0 ? `Confirmar cobro · ${fmt(price)}` : "Completar cita"}</Text>
+                    <Text style={pm.btnText}>{price > 0 ? `Confirmar cobro · ${fmtMoneyFull(price)}` : "Completar cita"}</Text>
                   </>
               }
             </View>
@@ -206,7 +199,7 @@ function ApptCard({ appt, linkedSale, onCobrar, onCancel, index }: {
               <Text style={[ac.timeText, { color: accentColor }]}>{time}</Text>
             </View>
             {price > 0 && (
-              <Text style={[ac.price, isPaid && { color: Colors.success }]}>{fmt(price)}</Text>
+              <Text style={[ac.price, isPaid && { color: Colors.success }]}>{fmtMoneyFull(price)}</Text>
             )}
           </View>
 
@@ -227,7 +220,7 @@ function ApptCard({ appt, linkedSale, onCobrar, onCancel, index }: {
               </TouchableOpacity>
               <TouchableOpacity style={ac.cobraBtn} onPress={onCobrar} activeOpacity={0.85}>
                 <Ionicons name="card-outline" size={15} color="white" />
-                <Text style={ac.cobraText}>Cobrar{price > 0 ? ` ${fmt(price)}` : ""}</Text>
+                <Text style={ac.cobraText}>Cobrar{price > 0 ? ` ${fmtMoneyFull(price)}` : ""}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -284,7 +277,7 @@ const ac = StyleSheet.create({
 export default function PosScreen() {
   const router = useRouter();
   const { t } = useTheme();
-  const [tenantId, setTenantId]     = useState<string | null>(null);
+  const { tenantId } = useAuth();
   const [date, setDate]             = useState(new Date());
   const [appts, setAppts]           = useState<Appt[]>([]);
   const [sales, setSales]           = useState<PosSale[]>([]);
@@ -293,14 +286,6 @@ export default function PosScreen() {
   const [activeTab, setActiveTab]   = useState<"citas" | "cobros">("citas");
   const [payAppt, setPayAppt]       = useState<Appt | null>(null);
   const [showManual, setShowManual] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
 
   const load = useCallback(async (d: Date) => {
     if (!tenantId) return;
@@ -358,7 +343,7 @@ export default function PosScreen() {
   };
 
   const voidSale = (sale: PosSale) => {
-    Alert.alert("Anular cobro", `¿Anular ${fmt(sale.total)}?`, [
+    Alert.alert("Anular cobro", `¿Anular ${fmtMoneyFull(sale.total)}?`, [
       { text: "No", style: "cancel" },
       { text: "Anular", style: "destructive",
         onPress: async () => {
@@ -430,7 +415,7 @@ export default function PosScreen() {
           {cobrado > 0 && (
             <View style={s.headerAmountBox}>
               <Text style={s.headerAmountLabel}>Cobrado</Text>
-              <Text style={s.headerAmountValue}>{fmt(cobrado)}</Text>
+              <Text style={s.headerAmountValue}>{fmtMoneyFull(cobrado)}</Text>
             </View>
           )}
         </View>
@@ -451,13 +436,13 @@ export default function PosScreen() {
               <LinearGradient colors={["#1a1a2e", "#16213e"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroGrad}>
                 <View style={{ flex: 1 }}>
                   <Text style={s.heroLabel}>Total cobrado</Text>
-                  <Text style={s.heroValue}>{cobrado > 0 ? fmt(cobrado) : "—"}</Text>
+                  <Text style={s.heroValue}>{cobrado > 0 ? fmtMoneyFull(cobrado) : "—"}</Text>
                   <Text style={s.heroSub}>{sales.length} cobro{sales.length !== 1 ? "s" : ""} registrado{sales.length !== 1 ? "s" : ""}</Text>
                 </View>
                 {projected > 0 && (
                   <View style={s.projectedBox}>
                     <Text style={s.projectedLabel}>Por cobrar</Text>
-                    <Text style={s.projectedValue}>{fmt(projected)}</Text>
+                    <Text style={s.projectedValue}>{fmtMoneyFull(projected)}</Text>
                     <Text style={s.projectedSub}>{pendingAppts.length} cita{pendingAppts.length !== 1 ? "s" : ""}</Text>
                   </View>
                 )}
@@ -474,7 +459,7 @@ export default function PosScreen() {
                       <Ionicons name={m.icon} size={14} color={m.color} />
                       <View>
                         <Text style={[s.methodChipLabel, { color: m.color }]}>{m.label}</Text>
-                        <Text style={[s.methodChipValue, { color: m.color }]}>{fmt(m.total)}</Text>
+                        <Text style={[s.methodChipValue, { color: m.color }]}>{fmtMoneyFull(m.total)}</Text>
                       </View>
                     </View>
                   ))}
@@ -561,7 +546,7 @@ export default function PosScreen() {
                               <Ionicons name={methodCfg?.icon ?? "cash-outline"} size={11} color={methodCfg?.color ?? Colors.success} />
                               <Text style={[s.saleTime, { color: methodCfg?.color ?? Colors.success }]}>{timeStr}</Text>
                             </View>
-                            <Text style={[s.saleTotal, { color: Colors.success }]}>{fmt(sale.total)}</Text>
+                            <Text style={[s.saleTotal, { color: Colors.success }]}>{fmtMoneyFull(sale.total)}</Text>
                           </View>
                           <Text style={s.saleClient} numberOfLines={1}>
                             {linkedAppt ? (linkedAppt.clients?.name ?? "Sin cliente") : (sale.clients?.name ?? "Venta directa")}

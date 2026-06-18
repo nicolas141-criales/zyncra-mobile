@@ -11,6 +11,9 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { STATUS_META } from "@/constants/status";
+import { fmtDateShort } from "@/lib/format";
+import Avatar from "@/components/Avatar";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -33,14 +36,6 @@ type CustomField = {
 
 type FieldValue = { field_id: string; value: string };
 
-const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
-  pending:   { label: "Pendiente",   color: "#f59e0b", bg: "#fef9eb" },
-  confirmed: { label: "Confirmada",  color: Colors.blue, bg: "#eff2ff" },
-  completed: { label: "Completada",  color: Colors.success, bg: "#f0fdf4" },
-  cancelled: { label: "Cancelada",   color: Colors.subtle, bg: Colors.cream2 },
-  no_show:   { label: "No asistió",  color: Colors.red, bg: "#fff0f0" },
-};
-
 const FIELD_ICON: Record<string, IoniconName> = {
   text:    "text-outline",
   number:  "calculator-outline",
@@ -49,21 +44,6 @@ const FIELD_ICON: Record<string, IoniconName> = {
   boolean: "checkmark-circle-outline",
 };
 
-const MONTHS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-
-function fmtDate(d: string) {
-  const dt = new Date(d + "T00:00:00");
-  return `${dt.getDate()} ${MONTHS[dt.getMonth()]} ${dt.getFullYear()}`;
-}
-
-function Avatar({ name, size = 56 }: { name: string; size?: number }) {
-  const initials = name.split(" ").map(w => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase();
-  return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: Colors.blue + "14", borderWidth: 1.5, borderColor: Colors.blue + "30", alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ color: Colors.blue, fontSize: size * 0.33, fontFamily: "SpaceGrotesk_700Bold" }}>{initials}</Text>
-    </View>
-  );
-}
 
 function StatBox({ value, label, color = Colors.text }: { value: string; label: string; color?: string }) {
   return (
@@ -349,7 +329,7 @@ export default function ClientProfileScreen() {
   const completed  = appts.filter(a => a.status === "completed");
   const noShows    = appts.filter(a => a.status === "no_show").length;
   const totalSpent = completed.reduce((s, a) => s + Number(a.services?.price ?? 0), 0);
-  const since      = client.created_at ? fmtDate(client.created_at.slice(0, 10)) : "—";
+  const since      = client.created_at ? fmtDateShort(client.created_at.slice(0, 10)) : "—";
 
   const fmtMoney = (n: number) =>
     n >= 1000 ? `$${(n / 1000).toFixed(0)}k` : `$${n}`;
@@ -514,7 +494,7 @@ export default function ClientProfileScreen() {
                     {/* Date block */}
                     <View style={s.dateBlock}>
                       <Text style={s.dateDay}>{new Date(a.date + "T00:00:00").getDate()}</Text>
-                      <Text style={s.dateMon}>{MONTHS[new Date(a.date + "T00:00:00").getMonth()]}</Text>
+                      <Text style={s.dateMon}>{new Date(a.date + "T00:00:00").toLocaleDateString("es-CO", { month: "short" })}</Text>
                     </View>
 
                     {/* Info */}

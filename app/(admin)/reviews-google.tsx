@@ -11,6 +11,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useAuth } from "@/lib/auth";
+import { fmtPhone, fmtDateFull } from "@/lib/format";
 
 type Tab = "config" | "solicitar" | "historial";
 type Client = { id: string; name: string; phone: string | null };
@@ -19,18 +21,9 @@ type Request = { id: string; client_name: string; client_phone: string | null; s
 const DEFAULT_TEMPLATE =
   "Hola {{nombre}} 👋\n\nGracias por visitarnos. Tu opinión nos ayuda a mejorar y a que más personas nos encuentren.\n\n⭐ ¿Nos dejas una reseña en Google? Solo toma 1 minuto:\n{{link}}\n\n¡Gracias de corazón!";
 
-function fmt(phone: string) {
-  const d = phone.replace(/\D/g, "");
-  return d.startsWith("57") ? d : `57${d}`;
-}
-
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" });
-}
-
 export default function GoogleReviewsScreen() {
   const router = useRouter();
-  const [tenantId, setTenantId]       = useState<string | null>(null);
+  const { tenantId } = useAuth();
   const [settingsId, setSettingsId]   = useState<string | null>(null);
   const [tab, setTab]                 = useState<Tab>("config");
 
@@ -54,22 +47,17 @@ export default function GoogleReviewsScreen() {
   const [loadingHist, setLoadingHist] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(async ({ data: tenant }) => {
-          if (!tenant) return;
-          setTenantId(tenant.id);
-          const { data: cfg } = await supabase.from("google_review_settings")
-            .select("id, google_maps_url, message_template").eq("tenant_id", tenant.id).single();
-          if (cfg) {
-            setSettingsId(cfg.id);
-            setGoogleUrl(cfg.google_maps_url ?? "");
-            setTemplate(cfg.message_template ?? DEFAULT_TEMPLATE);
-          }
-        });
-    });
-  }, []);
+    if (!tenantId) return;
+    supabase.from("google_review_settings")
+      .select("id, google_maps_url, message_template").eq("tenant_id", tenantId).single()
+      .then(({ data: cfg }) => {
+        if (cfg) {
+          setSettingsId(cfg.id);
+          setGoogleUrl(cfg.google_maps_url ?? "");
+          setTemplate(cfg.message_template ?? DEFAULT_TEMPLATE);
+        }
+      });
+  }, [tenantId]);
 
   const loadClients = useCallback(async () => {
     if (!tenantId) return;
@@ -136,7 +124,7 @@ export default function GoogleReviewsScreen() {
   const handleWhatsApp = async (client: Client) => {
     if (!googleUrl) { Alert.alert("Falta el link", "Configura primero el link de Google en la pestaña Configuración."); return; }
     if (!client.phone) { Alert.alert("Sin teléfono", "Este cliente no tiene número registrado."); return; }
-    const url = `https://wa.me/${fmt(client.phone)}?text=${encodeURIComponent(buildMessage(client))}`;
+    const url = `https://wa.me/${fmtPhone(client.phone)}?text=${encodeURIComponent(buildMessage(client))}`;
     Linking.openURL(url);
     await logRequest(client, "whatsapp");
   };
@@ -319,7 +307,7 @@ export default function GoogleReviewsScreen() {
                       <Text style={s.histPhone}>{r.client_phone ?? "—"}</Text>
                     </View>
                     <View style={{ alignItems: "flex-end", gap: 6 }}>
-                      <Text style={s.histDate}>{fmtDate(r.created_at)}</Text>
+                      <Text style={s.histDate}>{fmtDateFull(r.created_at)}</Text>
                       <View style={[s.viaBadge, { backgroundColor: r.sent_via === "whatsapp" ? "#25d36615" : Colors.border }]}>
                         <Ionicons name={r.sent_via === "whatsapp" ? "logo-whatsapp" : "copy-outline"} size={10} color={r.sent_via === "whatsapp" ? "#25d366" : Colors.muted} />
                         <Text style={[s.viaBadgeText, { color: r.sent_via === "whatsapp" ? "#25d366" : Colors.muted }]}>

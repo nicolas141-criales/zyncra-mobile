@@ -11,6 +11,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
 import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
+import { fmtDateShort } from "@/lib/format";
+import { STATUS_META } from "@/constants/status";
+import Avatar from "@/components/Avatar";
 
 type Client = { id: string; name: string; phone?: string; email?: string; no_shows?: number; created_at?: string };
 type Appt = {
@@ -19,29 +23,6 @@ type Appt = {
 };
 type CustomField = { id: string; name: string; field_type: string };
 type FieldValue  = { field_id: string; value: string | null };
-
-const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
-  pending:   { label: "Pendiente",  color: "#f59e0b", bg: "#fef9eb" },
-  confirmed: { label: "Confirmada", color: Colors.blue, bg: "#eff2ff" },
-  completed: { label: "Completada", color: Colors.success, bg: "#f0fdf4" },
-  cancelled: { label: "Cancelada",  color: Colors.subtle, bg: Colors.cream2 },
-  no_show:   { label: "No asistió", color: Colors.red, bg: "#fff0f0" },
-};
-
-const MONTHS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-function fmtDate(d: string) {
-  const dt = new Date(d + "T00:00:00");
-  return `${dt.getDate()} ${MONTHS[dt.getMonth()]} ${dt.getFullYear()}`;
-}
-
-function Avatar({ name, size = 44 }: { name: string; size?: number }) {
-  const initials = name.split(" ").map(w => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase() || "?";
-  return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: Colors.blue + "14", borderWidth: 1.5, borderColor: Colors.blue + "30", alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ color: Colors.blue, fontSize: size * 0.33, fontFamily: "SpaceGrotesk_700Bold" }}>{initials}</Text>
-    </View>
-  );
-}
 
 // ─── Edit form modal (pageSheet) ──────────────────────────────────────────────
 
@@ -181,7 +162,7 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
   const completed  = appts.filter(a => a.status === "completed");
   const noShows    = appts.filter(a => a.status === "no_show").length;
   const totalSpent = completed.reduce((s, a) => s + Number(a.services?.price ?? 0), 0);
-  const since      = client.created_at ? fmtDate(client.created_at.slice(0, 10)) : "—";
+  const since      = client.created_at ? fmtDateShort(client.created_at.slice(0, 10)) : "—";
   const fmtMoney   = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(0)}k` : `$${n}`;
 
   const handleEditSaved = (updated?: Client) => {
@@ -322,7 +303,7 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
                     <View style={[p.apptRow, Shadow.sm]}>
                       <View style={p.dateBlock}>
                         <Text style={p.dateDay}>{dt.getDate()}</Text>
-                        <Text style={p.dateMon}>{MONTHS[dt.getMonth()]}</Text>
+                        <Text style={p.dateMon}>{dt.toLocaleDateString("es-CO", { month: "short" })}</Text>
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={p.apptService} numberOfLines={1}>{a.services?.name ?? "Servicio"}</Text>
@@ -363,18 +344,10 @@ export default function ClientsScreen() {
   const [clients, setClients]       = useState<Client[]>([]);
   const [filtered, setFiltered]     = useState<Client[]>([]);
   const [search, setSearch]         = useState("");
-  const [tenantId, setTenantId]     = useState<string | null>(null);
+  const { tenantId } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [profileClient, setProfileClient] = useState<Client | null>(null);
   const [newModal, setNewModal]     = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
 
   const loadClients = async () => {
     if (!tenantId) return;

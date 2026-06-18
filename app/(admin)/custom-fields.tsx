@@ -10,6 +10,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useAuth } from "@/lib/auth";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 type FieldType  = "text" | "number" | "date" | "select" | "boolean";
@@ -49,7 +50,7 @@ function slugify(name: string) {
 export default function CustomFieldsScreen() {
   const router = useRouter();
   const [tab, setTab]         = useState(0);
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const { tenantId } = useAuth();
 
   // Fields tab
   const [fields, setFields]   = useState<CustomField[]>([]);
@@ -75,14 +76,6 @@ export default function CustomFieldsScreen() {
   const [savingValues, setSavingValues] = useState(false);
   const [savedValues, setSavedValues]   = useState(false);
   const [clientPicker, setClientPicker] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
 
   useEffect(() => {
     if (!tenantId) return;

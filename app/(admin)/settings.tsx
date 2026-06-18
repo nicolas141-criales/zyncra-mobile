@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
 import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -38,15 +39,14 @@ type Tenant = { name: string; phone?: string };
 export default function SettingsScreen() {
   const router = useRouter();
   const { mode, t, toggle } = useTheme();
+  const { tenantId } = useAuth();
   const [tenant, setTenant] = useState<Tenant | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("name, phone").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenant(data); });
-    });
-  }, []);
+    if (!tenantId) return;
+    supabase.from("tenants").select("name, phone").eq("id", tenantId).single()
+      .then(({ data }) => { if (data) setTenant(data); });
+  }, [tenantId]);
 
   const handleLogout = () => {
     Alert.alert("Cerrar sesión", "¿Seguro que quieres salir?", [

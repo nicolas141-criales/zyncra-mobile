@@ -9,7 +9,11 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { STATUS_META } from "@/constants/status";
+import { fmtDateShort, fmtMoneyFull } from "@/lib/format";
+import Avatar from "@/components/Avatar";
 
 type ClientEntry = {
   id: string;
@@ -30,30 +34,6 @@ type ApptHistoryItem = {
   serviceName: string;
   price: number;
 };
-
-const MONTHS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-
-const STATUS_META: Record<string, { label: string; color: string }> = {
-  pending:   { label: "Pendiente",  color: "#f59e0b" },
-  confirmed: { label: "Confirmada", color: Colors.blue },
-  completed: { label: "Completada", color: Colors.success },
-  cancelled: { label: "Cancelada",  color: Colors.subtle },
-  no_show:   { label: "No asistió", color: Colors.red },
-};
-
-function fmtDate(d: string) {
-  const dt = new Date(d + "T00:00:00");
-  return `${dt.getDate()} ${MONTHS[dt.getMonth()]} ${dt.getFullYear()}`;
-}
-
-function Avatar({ name, size = 46 }: { name: string; size?: number }) {
-  const initials = name.split(" ").map(w => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase() || "?";
-  return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: Colors.blue + "14", borderWidth: 1.5, borderColor: Colors.blue + "30", alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ fontSize: size * 0.33, fontFamily: "SpaceGrotesk_700Bold", color: Colors.blue }}>{initials}</Text>
-    </View>
-  );
-}
 
 // ─── Client detail modal ──────────────────────────────────────────────────────
 
@@ -88,7 +68,6 @@ function ClientModal({ client, proId, onClose }: {
   if (!client) return null;
 
   const totalSpent = history.filter(a => a.status === "completed").reduce((s, a) => s + a.price, 0);
-  const fmtMoney = (n: number) => `$${Math.round(n).toLocaleString("es-CO")}`;
 
   return (
     <Modal visible={!!client} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
@@ -141,7 +120,7 @@ function ClientModal({ client, proId, onClose }: {
             </View>
             <View style={cm.statDivider} />
             <View style={cm.statBox}>
-              <Text style={[cm.statVal, { color: Colors.purple }]}>{fmtMoney(totalSpent)}</Text>
+              <Text style={[cm.statVal, { color: Colors.purple }]}>{fmtMoneyFull(totalSpent)}</Text>
               <Text style={cm.statLabel}>Total gastado</Text>
             </View>
           </View>
@@ -161,14 +140,14 @@ function ClientModal({ client, proId, onClose }: {
                 <View key={a.id} style={[cm.apptRow, Shadow.sm]}>
                   <View style={cm.dateBlock}>
                     <Text style={cm.dateDay}>{new Date(a.date + "T00:00:00").getDate()}</Text>
-                    <Text style={cm.dateMon}>{MONTHS[new Date(a.date + "T00:00:00").getMonth()]}</Text>
+                    <Text style={cm.dateMon}>{new Date(a.date + "T00:00:00").toLocaleDateString("es-CO", { month: "short" })}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={cm.apptService} numberOfLines={1}>{a.serviceName}</Text>
                     <Text style={cm.apptTime}>{a.time}</Text>
                   </View>
                   <View style={{ alignItems: "flex-end", gap: 4 }}>
-                    {a.price > 0 && <Text style={cm.apptPrice}>{fmtMoney(a.price)}</Text>}
+                    {a.price > 0 && <Text style={cm.apptPrice}>{fmtMoneyFull(a.price)}</Text>}
                     <View style={[cm.statusPill, { backgroundColor: meta.color + "15" }]}>
                       <Text style={[cm.statusText, { color: meta.color }]}>{meta.label}</Text>
                     </View>
@@ -214,6 +193,7 @@ const cm = StyleSheet.create({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function StaffClientsScreen() {
+  const { user } = useAuth();
   const [proId, setProId]           = useState<string | null>(null);
   const [clients, setClients]       = useState<ClientEntry[]>([]);
   const [filtered, setFiltered]     = useState<ClientEntry[]>([]);
@@ -223,12 +203,10 @@ export default function StaffClientsScreen() {
   const [selected, setSelected]     = useState<ClientEntry | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("professionals").select("id").eq("user_id", user.id).single()
-        .then(({ data }) => { if (data) setProId(data.id); });
-    });
-  }, []);
+    if (!user) return;
+    supabase.from("professionals").select("id").eq("user_id", user.id).single()
+      .then(({ data }) => { if (data) setProId(data.id); });
+  }, [user]);
 
   const load = useCallback(async () => {
     if (!proId) return;
@@ -285,7 +263,7 @@ export default function StaffClientsScreen() {
         <View style={{ flex: 1 }}>
           <Text style={s.name} numberOfLines={1}>{item.name}</Text>
           <Text style={s.sub} numberOfLines={1}>
-            {item.apptCount} cita{item.apptCount !== 1 ? "s" : ""} · último {fmtDate(item.lastDate)}
+            {item.apptCount} cita{item.apptCount !== 1 ? "s" : ""} · último {fmtDateShort(item.lastDate)}
           </Text>
           {item.lastService !== "—" && (
             <Text style={s.service} numberOfLines={1}>{item.lastService}</Text>

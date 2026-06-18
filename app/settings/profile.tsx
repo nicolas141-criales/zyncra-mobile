@@ -9,6 +9,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
 
 function getInitials(name: string, email: string) {
@@ -51,6 +52,7 @@ function FieldBlock({
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [email, setEmail]         = useState("");
   const [displayName, setDisplayName] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -62,14 +64,12 @@ export default function ProfileScreen() {
   const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      setEmail(user.email ?? "");
-      const meta = user.user_metadata as { full_name?: string } | null;
-      setDisplayName(meta?.full_name ?? "");
-      setLoading(false);
-    });
-  }, []);
+    if (!user) return;
+    setEmail(user.email ?? "");
+    const meta = user.user_metadata as { full_name?: string } | null;
+    setDisplayName(meta?.full_name ?? "");
+    setLoading(false);
+  }, [user]);
 
   const handleSave = async () => {
     if (newPassword && newPassword !== confirmPass) {

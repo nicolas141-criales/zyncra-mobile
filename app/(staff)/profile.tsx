@@ -6,7 +6,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { fmtMoneyFull } from "@/lib/format";
 
 type StaffInfo = {
   id: string; name: string; role: string; email: string | null;
@@ -19,10 +21,6 @@ type CommissionData = {
   commission_amount: number;
   rule: { type: "percentage" | "fixed"; value: number } | null;
 };
-
-function fmt(n: number) {
-  return "$" + Math.round(n).toLocaleString("es-CO");
-}
 
 function getMonthRange() {
   const now   = new Date();
@@ -42,15 +40,15 @@ function getWeekRange() {
 
 export default function StaffProfileScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [info, setInfo]   = useState<StaffInfo | null>(null);
   const [commMonth, setCommMonth] = useState<CommissionData | null>(null);
   const [commWeek, setCommWeek]   = useState<CommissionData | null>(null);
   const [loadingComm, setLoadingComm] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
       const { data: pro } = await supabase
         .from("professionals")
         .select("id, name, role, email, color, tenants(id, name)")
@@ -69,7 +67,7 @@ export default function StaffProfileScreen() {
       setInfo(staffInfo);
       loadCommissions(pro.id, (pro.tenants as any)?.id ?? "");
     })();
-  }, []);
+  }, [user]);
 
   const loadCommissions = async (proId: string, tenantId: string) => {
     setLoadingComm(true);
@@ -165,7 +163,7 @@ export default function StaffProfileScreen() {
                 <View style={s.commMain}>
                   <View style={{ flex: 1 }}>
                     <Text style={s.commLabel}>Comisión del mes</Text>
-                    <Text style={s.commAmount}>{fmt(commMonth.commission_amount)}</Text>
+                    <Text style={s.commAmount}>{fmtMoneyFull(commMonth.commission_amount)}</Text>
                     {commMonth.rule ? (
                       <Text style={s.commRule}>
                         {commMonth.rule.type === "percentage"
@@ -188,7 +186,7 @@ export default function StaffProfileScreen() {
                   </View>
                   <View style={[s.commStatDivider]} />
                   <View style={s.commStat}>
-                    <Text style={s.commStatVal}>{fmt(commMonth.revenue_total)}</Text>
+                    <Text style={s.commStatVal}>{fmtMoneyFull(commMonth.revenue_total)}</Text>
                     <Text style={s.commStatLabel}>Ingresos generados</Text>
                   </View>
                 </View>
@@ -206,9 +204,9 @@ export default function StaffProfileScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.weekLabel}>Esta semana</Text>
-                <Text style={s.weekSub}>{commWeek.appointments_count} citas · {fmt(commWeek.revenue_total)} en ingresos</Text>
+                <Text style={s.weekSub}>{commWeek.appointments_count} citas · {fmtMoneyFull(commWeek.revenue_total)} en ingresos</Text>
               </View>
-              <Text style={s.weekAmount}>{fmt(commWeek.commission_amount)}</Text>
+              <Text style={s.weekAmount}>{fmtMoneyFull(commWeek.commission_amount)}</Text>
             </View>
           </Animated.View>
         )}

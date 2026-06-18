@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -109,20 +110,20 @@ function openWhatsApp(msg: string) {
 
 export default function BillingScreen() {
   const router = useRouter();
+  const { tenantId } = useAuth();
   const [tenant, setTenant] = useState<TenantPlan | null>(null);
 
   useEffect(() => {
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase
-        .from("tenants")
-        .select("name, plan, created_at, plan_expires_at")
-        .eq("owner_id", user.id)
-        .single();
-      if (data) setTenant(data as TenantPlan);
-    })();
-  }, []);
+    if (!tenantId) return;
+    supabase
+      .from("tenants")
+      .select("name, plan, created_at, plan_expires_at")
+      .eq("id", tenantId)
+      .single()
+      .then(({ data }) => {
+        if (data) setTenant(data as TenantPlan);
+      });
+  }, [tenantId]);
 
   const plan = (tenant?.plan ?? "trial") as keyof typeof PLANS;
   const planMeta = PLANS[plan] ?? PLANS.trial;

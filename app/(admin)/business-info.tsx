@@ -10,6 +10,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useAuth } from "@/lib/auth";
 
 function Field({ label, value, onChangeText, placeholder, keyboardType, multiline }: {
   label: string; value: string; onChangeText: (t: string) => void;
@@ -34,7 +35,7 @@ function Field({ label, value, onChangeText, placeholder, keyboardType, multilin
 
 export default function BusinessInfoScreen() {
   const router = useRouter();
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const { tenantId } = useAuth();
   const [name, setName]         = useState("");
   const [phone, setPhone]       = useState("");
   const [address, setAddress]   = useState("");
@@ -43,20 +44,17 @@ export default function BusinessInfoScreen() {
   const [saved, setSaved]       = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id, name, phone, address").eq("owner_id", user.id).single()
-        .then(({ data }) => {
-          if (data) {
-            setTenantId(data.id);
-            setName(data.name ?? "");
-            setPhone(data.phone ?? "");
-            setAddress(data.address ?? "");
-          }
-          setLoading(false);
-        });
-    });
-  }, []);
+    if (!tenantId) return;
+    supabase.from("tenants").select("name, phone, address").eq("id", tenantId).single()
+      .then(({ data }) => {
+        if (data) {
+          setName(data.name ?? "");
+          setPhone(data.phone ?? "");
+          setAddress(data.address ?? "");
+        }
+        setLoading(false);
+      });
+  }, [tenantId]);
 
   const canSave = name.trim().length >= 2;
 

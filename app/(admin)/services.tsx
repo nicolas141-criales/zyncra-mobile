@@ -11,6 +11,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useAuth } from "@/lib/auth";
 
 type Service = {
   id: string;
@@ -143,17 +144,9 @@ function ServiceModal({ visible, service, tenantId, onClose, onSaved }: {
 export default function ServicesScreen() {
   const router = useRouter();
   const [services, setServices]   = useState<Service[]>([]);
-  const [tenantId, setTenantId]   = useState<string | null>(null);
+  const { tenantId } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [modal, setModal]         = useState<{ visible: boolean; service: Service | null }>({ visible: false, service: null });
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
 
   const load = async () => {
     if (!tenantId) return;

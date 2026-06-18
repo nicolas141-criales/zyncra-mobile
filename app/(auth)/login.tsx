@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+﻿import { useState, useEffect } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ScrollView, Pressable,
@@ -11,6 +11,7 @@ import Animated, {
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { Colors, Radius } from "@/constants/theme";
 
 const { height } = Dimensions.get("window");
@@ -32,6 +33,7 @@ function SolidButton({ label, onPress, loading }: { label: string; onPress: () =
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { role } = useAuth();
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const [error,    setError]    = useState<string | null>(null);
@@ -43,20 +45,15 @@ export default function LoginScreen() {
     if (!email || !password) { setError("Completa todos los campos."); return; }
     setLoading(true);
     setError(null);
-    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
     if (err) { setLoading(false); setError(err.message); return; }
-
-    const userId = data.user?.id;
-    const { data: tenant } = await supabase.from("tenants").select("id").eq("owner_id", userId).maybeSingle();
-    if (tenant) { router.replace("/(admin)"); return; }
-
-    const { data: pro } = await supabase.from("professionals").select("id").eq("user_id", userId).maybeSingle();
-    if (pro) { router.replace("/(staff)"); return; }
-
-    await supabase.auth.signOut();
-    setLoading(false);
-    setError("Esta cuenta no tiene acceso a ningún negocio.");
+    // AuthProvider's onAuthStateChange handles role resolution and redirect
   };
+
+  useEffect(() => {
+    if (role === "admin") router.replace("/(admin)");
+    else if (role === "staff") router.replace("/(staff)/agenda");
+  }, [role]);
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>

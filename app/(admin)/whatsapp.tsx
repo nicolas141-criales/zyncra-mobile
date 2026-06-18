@@ -11,6 +11,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useAuth } from "@/lib/auth";
+import { fmtPhone, fmtDateCompact } from "@/lib/format";
 
 type Tab = "nueva" | "plantillas" | "historial";
 type Segment = "all" | "active" | "inactive";
@@ -30,18 +32,9 @@ const VARIABLES = ["{{nombre}}", "{{negocio}}"];
 const DEFAULT_MSG =
   "Hola {{nombre}} 👋\n\nTe escribimos desde {{negocio}} con una novedad especial para ti...\n\n¿Agendamos tu próxima visita? 📅\n\n¡Te esperamos!";
 
-function fmt(phone: string) {
-  const d = phone.replace(/\D/g, "");
-  return d.startsWith("57") ? d : `57${d}`;
-}
-
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("es-CO", { day: "numeric", month: "short" });
-}
-
 export default function WhatsappScreen() {
   const router = useRouter();
-  const [tenantId, setTenantId]       = useState<string | null>(null);
+  const { tenantId } = useAuth();
   const [bizName, setBizName]         = useState("");
   const [tab, setTab]                 = useState<Tab>("nueva");
 
@@ -70,16 +63,10 @@ export default function WhatsappScreen() {
   const [loadingClients, setLoadingClients] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id, name").eq("owner_id", user.id).single()
-        .then(({ data }) => {
-          if (!data) return;
-          setTenantId(data.id);
-          setBizName(data.name ?? "");
-        });
-    });
-  }, []);
+    if (!tenantId) return;
+    supabase.from("tenants").select("name").eq("id", tenantId).single()
+      .then(({ data }) => { if (data) setBizName(data.name ?? ""); });
+  }, [tenantId]);
 
   const loadTemplates = useCallback(async () => {
     if (!tenantId) return;
@@ -168,7 +155,7 @@ export default function WhatsappScreen() {
     message.replace(/\{\{nombre\}\}/g, clientName).replace(/\{\{negocio\}\}/g, bizName);
 
   const handleSend = (c: Client) => {
-    const url = `https://wa.me/${fmt(c.phone)}?text=${encodeURIComponent(buildMsg(c.name))}`;
+    const url = `https://wa.me/${fmtPhone(c.phone)}?text=${encodeURIComponent(buildMsg(c.name))}`;
     Linking.openURL(url);
     setSentIds(prev => new Set([...prev, c.id]));
   };
@@ -376,7 +363,7 @@ export default function WhatsappScreen() {
                 <View style={[s.tmplCard, Shadow.sm]}>
                   <View style={s.tmplCardTop}>
                     <Text style={s.tmplCardName}>{t.name}</Text>
-                    <Text style={s.tmplCardDate}>{fmtDate(t.created_at)}</Text>
+                    <Text style={s.tmplCardDate}>{fmtDateCompact(t.created_at)}</Text>
                   </View>
                   <Text style={s.tmplCardMsg} numberOfLines={4}>{t.message}</Text>
                   <View style={s.tmplCardActions}>
@@ -417,7 +404,7 @@ export default function WhatsappScreen() {
                     </View>
                   </View>
                   <Text style={s.campCardMeta}>
-                    {segmentLabel[c.segment]} · {fmtDate(c.created_at)}
+                    {segmentLabel[c.segment]} · {fmtDateCompact(c.created_at)}
                   </Text>
                   <Text style={s.campCardMsg} numberOfLines={3}>{c.message}</Text>
                   <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>

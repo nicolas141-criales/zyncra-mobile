@@ -11,38 +11,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
 import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
+import { fmt12Hour } from "@/lib/format";
+import { timeToMins, chunk, generateSlotsForDay, buildWeek } from "@/lib/scheduling";
+import { STATUS_META, STATUS_OPTIONS } from "@/constants/status";
 import NewApptModal from "@/components/NewApptModal";
 import { scheduleAppointmentReminder, cancelAppointmentReminder } from "@/lib/notifications";
 
-// ─── Scheduling helpers (same logic as NewApptModal) ─────────────────────────
+// ─── Scheduling helpers ─────────────────────────────────────────────────────
 
 type ExistingBlock = { appointment_time: string; duration: number };
 type DaySchedule   = { open: boolean; start: string; end: string };
-
-function timeToMins(t: string) {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-}
-
-function fmt12(t: string) {
-  const h = parseInt(t.slice(0, 2), 10);
-  return `${h % 12 || 12}:00 ${h >= 12 ? "PM" : "AM"}`;
-}
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
-}
-
-function generateSlotsForDay(start: string, end: string, duration: number): string[] {
-  const startMins = timeToMins(start);
-  const endMins   = timeToMins(end);
-  const slots: string[] = [];
-  for (let m = startMins; m + duration <= endMins; m += 60)
-    slots.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:00`);
-  return slots;
-}
 
 function computeAvailable(slots: string[], existing: ExistingBlock[], duration: number): string[] {
   return slots.filter(slot => {
@@ -61,20 +40,6 @@ const DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const PRO_PALETTE = [
   "#e11d48", "#7c3aed", "#0284c7", "#059669", "#d97706", "#db2777",
 ];
-
-const STATUS_OPTIONS = [
-  { status: "pending",   label: "Pendiente",  color: "#f59e0b",      icon: "time-outline" as const },
-  { status: "confirmed", label: "Confirmada", color: Colors.blue,    icon: "checkmark-circle-outline" as const },
-  { status: "completed", label: "Completada", color: Colors.success, icon: "checkmark-done-circle-outline" as const },
-  { status: "cancelled", label: "Cancelada",  color: Colors.red,     icon: "close-circle-outline" as const },
-];
-
-const STATUS_COLOR: Record<string, string> = {
-  confirmed: Colors.blue, pending: "#f59e0b", cancelled: Colors.red, completed: Colors.success,
-};
-const STATUS_LABEL: Record<string, string> = {
-  confirmed: "Confirmada", pending: "Pendiente", cancelled: "Cancelada", completed: "Completada",
-};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -96,14 +61,6 @@ type Appt = {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function buildWeek(base: Date) {
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(base);
-    d.setDate(base.getDate() - base.getDay() + i);
-    return d;
-  });
-}
 
 function proColor(id: string, list: Professional[]) {
   const idx = list.findIndex(p => p.id === id);
@@ -551,7 +508,7 @@ function EditApptModal({ appt, tenantId, professionals, onClose, onSaved }: {
                               {selectedTime === t && (
                                 <View style={[StyleSheet.absoluteFill, { backgroundColor: Colors.red }]} />
                               )}
-                              <Text style={[em.timeSlotText, selectedTime === t && { color: "white" }]}>{fmt12(t)}</Text>
+                              <Text style={[em.timeSlotText, selectedTime === t && { color: "white" }]}>{fmt12Hour(t)}</Text>
                             </TouchableOpacity>
                           ))}
                           {row.length < 3 && Array.from({ length: 3 - row.length }).map((_, i) => (
@@ -695,8 +652,8 @@ function TimelineSlot({ time, slotAppts, professionals, showPro, onPressAppt, in
       {/* Cards column */}
       <View style={tl.cardsCol}>
         {slotAppts.map((a, i) => {
-          const color    = STATUS_COLOR[a.status] ?? Colors.subtle;
-          const label    = STATUS_LABEL[a.status] ?? a.status;
+          const color    = STATUS_META[a.status]?.color ?? Colors.subtle;
+          const label    = STATUS_META[a.status]?.label ?? a.status;
           const pColor   = a.professionals ? proColor(a.professionals.id, professionals) : Colors.subtle;
 
           return (
@@ -756,20 +713,12 @@ export default function AgendaScreen() {
   const [appts, setAppts]             = useState<Appt[]>([]);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [filterProId, setFilterProId] = useState<string | null>(null);
-  const [tenantId, setTenantId]       = useState<string | null>(null);
+  const { tenantId } = useAuth();
   const [refreshing, setRefreshing]   = useState(false);
   const [showNew, setShowNew]         = useState(false);
   const [refreshKey, setRefreshKey]   = useState(0);
   const [detailAppt, setDetailAppt]   = useState<Appt | null>(null);
   const [editAppt, setEditAppt]       = useState<Appt | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
 
   const loadAppts = useCallback(async (date: Date) => {
     if (!tenantId) return;

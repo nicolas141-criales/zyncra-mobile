@@ -10,6 +10,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useAuth } from "@/lib/auth";
 
 const HOUR_OPTIONS = [1, 2, 6, 12, 24, 48];
 
@@ -20,7 +21,7 @@ const VARIABLES = ["{{nombre}}", "{{servicio}}", "{{fecha}}", "{{hora}}"];
 
 export default function RemindersScreen() {
   const router = useRouter();
-  const [tenantId, setTenantId]   = useState<string | null>(null);
+  const { tenantId } = useAuth();
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [hours, setHours]         = useState(24);
   const [template, setTemplate]   = useState(DEFAULT_TEMPLATE);
@@ -29,24 +30,19 @@ export default function RemindersScreen() {
   const [saved, setSaved]         = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(async ({ data: tenant }) => {
-          if (!tenant) { setLoading(false); return; }
-          setTenantId(tenant.id);
-          const { data: rs } = await supabase.from("reminder_settings")
-            .select("id, hours_before, message_template")
-            .eq("tenant_id", tenant.id).single();
-          if (rs) {
-            setSettingsId(rs.id);
-            setHours(rs.hours_before ?? 24);
-            setTemplate(rs.message_template ?? DEFAULT_TEMPLATE);
-          }
-          setLoading(false);
-        });
-    });
-  }, []);
+    if (!tenantId) return;
+    supabase.from("reminder_settings")
+      .select("id, hours_before, message_template")
+      .eq("tenant_id", tenantId).single()
+      .then(({ data: rs }) => {
+        if (rs) {
+          setSettingsId(rs.id);
+          setHours(rs.hours_before ?? 24);
+          setTemplate(rs.message_template ?? DEFAULT_TEMPLATE);
+        }
+        setLoading(false);
+      });
+  }, [tenantId]);
 
   const handleSave = async () => {
     if (!tenantId) return;

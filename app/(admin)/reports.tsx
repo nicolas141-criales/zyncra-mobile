@@ -10,18 +10,11 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useAuth } from "@/lib/auth";
+import { fmtMoney, pct } from "@/lib/format";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 type Period = "week" | "month" | "year";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmt(n: number) {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000)     return `$${(n / 1_000).toFixed(0)}k`;
-  return `$${Math.round(n).toLocaleString("es-CO")}`;
-}
-function pct(n: number) { return `${Math.round(n)}%`; }
 
 function getRange(period: Period): { start: string; end: string } {
   const now = new Date();
@@ -217,7 +210,7 @@ const rk = StyleSheet.create({
 export default function ReportsScreen() {
   const router = useRouter();
   const [period, setPeriod] = useState<Period>("month");
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const { tenantId } = useAuth();
   const [loading, setLoading]   = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -238,14 +231,6 @@ export default function ReportsScreen() {
   const [topServices, setTopServices] = useState<{ name: string; count: number }[]>([]);
   const [staffPerf, setStaffPerf]     = useState<{ name: string; count: number; revenue: number }[]>([]);
   const [hourly, setHourly]           = useState<{ hour: number; count: number }[]>([]);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
 
   useEffect(() => {
     if (tenantId) load();
@@ -401,7 +386,7 @@ export default function ReportsScreen() {
           <Text style={s.sectionTitle}>Resumen {periodLabel}</Text>
           <View style={s.kpiRow}>
             <KpiCard
-              label="Ingresos" value={fmt(revenue)} icon="cash-outline" color={Colors.red}
+              label="Ingresos" value={fmtMoney(revenue)} icon="cash-outline" color={Colors.red}
               trend={revTrend > 0 ? "up" : revTrend < 0 ? "down" : "neutral"}
               sub={prevRevenue > 0 ? `${revTrend > 0 ? "+" : ""}${pct(revTrend)} vs anterior` : undefined}
               delay={0}
@@ -415,7 +400,7 @@ export default function ReportsScreen() {
           </View>
 
           <View style={s.kpiRow}>
-            <KpiCard label="Ticket promedio" value={fmt(avgTicket)} icon="pricetag-outline" color="#f59e0b" delay={120} />
+            <KpiCard label="Ticket promedio" value={fmtMoney(avgTicket)} icon="pricetag-outline" color="#f59e0b" delay={120} />
             <KpiCard label="No asistió" value={pct(noShowRate)} icon="person-remove-outline" color={noShowRate > 15 ? Colors.red : Colors.muted} delay={180} />
             <KpiCard label="Clientes nuevos" value={String(newClients)} icon="person-add-outline" color={Colors.success} delay={240} />
           </View>
@@ -431,8 +416,8 @@ export default function ReportsScreen() {
               </View>
               <BarChart data={revenueSlots} labels={slotLabels} color={Colors.red} />
               <View style={s.chartFooter}>
-                <Text style={s.chartFooterTxt}>Total: {fmt(revenue)}</Text>
-                <Text style={s.chartFooterTxt}>Prom/día: {fmt(revenueSlots.filter(v => v > 0).reduce((a, b) => a + b, 0) / Math.max(revenueSlots.filter(v => v > 0).length, 1))}</Text>
+                <Text style={s.chartFooterTxt}>Total: {fmtMoney(revenue)}</Text>
+                <Text style={s.chartFooterTxt}>Prom/día: {fmtMoney(revenueSlots.filter(v => v > 0).reduce((a, b) => a + b, 0) / Math.max(revenueSlots.filter(v => v > 0).length, 1))}</Text>
               </View>
             </Animated.View>
           )}
@@ -475,7 +460,7 @@ export default function ReportsScreen() {
                     <Text style={s.staffSub}>{p.count} citas</Text>
                   </View>
                   <View style={{ alignItems: "flex-end" }}>
-                    <Text style={s.staffRevenue}>{fmt(p.revenue)}</Text>
+                    <Text style={s.staffRevenue}>{fmtMoney(p.revenue)}</Text>
                     <View style={s.staffTrack}>
                       <View style={[s.staffFill, { width: `${(p.revenue / topStaffRev) * 100}%`, backgroundColor: [Colors.red, Colors.blue, Colors.success, "#f59e0b", "#8b5cf6"][i] }]} />
                     </View>

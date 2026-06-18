@@ -5,17 +5,12 @@ import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { STATUS_OPTIONS, STATUS_META } from "@/constants/status";
+import { buildWeek } from "@/lib/scheduling";
 
 const DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-
-function buildWeek(base: Date) {
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(base);
-    d.setDate(base.getDate() - base.getDay() + i);
-    return d;
-  });
-}
 
 type Appt = {
   id: string;
@@ -25,13 +20,6 @@ type Appt = {
   clients: { name: string; phone?: string } | null;
   services: { name: string; price?: number } | null;
 };
-
-const STATUS_OPTIONS = [
-  { status: "pending",   label: "Pendiente",  color: "#f59e0b",      icon: "time-outline" as const },
-  { status: "confirmed", label: "Confirmada", color: Colors.blue,    icon: "checkmark-circle-outline" as const },
-  { status: "completed", label: "Completada", color: Colors.success, icon: "checkmark-done-circle-outline" as const },
-  { status: "cancelled", label: "Cancelada",  color: Colors.red,     icon: "close-circle-outline" as const },
-];
 
 function ApptDetailModal({ appt, onClose, onStatusChange }: {
   appt: Appt | null; onClose: () => void;
@@ -111,8 +99,8 @@ const dm = StyleSheet.create({
 });
 
 export default function StaffAgendaScreen() {
+  const { user } = useAuth();
   const [professionalId, setProfessionalId] = useState<string | null>(null);
-  const [tenantId, setTenantId]             = useState<string | null>(null);
   const [weekBase, setWeekBase]             = useState(new Date());
   const [selectedDate, setSelectedDate]     = useState(new Date());
   const [appts, setAppts]                   = useState<Appt[]>([]);
@@ -122,17 +110,10 @@ export default function StaffAgendaScreen() {
   const week = buildWeek(weekBase);
 
   useEffect(() => {
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: pro } = await supabase
-        .from("professionals")
-        .select("id, tenant_id")
-        .eq("user_id", user.id)
-        .single();
-      if (pro) { setProfessionalId(pro.id); setTenantId(pro.tenant_id); }
-    })();
-  }, []);
+    if (!user) return;
+    supabase.from("professionals").select("id").eq("user_id", user.id).single()
+      .then(({ data }) => { if (data) setProfessionalId(data.id); });
+  }, [user]);
 
   const load = useCallback(async () => {
     if (!professionalId) return;
@@ -156,12 +137,6 @@ export default function StaffAgendaScreen() {
   };
 
   const dateStr = selectedDate.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
-  const statusColors: Record<string, string> = {
-    confirmed: Colors.success, pending: "#f59e0b", cancelled: Colors.red, completed: Colors.blue,
-  };
-  const statusLabels: Record<string, string> = {
-    confirmed: "Confirmada", pending: "Pendiente", cancelled: "Cancelada", completed: "Completada",
-  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
@@ -220,9 +195,9 @@ export default function StaffAgendaScreen() {
                     <Text style={s.clientName} numberOfLines={1}>{a.clients?.name ?? "Sin cliente"}</Text>
                     <Text style={s.serviceName} numberOfLines={1}>{a.services?.name ?? "Sin servicio"}</Text>
                   </View>
-                  <View style={[s.badge, { backgroundColor: (statusColors[a.status] ?? Colors.subtle) + "18" }]}>
-                    <Text style={[s.badgeText, { color: statusColors[a.status] ?? Colors.subtle }]}>
-                      {statusLabels[a.status] ?? a.status}
+                  <View style={[s.badge, { backgroundColor: (STATUS_META[a.status]?.color ?? Colors.subtle) + "18" }]}>
+                    <Text style={[s.badgeText, { color: STATUS_META[a.status]?.color ?? Colors.subtle }]}>
+                      {STATUS_META[a.status]?.label ?? a.status}
                     </Text>
                   </View>
                 </TouchableOpacity>

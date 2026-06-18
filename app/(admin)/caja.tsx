@@ -11,6 +11,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useAuth } from "@/lib/auth";
+import { fmtMoneyFull, fmtTime, fmtDateFull } from "@/lib/format";
 
 type Tab      = "caja" | "historial";
 type MoveType = "ingreso" | "egreso";
@@ -21,13 +23,9 @@ type Movement = { id: string; session_id: string; type: MoveType; amount: number
 const INGRESO_CATS = ["Servicio", "Producto", "Propina", "Otro"];
 const EGRESO_CATS  = ["Arriendo", "Nómina", "Insumos", "Servicios públicos", "Otro"];
 
-function fmt(n: number) { return `$${Math.round(n).toLocaleString("es-CO")}`; }
-function fmtTime(iso: string) { return new Date(iso).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }); }
-function fmtDate(iso: string) { return new Date(iso).toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" }); }
-
 export default function CajaScreen() {
   const router = useRouter();
-  const [tenantId, setTenantId]     = useState<string | null>(null);
+  const { tenantId } = useAuth();
   const [tab, setTab]               = useState<Tab>("caja");
 
   // Session state
@@ -57,14 +55,6 @@ export default function CajaScreen() {
   // History
   const [history, setHistory]       = useState<{ session: Session; ingresos: number; egresos: number }[]>([]);
   const [loadingHist, setLoadingHist] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
 
   const loadSession = useCallback(async () => {
     if (!tenantId) return;
@@ -246,19 +236,19 @@ export default function CajaScreen() {
               <View style={s.metricsGrid}>
                 <View style={[s.metricCard, Shadow.sm]}>
                   <Text style={s.metricLabel}>Fondo inicial</Text>
-                  <Text style={s.metricValue}>{fmt(Number(session.opening_amount))}</Text>
+                  <Text style={s.metricValue}>{fmtMoneyFull(Number(session.opening_amount))}</Text>
                 </View>
                 <View style={[s.metricCard, Shadow.sm]}>
                   <Text style={s.metricLabel}>Ingresos</Text>
-                  <Text style={[s.metricValue, { color: Colors.success }]}>{fmt(ingresos)}</Text>
+                  <Text style={[s.metricValue, { color: Colors.success }]}>{fmtMoneyFull(ingresos)}</Text>
                 </View>
                 <View style={[s.metricCard, Shadow.sm]}>
                   <Text style={s.metricLabel}>Egresos</Text>
-                  <Text style={[s.metricValue, { color: Colors.red }]}>{fmt(egresos)}</Text>
+                  <Text style={[s.metricValue, { color: Colors.red }]}>{fmtMoneyFull(egresos)}</Text>
                 </View>
                 <View style={[s.metricCard, Shadow.sm]}>
                   <Text style={s.metricLabel}>Balance</Text>
-                  <Text style={[s.metricValue, { color: Colors.purple }]}>{fmt(balance)}</Text>
+                  <Text style={[s.metricValue, { color: Colors.purple }]}>{fmtMoneyFull(balance)}</Text>
                 </View>
               </View>
 
@@ -306,7 +296,7 @@ export default function CajaScreen() {
                           </View>
                         </View>
                         <Text style={[s.movAmt, { color: m.type === "ingreso" ? Colors.success : Colors.red }]}>
-                          {m.type === "ingreso" ? "+" : "−"}{fmt(Number(m.amount))}
+                          {m.type === "ingreso" ? "+" : "−"}{fmtMoneyFull(Number(m.amount))}
                         </Text>
                       </View>
                     </Animated.View>
@@ -334,7 +324,7 @@ export default function CajaScreen() {
                       <View style={[s.histCard, Shadow.sm]}>
                         <View style={s.histCardTop}>
                           <View>
-                            <Text style={s.histDate}>{fmtDate(h.session.opened_at)}</Text>
+                            <Text style={s.histDate}>{fmtDateFull(h.session.opened_at)}</Text>
                             <Text style={s.histTime}>
                               {fmtTime(h.session.opened_at)} → {h.session.closed_at ? fmtTime(h.session.closed_at) : "—"}
                               {h.session.opening_note ? `  ·  ${h.session.opening_note}` : ""}
@@ -344,19 +334,19 @@ export default function CajaScreen() {
                         <View style={s.histMetrics}>
                           <View style={s.histMetric}>
                             <Text style={s.histMetricLabel}>Fondo</Text>
-                            <Text style={s.histMetricValue}>{fmt(Number(h.session.opening_amount))}</Text>
+                            <Text style={s.histMetricValue}>{fmtMoneyFull(Number(h.session.opening_amount))}</Text>
                           </View>
                           <View style={s.histMetric}>
                             <Text style={s.histMetricLabel}>Ingresos</Text>
-                            <Text style={[s.histMetricValue, { color: Colors.success }]}>{fmt(h.ingresos)}</Text>
+                            <Text style={[s.histMetricValue, { color: Colors.success }]}>{fmtMoneyFull(h.ingresos)}</Text>
                           </View>
                           <View style={s.histMetric}>
                             <Text style={s.histMetricLabel}>Egresos</Text>
-                            <Text style={[s.histMetricValue, { color: Colors.red }]}>{fmt(h.egresos)}</Text>
+                            <Text style={[s.histMetricValue, { color: Colors.red }]}>{fmtMoneyFull(h.egresos)}</Text>
                           </View>
                           <View style={s.histMetric}>
                             <Text style={s.histMetricLabel}>Balance</Text>
-                            <Text style={[s.histMetricValue, { color: Colors.purple }]}>{fmt(bal)}</Text>
+                            <Text style={[s.histMetricValue, { color: Colors.purple }]}>{fmtMoneyFull(bal)}</Text>
                           </View>
                         </View>
                       </View>
@@ -446,9 +436,9 @@ export default function CajaScreen() {
               {/* Summary */}
               <View style={[s.summaryBox, Shadow.sm]}>
                 {[
-                  { label: "Fondo inicial",   value: fmt(session ? Number(session.opening_amount) : 0), color: Colors.text },
-                  { label: "Total ingresos",   value: fmt(ingresos), color: Colors.success },
-                  { label: "Total egresos",    value: fmt(egresos),  color: Colors.red },
+                  { label: "Fondo inicial",   value: fmtMoneyFull(session ? Number(session.opening_amount) : 0), color: Colors.text },
+                  { label: "Total ingresos",   value: fmtMoneyFull(ingresos), color: Colors.success },
+                  { label: "Total egresos",    value: fmtMoneyFull(egresos),  color: Colors.red },
                 ].map(r => (
                   <View key={r.label} style={s.summaryRow}>
                     <Text style={s.summaryLabel}>{r.label}</Text>
@@ -458,7 +448,7 @@ export default function CajaScreen() {
                 <View style={s.summaryDivider} />
                 <View style={s.summaryRow}>
                   <Text style={[s.summaryLabel, { fontFamily: "SpaceGrotesk_700Bold" }]}>Balance esperado</Text>
-                  <Text style={[s.summaryValue, { color: Colors.purple, fontFamily: "SpaceGrotesk_700Bold" }]}>{fmt(balance)}</Text>
+                  <Text style={[s.summaryValue, { color: Colors.purple, fontFamily: "SpaceGrotesk_700Bold" }]}>{fmtMoneyFull(balance)}</Text>
                 </View>
               </View>
 
@@ -475,7 +465,7 @@ export default function CajaScreen() {
                 <View style={[s.diffBox, { backgroundColor: diff >= 0 ? Colors.success + "14" : Colors.red + "14" }]}>
                   <Text style={s.diffLabel}>Diferencia</Text>
                   <Text style={[s.diffValue, { color: diff >= 0 ? Colors.success : Colors.red }]}>
-                    {diff >= 0 ? "+" : ""}{fmt(diff)}  ({diff >= 0 ? "sobrante" : "faltante"})
+                    {diff >= 0 ? "+" : ""}{fmtMoneyFull(diff)}  ({diff >= 0 ? "sobrante" : "faltante"})
                   </Text>
                 </View>
               )}

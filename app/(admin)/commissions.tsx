@@ -10,6 +10,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useAuth } from "@/lib/auth";
+import { fmtMoneyFull, fmtDateCompact } from "@/lib/format";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -70,15 +72,6 @@ function getRange(period: Period, customStart: string, customEnd: string): { sta
   return { start: customStart || now.toISOString().slice(0, 10), end: customEnd || now.toISOString().slice(0, 10) };
 }
 
-function fmt(n: number) {
-  return "$" + n.toLocaleString("es-CO", { minimumFractionDigits: 0 });
-}
-
-function fmtDate(s: string) {
-  const d = new Date(s + "T00:00:00");
-  return d.toLocaleDateString("es-CO", { day: "2-digit", month: "short" });
-}
-
 function calcCommission(rule: CommissionRule | null, revenue: number, count: number) {
   if (!rule) return 0;
   if (rule.type === "percentage") return Math.round(revenue * rule.value / 100);
@@ -111,7 +104,7 @@ const kpi = StyleSheet.create({
 export default function CommissionsScreen() {
   const router = useRouter();
   const [tab, setTab]       = useState(0);
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const { tenantId } = useAuth();
 
   // Resumen
   const [period, setPeriod]         = useState<Period>("month");
@@ -137,14 +130,6 @@ export default function CommissionsScreen() {
   const [liquidarPro, setLiquidarPro] = useState<ProSummary | null>(null);
   const [liquidarNote, setLiquidarNote] = useState("");
   const [savingLiq, setSavingLiq] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
 
   useEffect(() => {
     if (!tenantId) return;
@@ -342,12 +327,12 @@ export default function CommissionsScreen() {
         </Animated.View>
       )}
 
-      <Text style={s.rangeLabel}>{fmtDate(rStart)} – {fmtDate(rEnd)}</Text>
+      <Text style={s.rangeLabel}>{fmtDateCompact(rStart)} – {fmtDateCompact(rEnd)}</Text>
 
       {/* KPIs */}
       <View style={s.kpiRow}>
-        <KpiCard label="Total comisiones" value={fmt(totalComisiones)} icon="cash-outline" color={Colors.success} />
-        <KpiCard label="Ingresos del período" value={fmt(totalRevenue)} icon="trending-up-outline" color={Colors.blue} />
+        <KpiCard label="Total comisiones" value={fmtMoneyFull(totalComisiones)} icon="cash-outline" color={Colors.success} />
+        <KpiCard label="Ingresos del período" value={fmtMoneyFull(totalRevenue)} icon="trending-up-outline" color={Colors.blue} />
         <KpiCard label="Con regla" value={`${prosConRegla}/${summaries.length}`} icon="people-outline" color="#f59e0b" />
       </View>
 
@@ -380,9 +365,9 @@ export default function CommissionsScreen() {
                     <Text style={s.proCitas}>{s2.appointments_count} citas</Text>
                   </View>
                 </View>
-                <Text style={[s.cellTxt, { flex: 1, textAlign: "right" }]}>{fmt(s2.revenue_total)}</Text>
+                <Text style={[s.cellTxt, { flex: 1, textAlign: "right" }]}>{fmtMoneyFull(s2.revenue_total)}</Text>
                 <Text style={[s.cellTxtBold, { flex: 1, textAlign: "right", color: Colors.success }]}>
-                  {fmt(s2.commission_amount)}
+                  {fmtMoneyFull(s2.commission_amount)}
                 </Text>
                 <View style={{ width: 70, alignItems: "flex-end" }}>
                   {s2.rule && s2.appointments_count > 0 ? (
@@ -474,12 +459,12 @@ export default function CommissionsScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.proName}>{item.professional_name}</Text>
-                  <Text style={s.proCitas}>{fmtDate(item.period_start)} – {fmtDate(item.period_end)}</Text>
+                  <Text style={s.proCitas}>{fmtDateCompact(item.period_start)} – {fmtDateCompact(item.period_end)}</Text>
                 </View>
-                <Text style={s.payAmount}>{fmt(item.commission_amount)}</Text>
+                <Text style={s.payAmount}>{fmtMoneyFull(item.commission_amount)}</Text>
               </View>
               <View style={s.payDetails}>
-                <Text style={s.payDetailTxt}>{item.appointments_count} citas · {fmt(item.revenue_total)} ingresos</Text>
+                <Text style={s.payDetailTxt}>{item.appointments_count} citas · {fmtMoneyFull(item.revenue_total)} ingresos</Text>
                 {item.note ? <Text style={[s.payDetailTxt, { color: Colors.muted }]}>{item.note}</Text> : null}
                 {item.paid_at ? (
                   <Text style={[s.payDetailTxt, { color: Colors.success }]}>
@@ -568,8 +553,8 @@ export default function CommissionsScreen() {
                 <Ionicons name="information-circle-outline" size={14} color={Colors.blue} />
                 <Text style={m.previewTxt}>
                   {ruleType === "percentage"
-                    ? `Por $100.000 en ingresos → comisión de ${fmt(Math.round(100000 * parseFloat(ruleValue) / 100))}`
-                    : `Por 10 citas → comisión de ${fmt(parseFloat(ruleValue) * 10)}`
+                    ? `Por $100.000 en ingresos → comisión de ${fmtMoneyFull(Math.round(100000 * parseFloat(ruleValue) / 100))}`
+                    : `Por 10 citas → comisión de ${fmtMoneyFull(parseFloat(ruleValue) * 10)}`
                   }
                 </Text>
               </View>
@@ -603,7 +588,7 @@ export default function CommissionsScreen() {
                     <Text style={s.proAvatarTxt}>{liquidarPro.pro.name[0]}</Text>
                   </View>
                   <Text style={liq.proName}>{liquidarPro.pro.name}</Text>
-                  <Text style={liq.period}>{fmtDate(rStart)} – {fmtDate(rEnd)}</Text>
+                  <Text style={liq.period}>{fmtDateCompact(rStart)} – {fmtDateCompact(rEnd)}</Text>
 
                   <View style={liq.grid}>
                     <View style={liq.cell}>
@@ -611,11 +596,11 @@ export default function CommissionsScreen() {
                       <Text style={liq.cellLbl}>Citas</Text>
                     </View>
                     <View style={liq.cell}>
-                      <Text style={liq.cellVal}>{fmt(liquidarPro.revenue_total)}</Text>
+                      <Text style={liq.cellVal}>{fmtMoneyFull(liquidarPro.revenue_total)}</Text>
                       <Text style={liq.cellLbl}>Ingresos</Text>
                     </View>
                     <View style={liq.cell}>
-                      <Text style={[liq.cellVal, { color: Colors.success }]}>{fmt(liquidarPro.commission_amount)}</Text>
+                      <Text style={[liq.cellVal, { color: Colors.success }]}>{fmtMoneyFull(liquidarPro.commission_amount)}</Text>
                       <Text style={liq.cellLbl}>Comisión</Text>
                     </View>
                   </View>

@@ -8,6 +8,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
 import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
+import { fmtMoney } from "@/lib/format";
+import { STATUS_META } from "@/constants/status";
 import { refreshAllReminders } from "@/lib/notifications";
 import NewApptModal from "@/components/NewApptModal";
 
@@ -20,11 +23,6 @@ function greeting() {
   return "Buenas noches";
 }
 
-const fmtMoney = (n: number) =>
-  n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1)}M`
-  : n >= 1000    ? `$${(n / 1000).toFixed(0)}k`
-  : `$${n}`;
-
 type Appt = {
   id: string;
   appointment_date: string;
@@ -32,19 +30,6 @@ type Appt = {
   status: string;
   clients: { name: string } | null;
   services: { name: string } | null;
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  confirmed: Colors.success,
-  pending:   "#f59e0b",
-  cancelled: Colors.red,
-  completed: Colors.blue,
-};
-const STATUS_LABEL: Record<string, string> = {
-  confirmed: "Confirmada",
-  pending:   "Pendiente",
-  cancelled: "Cancelada",
-  completed: "Completada",
 };
 
 // ─── Stat chip ────────────────────────────────────────────────────────────────
@@ -76,8 +61,8 @@ const sc = StyleSheet.create({
 function ApptRow({ a, i, onPress }: { a: Appt; i: number; onPress: () => void }) {
   const { t } = useTheme();
   const time  = a.appointment_time.substring(0, 5);
-  const color = STATUS_COLOR[a.status] ?? Colors.subtle;
-  const label = STATUS_LABEL[a.status] ?? a.status;
+  const color = STATUS_META[a.status]?.color ?? Colors.subtle;
+  const label = STATUS_META[a.status]?.label ?? a.status;
   const nowD  = new Date();
   const apptDt = new Date(`${a.appointment_date}T${a.appointment_time}`);
   const isNext = apptDt > nowD && (a.status === "confirmed" || a.status === "pending");
@@ -129,22 +114,19 @@ const ar = StyleSheet.create({
 export default function DashboardScreen() {
   const router = useRouter();
   const { t } = useTheme();
+  const { tenantId } = useAuth();
   const [tenantName, setTenantName] = useState("Tu negocio");
-  const [tenantId, setTenantId]     = useState<string | null>(null);
   const [appts, setAppts]           = useState<Appt[]>([]);
   const [metrics, setMetrics]       = useState({ total: 0, confirmed: 0, clients: 0, revenueDay: 0, revenueMonth: 0 });
   const [refreshing, setRefreshing] = useState(false);
   const [showNew, setShowNew]       = useState(false);
 
   const load = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!tenantId) return;
 
     const { data: tenant } = await supabase
-      .from("tenants").select("id, name").eq("owner_id", user.id).single();
-    if (!tenant) return;
-    setTenantName(tenant.name);
-    setTenantId(tenant.id);
+      .from("tenants").select("name").eq("id", tenantId).single();
+    if (tenant) setTenantName(tenant.name);
 
     const now        = new Date();
     const dateStr    = now.toISOString().split("T")[0];
@@ -153,11 +135,11 @@ export default function DashboardScreen() {
     const [{ data: todayAppts }, { count: clientCount }, { data: sales }] = await Promise.all([
       supabase.from("appointments")
         .select("id, appointment_date, appointment_time, status, clients(name), services(name, price)")
-        .eq("tenant_id", tenant.id)
+        .eq("tenant_id", tenantId)
         .eq("appointment_date", dateStr)
         .order("appointment_time"),
-      supabase.from("clients").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id),
-      supabase.from("pos_sales").select("total, created_at").eq("tenant_id", tenant.id).gte("created_at", monthStart),
+      supabase.from("clients").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId),
+      supabase.from("pos_sales").select("total, created_at").eq("tenant_id", tenantId).gte("created_at", monthStart),
     ]);
 
     const all      = (todayAppts as Appt[]) ?? [];
@@ -169,7 +151,7 @@ export default function DashboardScreen() {
     setMetrics({ total: all.length, confirmed: all.filter(a => a.status === "confirmed").length, clients: clientCount ?? 0, revenueDay, revenueMonth });
   };
 
-  useEffect(() => { load(); refreshAllReminders(); }, []);
+  useEffect(() => { load(); refreshAllReminders(); }, [tenantId]);
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
   const now = new Date();

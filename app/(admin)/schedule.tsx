@@ -10,6 +10,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useAuth } from "@/lib/auth";
+import { fmt12Hour } from "@/lib/format";
 
 const DAYS = [
   { key: "1", label: "Lunes",     short: "Lun" },
@@ -26,13 +28,6 @@ const TIME_OPTIONS = [
   "13:00","14:00","15:00","16:00","17:00","18:00","19:00",
   "20:00","21:00","22:00","23:00",
 ];
-
-function fmt12(t: string): string {
-  const h = parseInt(t.slice(0, 2), 10);
-  const period = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 || 12;
-  return `${h12}:00 ${period}`;
-}
 
 type DayConfig = { open: boolean; start: string; end: string };
 type Schedule  = Record<string, DayConfig>;
@@ -53,7 +48,7 @@ function TimePicker({ value, onChange, label }: { value: string; onChange: (v: s
     <>
       <TouchableOpacity style={tp.btn} onPress={() => setOpen(true)} activeOpacity={0.7}>
         <Text style={tp.labelTxt}>{label}</Text>
-        <Text style={tp.valueTxt}>{fmt12(value)}</Text>
+        <Text style={tp.valueTxt}>{fmt12Hour(value)}</Text>
         <Ionicons name="chevron-down" size={13} color={Colors.subtle} />
       </TouchableOpacity>
 
@@ -70,7 +65,7 @@ function TimePicker({ value, onChange, label }: { value: string; onChange: (v: s
                   onPress={() => { onChange(item); setOpen(false); }}
                   activeOpacity={0.75}
                 >
-                  <Text style={[tp.optionText, item === value && tp.optionTextActive]}>{fmt12(item)}</Text>
+                  <Text style={[tp.optionText, item === value && tp.optionTextActive]}>{fmt12Hour(item)}</Text>
                   {item === value && <Ionicons name="checkmark" size={16} color={Colors.red} />}
                 </TouchableOpacity>
               )}
@@ -99,26 +94,23 @@ const tp = StyleSheet.create({
 
 export default function ScheduleScreen() {
   const router = useRouter();
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const { tenantId } = useAuth();
   const [schedule, setSchedule] = useState<Schedule>(buildDefault());
   const [loading, setLoading]   = useState(true);
   const [saving, setSaving]     = useState(false);
   const [saved, setSaved]       = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id, settings").eq("owner_id", user.id).single()
-        .then(({ data }) => {
-          if (data) {
-            setTenantId(data.id);
-            const stored = (data.settings as any)?.schedule;
-            if (stored) setSchedule({ ...buildDefault(), ...stored });
-          }
-          setLoading(false);
-        });
-    });
-  }, []);
+    if (!tenantId) return;
+    supabase.from("tenants").select("settings").eq("id", tenantId).single()
+      .then(({ data }) => {
+        if (data) {
+          const stored = (data.settings as any)?.schedule;
+          if (stored) setSchedule({ ...buildDefault(), ...stored });
+        }
+        setLoading(false);
+      });
+  }, [tenantId]);
 
   const update = (dayKey: string, patch: Partial<DayConfig>) => {
     setSchedule(prev => ({ ...prev, [dayKey]: { ...(prev[dayKey] ?? DEFAULT_DAY), ...patch } }));

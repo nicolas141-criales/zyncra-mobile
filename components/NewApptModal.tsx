@@ -10,6 +10,8 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
 import { scheduleAppointmentReminder } from "@/lib/notifications";
+import { timeToMins, generateSlotsForDay, buildWeek, chunk } from "@/lib/scheduling";
+import { fmt12Hour } from "@/lib/format";
 
 type Service      = { id: string; name: string; duration_minutes: number; price: number };
 type Client       = { id: string; name: string; phone: string };
@@ -17,43 +19,6 @@ type Professional = { id: string; name: string; role: string };
 type ExistingBlock = { appointment_time: string; duration: number };
 
 const DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-
-function buildWeek(base: Date) {
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(base);
-    d.setDate(base.getDate() - base.getDay() + i);
-    return d;
-  });
-}
-
-function timeToMins(t: string): number {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-}
-
-function fmt12(t: string): string {
-  const h = parseInt(t.slice(0, 2), 10);
-  const period = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 || 12;
-  return `${h12}:00 ${period}`;
-}
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
-}
-
-// Generate hourly slots between business open/close that can fit newDuration
-function generateSlotsForDay(start: string, end: string, newDuration: number): string[] {
-  const startMins = timeToMins(start);
-  const endMins   = timeToMins(end);
-  const slots: string[] = [];
-  for (let m = startMins; m + newDuration <= endMins; m += 60) {
-    slots.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:00`);
-  }
-  return slots;
-}
 
 function computeAvailable(slots: string[], existing: ExistingBlock[], newDuration: number): string[] {
   return slots.filter(slot => {
@@ -526,7 +491,7 @@ export default function NewApptModal({ visible, onClose, tenantId, initialDate, 
                               {selectedTime === t && (
                                 <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
                               )}
-                              <Text style={[s.timeSlotText, selectedTime === t && { color: "white" }]}>{fmt12(t)}</Text>
+                              <Text style={[s.timeSlotText, selectedTime === t && { color: "white" }]}>{fmt12Hour(t)}</Text>
                             </TouchableOpacity>
                           ))}
                           {/* Fill empty cells in last row so flex alignment holds */}
@@ -546,7 +511,7 @@ export default function NewApptModal({ visible, onClose, tenantId, initialDate, 
                       <SummaryRow label="Servicio"    value={selectedService.name} />
                       <SummaryRow label="Duración"    value={`${selectedService.duration_minutes} min`} />
                       <SummaryRow label="Fecha"       value={selectedDate.toLocaleDateString("es-CO", { weekday: "short", day: "numeric", month: "short" })} />
-                      <SummaryRow label="Hora"        value={fmt12(selectedTime!)} />
+                      <SummaryRow label="Hora"        value={fmt12Hour(selectedTime!)} />
                       <SummaryRow label="Valor"       value={`$${Number(selectedService.price).toLocaleString("es-CO")}`} highlight />
                     </Animated.View>
                   )}

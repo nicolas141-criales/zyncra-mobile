@@ -10,12 +10,13 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { Config } from "@/lib/config";
+import { useAuth } from "@/lib/auth";
+import { fmtDateFull } from "@/lib/format";
 
 type Tab    = "resumen" | "resenas" | "config";
 type Filter = "all" | "pending" | "approved" | "rejected";
 type Review = { id: string; client_name: string; rating: number; comment: string | null; service: string | null; status: string; created_at: string };
-
-const BOOKING_BASE = "https://zyncra.app/review/";
 
 function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
   return (
@@ -27,13 +28,9 @@ function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
   );
 }
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" });
-}
-
 export default function SiteReviewsScreen() {
   const router = useRouter();
-  const [tenantId, setTenantId]         = useState<string | null>(null);
+  const { tenantId } = useAuth();
   const [settingsId, setSettingsId]     = useState<string | null>(null);
   const [tab, setTab]                   = useState<Tab>("resumen");
   const [reviews, setReviews]           = useState<Review[]>([]);
@@ -45,23 +42,18 @@ export default function SiteReviewsScreen() {
   const [copied, setCopied]             = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(async ({ data: tenant }) => {
-          if (!tenant) return;
-          setTenantId(tenant.id);
-          const { data: cfg } = await supabase.from("google_review_settings")
-            .select("id, show_on_booking").eq("tenant_id", tenant.id).single();
-          if (cfg) { setSettingsId(cfg.id); setShowOnBooking(cfg.show_on_booking ?? true); }
-          const { data: rv } = await supabase.from("site_reviews")
-            .select("id, client_name, rating, comment, service, status, created_at")
-            .eq("tenant_id", tenant.id).order("created_at", { ascending: false });
-          setReviews((rv ?? []) as Review[]);
-          setLoading(false);
-        });
-    });
-  }, []);
+    if (!tenantId) return;
+    (async () => {
+      const { data: cfg } = await supabase.from("google_review_settings")
+        .select("id, show_on_booking").eq("tenant_id", tenantId).single();
+      if (cfg) { setSettingsId(cfg.id); setShowOnBooking(cfg.show_on_booking ?? true); }
+      const { data: rv } = await supabase.from("site_reviews")
+        .select("id, client_name, rating, comment, service, status, created_at")
+        .eq("tenant_id", tenantId).order("created_at", { ascending: false });
+      setReviews((rv ?? []) as Review[]);
+      setLoading(false);
+    })();
+  }, [tenantId]);
 
   const reload = useCallback(async () => {
     if (!tenantId) return;
@@ -105,7 +97,7 @@ export default function SiteReviewsScreen() {
   const filtered  = filter === "all" ? reviews
     : reviews.filter(r => r.status === filter);
 
-  const publicLink = tenantId ? `${BOOKING_BASE}${tenantId}` : "";
+  const publicLink = tenantId ? `${Config.urls.review}${tenantId}` : "";
 
   const TABS: { key: Tab; label: string }[] = [
     { key: "resumen", label: "Resumen" },
@@ -213,7 +205,7 @@ export default function SiteReviewsScreen() {
                           <View style={[s.reviewCard, Shadow.sm]}>
                             <View style={s.reviewTop}>
                               <Text style={s.reviewName}>{r.client_name}</Text>
-                              <Text style={s.reviewDate}>{fmtDate(r.created_at)}</Text>
+                              <Text style={s.reviewDate}>{fmtDateFull(r.created_at)}</Text>
                             </View>
                             <Stars rating={r.rating} />
                             {r.comment && <Text style={s.reviewComment}>{r.comment}</Text>}
@@ -262,7 +254,7 @@ export default function SiteReviewsScreen() {
                         </View>
                         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
                           <Stars rating={r.rating} />
-                          <Text style={s.reviewDate}>{fmtDate(r.created_at)}</Text>
+                          <Text style={s.reviewDate}>{fmtDateFull(r.created_at)}</Text>
                         </View>
                         {r.comment && <Text style={s.reviewComment}>{r.comment}</Text>}
 

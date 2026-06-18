@@ -10,10 +10,11 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { Config } from "@/lib/config";
+import { useAuth } from "@/lib/auth";
+import { fmtMoneyFull, fmtDateFull } from "@/lib/format";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
-
-const FACTUS_API = "https://zyncra.app/api/factus";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -110,19 +111,12 @@ const EMPTY_ITEM: InvoiceItem = { name: "", quantity: 1, price: 0, tax_rate: "0.
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function fmt(n: number) {
-  return "$" + Math.round(n).toLocaleString("es-CO");
-}
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
-}
-
 // ─── Main ──────────────────────────────────────────────────────────────────────
 
 export default function InvoicesScreen() {
   const router = useRouter();
   const [tab, setTab]         = useState(0);
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const { tenantId } = useAuth();
 
   // Settings
   const [settings, setSettings]     = useState<InvoiceSettings>(EMPTY_SETTINGS);
@@ -148,14 +142,6 @@ export default function InvoicesScreen() {
   const [invoices, setInvoices]     = useState<Invoice[]>([]);
   const [loadingInv, setLoadingInv] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
 
   useEffect(() => {
     if (!tenantId) return;
@@ -204,7 +190,7 @@ export default function InvoicesScreen() {
     setTestingConn(true); setConnResult(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(FACTUS_API, {
+      const res = await fetch(Config.api.factus, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "test", supabaseToken: session?.access_token, tenantId }),
@@ -251,7 +237,7 @@ export default function InvoicesScreen() {
     setEmitting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(FACTUS_API, {
+      const res = await fetch(Config.api.factus, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -482,15 +468,15 @@ export default function InvoicesScreen() {
       <View style={[s.summaryCard, Shadow.sm]}>
         <View style={s.summaryRow}>
           <Text style={s.summaryLabel}>Subtotal</Text>
-          <Text style={s.summaryValue}>{fmt(subtotal)}</Text>
+          <Text style={s.summaryValue}>{fmtMoneyFull(subtotal)}</Text>
         </View>
         <View style={s.summaryRow}>
           <Text style={s.summaryLabel}>IVA</Text>
-          <Text style={s.summaryValue}>{fmt(taxTotal)}</Text>
+          <Text style={s.summaryValue}>{fmtMoneyFull(taxTotal)}</Text>
         </View>
         <View style={[s.summaryRow, { borderTopWidth: 1, borderTopColor: Colors.border, paddingTop: 10, marginTop: 4 }]}>
           <Text style={[s.summaryLabel, { fontFamily: "SpaceGrotesk_700Bold", color: Colors.text }]}>Total</Text>
-          <Text style={[s.summaryValue, { fontSize: 18, color: Colors.text }]}>{fmt(total)}</Text>
+          <Text style={[s.summaryValue, { fontSize: 18, color: Colors.text }]}>{fmtMoneyFull(total)}</Text>
         </View>
       </View>
 
@@ -544,9 +530,9 @@ export default function InvoicesScreen() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={s.invCustomer}>{inv.customer_name}</Text>
-                    <Text style={s.invDate}>{fmtDate(inv.created_at)}</Text>
+                    <Text style={s.invDate}>{fmtDateFull(inv.created_at)}</Text>
                   </View>
-                  <Text style={s.invTotal}>{fmt(inv.total)}</Text>
+                  <Text style={s.invTotal}>{fmtMoneyFull(inv.total)}</Text>
                   <View style={[s.statusBadge, { backgroundColor: st.bg }]}>
                     <Text style={[s.statusTxt, { color: st.color }]}>{st.label}</Text>
                   </View>
@@ -563,7 +549,7 @@ export default function InvoicesScreen() {
                     {inv.invoice_items?.map((it, i) => (
                       <View key={i} style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
                         <Text style={s.invItem}>{it.name} × {it.quantity}</Text>
-                        <Text style={s.invItem}>{fmt(it.total)}</Text>
+                        <Text style={s.invItem}>{fmtMoneyFull(it.total)}</Text>
                       </View>
                     ))}
                     {inv.pdf_url && (

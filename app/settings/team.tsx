@@ -11,9 +11,10 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
-
-const EDGE_URL = "https://bwmwuzwhinnzkjicdzot.supabase.co/functions/v1/create-staff-user";
+import { Config } from "@/lib/config";
+import Avatar from "@/components/Avatar";
 
 type Pro = { id: string; name: string; role: string; is_active: boolean; user_id: string | null; email: string | null; photo_url: string | null };
 
@@ -127,7 +128,7 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
     setAccLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(EDGE_URL, {
+      const res = await fetch(Config.edgeFunctions.createStaffUser, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -302,40 +303,13 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
   );
 }
 
-function Avatar({ name, photoUrl, size = 52 }: { name: string; photoUrl?: string | null; size?: number }) {
-  if (photoUrl) {
-    return (
-      <View style={{ width: size, height: size, borderRadius: size / 2, overflow: "hidden", borderWidth: 2, borderColor: Colors.border }}>
-        <Image
-          source={{ uri: photoUrl }}
-          style={{ width: "100%", height: "100%" }}
-          resizeMode="cover"
-        />
-      </View>
-    );
-  }
-  const initials = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-  return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: Colors.red + "18", borderWidth: 1.5, borderColor: Colors.red + "30", alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ color: Colors.red, fontSize: size * 0.34, fontFamily: "SpaceGrotesk_700Bold" }}>{initials}</Text>
-    </View>
-  );
-}
 
 export default function TeamScreen() {
   const router = useRouter();
+  const { tenantId } = useAuth();
   const [pros, setPros]             = useState<Pro[]>([]);
-  const [tenantId, setTenantId]     = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [modal, setModal]           = useState<{ visible: boolean; pro: Pro | null }>({ visible: false, pro: null });
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
 
   const load = async () => {
     if (!tenantId) return;
@@ -383,7 +357,7 @@ export default function TeamScreen() {
                 onPress={() => setModal({ visible: true, pro: p })}
                 activeOpacity={0.75}
               >
-                <Avatar name={p.name} photoUrl={p.photo_url} />
+                <Avatar name={p.name} photoUrl={p.photo_url} size={52} color={Colors.red} />
                 <View style={{ flex: 1 }}>
                   <Text style={s.name}>{p.name}</Text>
                   <Text style={s.role}>{p.role}</Text>

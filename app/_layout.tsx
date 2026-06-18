@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { View, ActivityIndicator } from "react-native";
 import { Colors } from "@/constants/theme";
 import { ThemeProvider, useTheme } from "@/lib/theme";
+import { AuthProvider } from "@/lib/auth";
 import ZyncraIntro from "@/components/ZyncraIntro";
 import { registerForPushNotifications, scheduleDailyBriefing } from "@/lib/notifications";
 
@@ -48,7 +49,9 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </ThemeProvider>
   );
 }

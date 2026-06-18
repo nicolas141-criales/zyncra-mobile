@@ -1,21 +1,12 @@
-import { useEffect, useState } from "react";
 import { Redirect } from "expo-router";
-import { supabase } from "@/lib/supabase";
 import { View, ActivityIndicator } from "react-native";
 import { Colors } from "@/constants/theme";
 import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
 
 export default function Index() {
   const { t } = useTheme();
-  const [loading, setLoading] = useState(true);
-  const [authed, setAuthed] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setAuthed(!!data.session);
-      setLoading(false);
-    });
-  }, []);
+  const { session, role, loading } = useAuth();
 
   if (loading) {
     return (
@@ -25,5 +16,7 @@ export default function Index() {
     );
   }
 
-  return <Redirect href={authed ? "/(admin)" : "/(auth)/login"} />;
+  if (!session) return <Redirect href="/(auth)/login" />;
+  if (role === "staff") return <Redirect href="/(staff)/agenda" />;
+  return <Redirect href="/(admin)" />;
 }

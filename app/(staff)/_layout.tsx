@@ -1,9 +1,10 @@
-﻿import { Tabs } from "expo-router";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+﻿import { Tabs, Redirect } from "expo-router";
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { Colors, Shadow, Glass } from "@/constants/theme";
 import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -66,6 +67,18 @@ const s = StyleSheet.create({
 });
 
 export default function StaffLayout() {
+  const { role, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: Colors.cream2 }}>
+        <ActivityIndicator color={Colors.red} size="large" />
+      </View>
+    );
+  }
+
+  if (role !== "staff") return <Redirect href="/(auth)/login" />;
+
   return (
     <Tabs tabBar={(props) => <StaffTabBar {...props} />} screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="agenda"  options={{ title: "Mi Agenda" }} />

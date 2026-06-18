@@ -10,6 +10,9 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useAuth } from "@/lib/auth";
+import { fmtMoneyFull, fmt12 } from "@/lib/format";
+import { STATUS_META } from "@/constants/status";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -26,25 +29,8 @@ type Appt = {
 
 type Professional = { id: string; name: string; color?: string };
 
-const STATUS_META: Record<string, { label: string; color: string; icon: IoniconName }> = {
-  pending:   { label: "Pendiente",  color: "#f59e0b",      icon: "time-outline" },
-  confirmed: { label: "Confirmada", color: Colors.blue,    icon: "checkmark-circle-outline" },
-  completed: { label: "Completada", color: Colors.success, icon: "checkmark-done-circle-outline" },
-  cancelled: { label: "Cancelada",  color: Colors.subtle,  icon: "close-circle-outline" },
-  no_show:   { label: "No asistió", color: Colors.red,     icon: "alert-circle-outline" },
-};
-
 const DAYS_ES = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 const MONTHS  = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-
-function fmt12(t: string) {
-  const h = parseInt(t.slice(0, 2), 10);
-  return `${h % 12 || 12}:${t.slice(3, 5)} ${h >= 12 ? "PM" : "AM"}`;
-}
-
-function fmtMoney(n: number) {
-  return `$${Math.round(n).toLocaleString("es-CO")}`;
-}
 
 function addDays(d: Date, n: number) {
   const r = new Date(d); r.setDate(r.getDate() + n); return r;
@@ -207,21 +193,13 @@ const rm = StyleSheet.create({
 
 export default function UpcomingScreen() {
   const router = useRouter();
-  const [tenantId, setTenantId]       = useState<string | null>(null);
+  const { tenantId } = useAuth();
   const [appts, setAppts]             = useState<Appt[]>([]);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [selectedPro, setSelectedPro] = useState<string>("all");
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
   const [reschedule, setReschedule]   = useState<Appt | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
 
   const load = useCallback(async () => {
     if (!tenantId) return;
@@ -304,7 +282,7 @@ export default function UpcomingScreen() {
           {pendingRevenue > 0 && (
             <View style={s.statPill}>
               <Ionicons name="cash-outline" size={13} color="rgba(255,255,255,.9)" />
-              <Text style={s.statPillText}>{fmtMoney(pendingRevenue)} proyectados</Text>
+              <Text style={s.statPillText}>{fmtMoneyFull(pendingRevenue)} proyectados</Text>
             </View>
           )}
         </View>
@@ -359,7 +337,7 @@ export default function UpcomingScreen() {
                   <Text style={s.dayLabel}>{day.label}</Text>
                   <View style={s.dayMeta}>
                     <Text style={s.dayCount}>{dayAppts.length} cita{dayAppts.length !== 1 ? "s" : ""}</Text>
-                    {dayRevenue > 0 && <Text style={s.dayRevenue}>{fmtMoney(dayRevenue)}</Text>}
+                    {dayRevenue > 0 && <Text style={s.dayRevenue}>{fmtMoneyFull(dayRevenue)}</Text>}
                   </View>
                 </View>
 
@@ -381,7 +359,7 @@ export default function UpcomingScreen() {
                               </Text>
                             </View>
                             {appt.services?.price ? (
-                              <Text style={s.apptPrice}>{fmtMoney(appt.services.price)}</Text>
+                              <Text style={s.apptPrice}>{fmtMoneyFull(appt.services.price)}</Text>
                             ) : null}
                           </View>
 
