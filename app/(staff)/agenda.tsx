@@ -111,8 +111,10 @@ export default function StaffAgendaScreen() {
 
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
     supabase.from("professionals").select("id").eq("user_id", user.id).single()
-      .then(({ data }) => { if (data) setProfessionalId(data.id); });
+      .then(({ data }) => { if (!cancelled && data) setProfessionalId(data.id); });
+    return () => { cancelled = true; };
   }, [user]);
 
   const load = useCallback(async () => {
@@ -186,7 +188,7 @@ export default function StaffAgendaScreen() {
           appts.map((a, i) => {
             const time = a.appointment_time.substring(0, 5);
             return (
-              <Animated.View key={a.id} entering={FadeInRight.delay(i * 70).duration(320)}>
+              <Animated.View key={a.id} entering={i < 10 ? FadeInRight.delay(i * 70).duration(320) : undefined}>
                 <TouchableOpacity style={[s.row, Shadow.sm]} onPress={() => setSelectedAppt(a)} activeOpacity={0.8}>
                   <View style={[s.timePill, { backgroundColor: Colors.red + "12" }]}>
                     <Text style={[s.timeText, { color: Colors.red }]}>{time}</Text>

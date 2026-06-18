@@ -156,7 +156,11 @@ export default function ServicesScreen() {
     setServices(data ?? []);
   };
 
-  useEffect(() => { load(); }, [tenantId]);
+  useEffect(() => {
+    let cancelled = false;
+    load().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
+  }, [tenantId]);
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
   return (
@@ -188,7 +192,7 @@ export default function ServicesScreen() {
           </Animated.View>
         ) : (
           services.map((svc, i) => (
-            <Animated.View key={svc.id} entering={FadeInRight.delay(i * 50).duration(320)}>
+            <Animated.View key={svc.id} entering={i < 10 ? FadeInRight.delay(i * 50).duration(320) : undefined}>
               <TouchableOpacity
                 style={[s.row, Shadow.sm]}
                 onPress={() => setModal({ visible: true, service: svc })}

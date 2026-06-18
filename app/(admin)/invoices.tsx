@@ -145,11 +145,16 @@ export default function InvoicesScreen() {
 
   useEffect(() => {
     if (!tenantId) return;
-    loadSettings();
+    let cancelled = false;
+    loadSettings().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [tenantId]);
 
   useEffect(() => {
-    if (tab === 2 && tenantId) loadInvoices();
+    if (!tenantId || tab !== 2) return;
+    let cancelled = false;
+    loadInvoices().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [tab, tenantId]);
 
   const loadSettings = async () => {

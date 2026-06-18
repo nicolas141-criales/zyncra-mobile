@@ -79,8 +79,9 @@ export default function CustomFieldsScreen() {
 
   useEffect(() => {
     if (!tenantId) return;
-    loadFields();
-    loadClients();
+    let cancelled = false;
+    Promise.all([loadFields(), loadClients()]).then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [tenantId]);
 
   const loadFields = useCallback(async () => {
@@ -229,7 +230,7 @@ export default function CustomFieldsScreen() {
           renderItem={({ item: f, index: i }) => {
             const meta = TYPE_META[f.field_type];
             return (
-              <Animated.View entering={FadeInDown.delay(i * 60).duration(350)}>
+              <Animated.View entering={i < 10 ? FadeInDown.delay(i * 60).duration(350) : undefined}>
                 <View style={[s.fieldCard, Shadow.sm, !f.active && { opacity: 0.55 }]}>
                   <View style={[s.fieldIcon, { backgroundColor: meta.color + "18" }]}>
                     <Ionicons name={meta.icon} size={18} color={meta.color} />

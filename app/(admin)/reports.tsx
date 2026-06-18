@@ -233,7 +233,10 @@ export default function ReportsScreen() {
   const [hourly, setHourly]           = useState<{ hour: number; count: number }[]>([]);
 
   useEffect(() => {
-    if (tenantId) load();
+    if (!tenantId) return;
+    let cancelled = false;
+    load().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [tenantId, period]);
 
   const load = useCallback(async () => {
@@ -451,7 +454,7 @@ export default function ReportsScreen() {
                 <Text style={s.cardTitle}>Rendimiento del equipo</Text>
               </View>
               {staffPerf.map((p, i) => (
-                <Animated.View key={p.name} entering={FadeInRight.delay(i * 60).duration(320)} style={s.staffRow}>
+                <Animated.View key={p.name} entering={i < 10 ? FadeInRight.delay(i * 60).duration(320) : undefined} style={s.staffRow}>
                   <View style={[s.staffAvatar, { backgroundColor: [Colors.red, Colors.blue, Colors.success, "#f59e0b", "#8b5cf6"][i] }]}>
                     <Text style={s.staffAvatarTxt}>{p.name[0]}</Text>
                   </View>

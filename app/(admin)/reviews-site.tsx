@@ -43,16 +43,20 @@ export default function SiteReviewsScreen() {
 
   useEffect(() => {
     if (!tenantId) return;
+    let cancelled = false;
     (async () => {
       const { data: cfg } = await supabase.from("google_review_settings")
         .select("id, show_on_booking").eq("tenant_id", tenantId).single();
+      if (cancelled) return;
       if (cfg) { setSettingsId(cfg.id); setShowOnBooking(cfg.show_on_booking ?? true); }
       const { data: rv } = await supabase.from("site_reviews")
         .select("id, client_name, rating, comment, service, status, created_at")
         .eq("tenant_id", tenantId).order("created_at", { ascending: false });
+      if (cancelled) return;
       setReviews((rv ?? []) as Review[]);
       setLoading(false);
     })();
+    return () => { cancelled = true; };
   }, [tenantId]);
 
   const reload = useCallback(async () => {
@@ -239,7 +243,7 @@ export default function SiteReviewsScreen() {
                   </View>
                 ) : (
                   filtered.map((r, i) => (
-                    <Animated.View key={r.id} entering={FadeInDown.delay(i * 40).duration(280)}>
+                    <Animated.View key={r.id} entering={i < 10 ? FadeInDown.delay(i * 40).duration(280) : undefined}>
                       <View style={[s.reviewCard, Shadow.sm]}>
                         <View style={s.reviewTop}>
                           <View style={{ flex: 1 }}>

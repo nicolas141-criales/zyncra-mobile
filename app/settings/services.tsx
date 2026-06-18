@@ -119,7 +119,17 @@ export default function ServicesScreen() {
     setServices(data ?? []);
   };
 
-  useEffect(() => { load(); }, [tenantId]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!tenantId) return;
+      const { data } = await supabase.from("services")
+        .select("id, name, price, duration_min, description")
+        .eq("tenant_id", tenantId).order("name");
+      if (!cancelled) setServices(data ?? []);
+    })();
+    return () => { cancelled = true; };
+  }, [tenantId]);
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
   return (
@@ -139,7 +149,7 @@ export default function ServicesScreen() {
           <EmptyState icon="cut-outline" title="Sin servicios" subtitle="Toca + para agregar tu primer servicio" />
         ) : (
           services.map((svc, i) => (
-            <Animated.View key={svc.id} entering={FadeInRight.delay(i * 50).duration(320)}>
+            <Animated.View key={svc.id} entering={i < 10 ? FadeInRight.delay(i * 50).duration(320) : undefined}>
               <TouchableOpacity
                 style={[s.row, Shadow.sm]}
                 onPress={() => setModal({ visible: true, service: svc })}

@@ -97,8 +97,17 @@ export default function CajaScreen() {
     setLoadingHist(false);
   }, [tenantId]);
 
-  useEffect(() => { loadSession(); }, [loadSession]);
-  useEffect(() => { if (tab === "historial") loadHistory(); }, [tab, loadHistory]);
+  useEffect(() => {
+    let cancelled = false;
+    loadSession().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
+  }, [loadSession]);
+  useEffect(() => {
+    if (tab !== "historial") return;
+    let cancelled = false;
+    loadHistory().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
+  }, [tab, loadHistory]);
 
   const handleOpen = async () => {
     const amt = parseFloat(openAmt.replace(/\./g, "").replace(",", "."));
@@ -277,7 +286,7 @@ export default function CajaScreen() {
                   </View>
                 ) : (
                   movements.map((m, i) => (
-                    <Animated.View key={m.id} entering={FadeInDown.delay(i * 30).duration(250)}>
+                    <Animated.View key={m.id} entering={i < 10 ? FadeInDown.delay(i * 30).duration(250) : undefined}>
                       <View style={[s.movRow, i > 0 && s.movRowBorder]}>
                         <View style={[s.movBadge, { backgroundColor: m.type === "ingreso" ? Colors.success + "18" : Colors.red + "18" }]}>
                           <Text style={[s.movBadgeText, { color: m.type === "ingreso" ? Colors.success : Colors.red }]}>
@@ -320,7 +329,7 @@ export default function CajaScreen() {
                 history.map((h, i) => {
                   const bal = Number(h.session.opening_amount) + h.ingresos - h.egresos;
                   return (
-                    <Animated.View key={h.session.id} entering={FadeInDown.delay(i * 40).duration(280)}>
+                    <Animated.View key={h.session.id} entering={i < 10 ? FadeInDown.delay(i * 40).duration(280) : undefined}>
                       <View style={[s.histCard, Shadow.sm]}>
                         <View style={s.histCardTop}>
                           <View>

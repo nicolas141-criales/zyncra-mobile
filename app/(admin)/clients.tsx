@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import {
-  View, Text, ScrollView, StyleSheet, TextInput,
+  View, Text, ScrollView, FlatList, StyleSheet, TextInput,
   TouchableOpacity, RefreshControl, Modal, KeyboardAvoidingView,
   Platform, ActivityIndicator, Alert, Linking,
 } from "react-native";
@@ -299,7 +299,7 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
                 const meta = STATUS_META[a.status] ?? STATUS_META.pending;
                 const dt   = new Date(a.appointment_date + "T00:00:00");
                 return (
-                  <Animated.View key={a.id} entering={FadeInRight.delay(i * 35).duration(260)}>
+                  <Animated.View key={a.id} entering={i < 10 ? FadeInRight.delay(i * 35).duration(260) : undefined}>
                     <View style={[p.apptRow, Shadow.sm]}>
                       <View style={p.dateBlock}>
                         <Text style={p.dateDay}>{dt.getDate()}</Text>
@@ -359,7 +359,11 @@ export default function ClientsScreen() {
     setFiltered(c);
   };
 
-  useEffect(() => { loadClients(); }, [tenantId]);
+  useEffect(() => {
+    let cancelled = false;
+    loadClients().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
+  }, [tenantId]);
 
   useEffect(() => {
     const q = search.toLowerCase();
@@ -410,12 +414,13 @@ export default function ClientsScreen() {
         )}
       </View>
 
-      <ScrollView
+      <FlatList
+        data={filtered}
+        keyExtractor={(item) => item.id}
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 110 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.red} />}
-      >
-        {filtered.length === 0 ? (
+        ListEmptyComponent={
           <Animated.View entering={FadeInDown.duration(400)} style={s.empty}>
             <Ionicons name="people-outline" size={44} color={Colors.subtle} style={{ marginBottom: 12 }} />
             <Text style={s.emptyTitle}>{search ? "Sin resultados" : "Sin clientes aún"}</Text>
@@ -423,30 +428,29 @@ export default function ClientsScreen() {
               {search ? "Prueba otro nombre o teléfono" : "Toca + para agregar tu primer cliente"}
             </Text>
           </Animated.View>
-        ) : (
-          filtered.map((c, i) => (
-            <Animated.View key={c.id} entering={FadeInRight.delay(i * 50).duration(320)}>
-              <TouchableOpacity
-                style={[s.row, Shadow.sm]}
-                onPress={() => setProfileClient(c)}
-                activeOpacity={0.75}
-              >
-                <Avatar name={c.name} />
-                <View style={{ flex: 1 }}>
-                  <Text style={s.name} numberOfLines={1}>{c.name}</Text>
-                  <Text style={s.info} numberOfLines={1}>{c.phone ?? c.email ?? "Sin contacto"}</Text>
-                </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  {(c.no_shows ?? 0) > 0 ? (
-                    <Text style={s.noShows}>{c.no_shows} falta{(c.no_shows ?? 0) > 1 ? "s" : ""}</Text>
-                  ) : null}
-                  <Ionicons name="chevron-forward" size={16} color={Colors.subtle} style={{ marginTop: 4 }} />
-                </View>
-              </TouchableOpacity>
-            </Animated.View>
-          ))
+        }
+        renderItem={({ item: c, index: i }) => (
+          <Animated.View entering={i < 10 ? FadeInRight.delay(i * 50).duration(320) : undefined}>
+            <TouchableOpacity
+              style={[s.row, Shadow.sm]}
+              onPress={() => setProfileClient(c)}
+              activeOpacity={0.75}
+            >
+              <Avatar name={c.name} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.name} numberOfLines={1}>{c.name}</Text>
+                <Text style={s.info} numberOfLines={1}>{c.phone ?? c.email ?? "Sin contacto"}</Text>
+              </View>
+              <View style={{ alignItems: "flex-end" }}>
+                {(c.no_shows ?? 0) > 0 ? (
+                  <Text style={s.noShows}>{c.no_shows} falta{(c.no_shows ?? 0) > 1 ? "s" : ""}</Text>
+                ) : null}
+                <Ionicons name="chevron-forward" size={16} color={Colors.subtle} style={{ marginTop: 4 }} />
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
         )}
-      </ScrollView>
+      />
 
       {/* Profile modal */}
       {profileClient && tenantId && (

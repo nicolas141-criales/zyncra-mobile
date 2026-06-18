@@ -44,8 +44,10 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     if (!tenantId) return;
+    let cancelled = false;
     supabase.from("tenants").select("name, phone").eq("id", tenantId).single()
-      .then(({ data }) => { if (data) setTenant(data); });
+      .then(({ data }) => { if (!cancelled && data) setTenant(data); });
+    return () => { cancelled = true; };
   }, [tenantId]);
 
   const handleLogout = () => {

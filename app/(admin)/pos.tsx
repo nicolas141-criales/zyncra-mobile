@@ -309,7 +309,11 @@ export default function PosScreen() {
   }, [tenantId]);
 
   useEffect(() => {
-    if (tenantId) { setLoading(true); load(date); }
+    if (!tenantId) return;
+    let cancelled = false;
+    setLoading(true);
+    load(date).then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [tenantId, date]);
 
   const onRefresh = async () => { setRefreshing(true); await load(date); setRefreshing(false); };
@@ -537,7 +541,7 @@ export default function PosScreen() {
                   const linkedAppt = appts.find(a => a.id === sale.appointment_id);
 
                   return (
-                    <Animated.View key={sale.id} entering={FadeInRight.delay(i * 55).duration(320)}>
+                    <Animated.View key={sale.id} entering={i < 10 ? FadeInRight.delay(i * 55).duration(320) : undefined}>
                       <View style={[s.saleCard, Shadow.sm]}>
                         <View style={[s.saleAccent, { backgroundColor: methodCfg?.color ?? Colors.success }]} />
                         <View style={{ flex: 1, padding: 14 }}>

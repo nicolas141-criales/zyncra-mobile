@@ -48,15 +48,18 @@ export default function GoogleReviewsScreen() {
 
   useEffect(() => {
     if (!tenantId) return;
+    let cancelled = false;
     supabase.from("google_review_settings")
       .select("id, google_maps_url, message_template").eq("tenant_id", tenantId).single()
       .then(({ data: cfg }) => {
+        if (cancelled) return;
         if (cfg) {
           setSettingsId(cfg.id);
           setGoogleUrl(cfg.google_maps_url ?? "");
           setTemplate(cfg.message_template ?? DEFAULT_TEMPLATE);
         }
       });
+    return () => { cancelled = true; };
   }, [tenantId]);
 
   const loadClients = useCallback(async () => {
@@ -79,8 +82,13 @@ export default function GoogleReviewsScreen() {
   }, [tenantId]);
 
   useEffect(() => {
-    if (tab === "solicitar") loadClients();
-    if (tab === "historial") loadHistory();
+    let cancelled = false;
+    const run = async () => {
+      if (tab === "solicitar") await loadClients();
+      if (tab === "historial") await loadHistory();
+    };
+    run().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [tab, loadClients, loadHistory]);
 
   const handleSave = async () => {
@@ -300,7 +308,7 @@ export default function GoogleReviewsScreen() {
                 <Text style={s.summaryLabel}>Total solicitudes enviadas</Text>
               </View>
               {requests.map((r, i) => (
-                <Animated.View key={r.id} entering={FadeInDown.delay(i * 40).duration(280)}>
+                <Animated.View key={r.id} entering={i < 10 ? FadeInDown.delay(i * 40).duration(280) : undefined}>
                   <View style={[s.histRow, Shadow.sm]}>
                     <View style={{ flex: 1 }}>
                       <Text style={s.histName}>{r.client_name}</Text>

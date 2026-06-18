@@ -226,7 +226,12 @@ export default function UpcomingScreen() {
     setLoading(false);
   }, [tenantId]);
 
-  useEffect(() => { if (tenantId) load(); }, [tenantId]);
+  useEffect(() => {
+    if (!tenantId) return;
+    let cancelled = false;
+    load().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
+  }, [tenantId]);
 
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 

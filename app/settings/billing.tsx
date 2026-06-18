@@ -115,14 +115,16 @@ export default function BillingScreen() {
 
   useEffect(() => {
     if (!tenantId) return;
+    let cancelled = false;
     supabase
       .from("tenants")
       .select("name, plan, created_at, plan_expires_at")
       .eq("id", tenantId)
       .single()
       .then(({ data }) => {
-        if (data) setTenant(data as TenantPlan);
+        if (!cancelled && data) setTenant(data as TenantPlan);
       });
+    return () => { cancelled = true; };
   }, [tenantId]);
 
   const plan = (tenant?.plan ?? "trial") as keyof typeof PLANS;

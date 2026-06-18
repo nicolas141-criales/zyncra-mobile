@@ -489,7 +489,7 @@ export default function ClientProfileScreen() {
             appts.map((a, i) => {
               const meta = STATUS_META[a.status] ?? STATUS_META.pending;
               return (
-                <Animated.View key={a.id} entering={FadeInRight.delay(i * 40).duration(280)}>
+                <Animated.View key={a.id} entering={i < 10 ? FadeInRight.delay(i * 40).duration(280) : undefined}>
                   <View style={[s.apptRow, Shadow.sm]}>
                     {/* Date block */}
                     <View style={s.dateBlock}>

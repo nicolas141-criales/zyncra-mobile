@@ -319,7 +319,17 @@ export default function TeamScreen() {
     setPros(data ?? []);
   };
 
-  useEffect(() => { load(); }, [tenantId]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!tenantId) return;
+      const { data } = await supabase.from("professionals")
+        .select("id, name, role, is_active, user_id, email, photo_url")
+        .eq("tenant_id", tenantId).order("name");
+      if (!cancelled) setPros(data ?? []);
+    })();
+    return () => { cancelled = true; };
+  }, [tenantId]);
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
   return (
@@ -351,7 +361,7 @@ export default function TeamScreen() {
           </Animated.View>
         ) : (
           pros.map((p, i) => (
-            <Animated.View key={p.id} entering={FadeInRight.delay(i * 50).duration(320)}>
+            <Animated.View key={p.id} entering={i < 10 ? FadeInRight.delay(i * 50).duration(320) : undefined}>
               <TouchableOpacity
                 style={[s.row, Shadow.sm, !p.is_active && { opacity: 0.55 }]}
                 onPress={() => setModal({ visible: true, pro: p })}

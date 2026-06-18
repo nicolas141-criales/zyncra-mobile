@@ -48,13 +48,14 @@ export default function StaffProfileScreen() {
 
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
     (async () => {
       const { data: pro } = await supabase
         .from("professionals")
         .select("id, name, role, email, color, tenants(id, name)")
         .eq("user_id", user.id)
         .single();
-      if (!pro) return;
+      if (cancelled || !pro) return;
       const staffInfo: StaffInfo = {
         id:         pro.id,
         name:       pro.name,
@@ -67,6 +68,7 @@ export default function StaffProfileScreen() {
       setInfo(staffInfo);
       loadCommissions(pro.id, (pro.tenants as any)?.id ?? "");
     })();
+    return () => { cancelled = true; };
   }, [user]);
 
   const loadCommissions = async (proId: string, tenantId: string) => {

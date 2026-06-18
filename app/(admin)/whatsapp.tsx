@@ -359,7 +359,7 @@ export default function WhatsappScreen() {
             </Animated.View>
           ) : (
             templates.map((t, i) => (
-              <Animated.View key={t.id} entering={FadeInDown.delay(i * 50).duration(300)}>
+              <Animated.View key={t.id} entering={i < 10 ? FadeInDown.delay(i * 50).duration(300) : undefined}>
                 <View style={[s.tmplCard, Shadow.sm]}>
                   <View style={s.tmplCardTop}>
                     <Text style={s.tmplCardName}>{t.name}</Text>
@@ -393,7 +393,7 @@ export default function WhatsappScreen() {
             </Animated.View>
           ) : (
             campaigns.map((c, i) => (
-              <Animated.View key={c.id} entering={FadeInDown.delay(i * 50).duration(300)}>
+              <Animated.View key={c.id} entering={i < 10 ? FadeInDown.delay(i * 50).duration(300) : undefined}>
                 <View style={[s.campCard, Shadow.sm]}>
                   <View style={s.campCardTop}>
                     <Text style={s.campCardName}>{c.name}</Text>

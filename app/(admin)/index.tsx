@@ -68,7 +68,7 @@ function ApptRow({ a, i, onPress }: { a: Appt; i: number; onPress: () => void })
   const isNext = apptDt > nowD && (a.status === "confirmed" || a.status === "pending");
 
   return (
-    <Animated.View entering={FadeInRight.delay(i * 60).duration(320)}>
+    <Animated.View entering={i < 10 ? FadeInRight.delay(i * 60).duration(320) : undefined}>
       <TouchableOpacity style={[ar.row, Shadow.sm, { backgroundColor: t.card, borderColor: t.cardBorder }]} onPress={onPress} activeOpacity={0.8}>
         <View style={[ar.accent, { backgroundColor: color }]} />
 
@@ -151,7 +151,15 @@ export default function DashboardScreen() {
     setMetrics({ total: all.length, confirmed: all.filter(a => a.status === "confirmed").length, clients: clientCount ?? 0, revenueDay, revenueMonth });
   };
 
-  useEffect(() => { load(); refreshAllReminders(); }, [tenantId]);
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      await load();
+      if (!cancelled) refreshAllReminders();
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [tenantId]);
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
   const now = new Date();

@@ -61,7 +61,12 @@ export default function PosHistoryScreen() {
     setLoading(false);
   }, [tenantId]);
 
-  useEffect(() => { if (tenantId) load(month); }, [tenantId, month]);
+  useEffect(() => {
+    if (!tenantId) return;
+    let cancelled = false;
+    load(month).then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
+  }, [tenantId, month]);
 
   const now = new Date();
   const isCurrentMonth = month.getFullYear() === now.getFullYear() && month.getMonth() === now.getMonth();

@@ -102,14 +102,17 @@ export default function ScheduleScreen() {
 
   useEffect(() => {
     if (!tenantId) return;
+    let cancelled = false;
     supabase.from("tenants").select("settings").eq("id", tenantId).single()
       .then(({ data }) => {
+        if (cancelled) return;
         if (data) {
           const stored = (data.settings as any)?.schedule;
           if (stored) setSchedule({ ...buildDefault(), ...stored });
         }
         setLoading(false);
       });
+    return () => { cancelled = true; };
   }, [tenantId]);
 
   const update = (dayKey: string, patch: Partial<DayConfig>) => {
@@ -154,7 +157,7 @@ export default function ScheduleScreen() {
               {DAYS.map((day, i) => {
                 const cfg = schedule[day.key] ?? DEFAULT_DAY;
                 return (
-                  <Animated.View key={day.key} entering={FadeInDown.delay(i * 40).duration(300)}>
+                  <Animated.View key={day.key} entering={i < 10 ? FadeInDown.delay(i * 40).duration(300) : undefined}>
                     <View style={[s.dayCard, Shadow.sm, !cfg.open && s.dayCardClosed]}>
                       <View style={s.dayTop}>
                         <View style={[s.dayPill, cfg.open ? s.dayPillOpen : s.dayPillClosed]}>

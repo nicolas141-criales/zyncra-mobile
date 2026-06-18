@@ -103,14 +103,17 @@ export default function ScheduleScreen() {
 
   useEffect(() => {
     if (!tenantId) return;
+    let cancelled = false;
     supabase.from("tenants").select("settings").eq("id", tenantId).single()
       .then(({ data }) => {
+        if (cancelled) return;
         if (data) {
           const stored = (data.settings as any)?.schedule;
           if (stored) setSchedule({ ...buildDefault(), ...stored });
         }
         setLoading(false);
       });
+    return () => { cancelled = true; };
   }, [tenantId]);
 
   const update = (dayKey: string, patch: Partial<DayConfig>) => {

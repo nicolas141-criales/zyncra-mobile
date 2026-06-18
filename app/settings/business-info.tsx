@@ -26,8 +26,10 @@ export default function BusinessInfoScreen() {
 
   useEffect(() => {
     if (!tenantId) return;
+    let cancelled = false;
     supabase.from("tenants").select("name, phone, address").eq("id", tenantId).single()
       .then(({ data }) => {
+        if (cancelled) return;
         if (data) {
           setName(data.name ?? "");
           setPhone(data.phone ?? "");
@@ -35,6 +37,7 @@ export default function BusinessInfoScreen() {
         }
         setLoading(false);
       });
+    return () => { cancelled = true; };
   }, [tenantId]);
 
   const canSave = name.trim().length >= 2;

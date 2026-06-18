@@ -45,6 +45,7 @@ function ClientModal({ client, proId, onClose }: {
 
   useEffect(() => {
     if (!client || !proId) return;
+    let cancelled = false;
     setLoading(true);
     supabase.from("appointments")
       .select("id, appointment_date, appointment_time, status, services(name, price)")
@@ -53,6 +54,7 @@ function ClientModal({ client, proId, onClose }: {
       .order("appointment_date", { ascending: false })
       .limit(20)
       .then(({ data }) => {
+        if (cancelled) return;
         setHistory((data ?? []).map((a: any) => ({
           id: a.id,
           date: a.appointment_date,
@@ -63,6 +65,7 @@ function ClientModal({ client, proId, onClose }: {
         })));
         setLoading(false);
       });
+    return () => { cancelled = true; };
   }, [client, proId]);
 
   if (!client) return null;
@@ -204,8 +207,10 @@ export default function StaffClientsScreen() {
 
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
     supabase.from("professionals").select("id").eq("user_id", user.id).single()
-      .then(({ data }) => { if (data) setProId(data.id); });
+      .then(({ data }) => { if (!cancelled && data) setProId(data.id); });
+    return () => { cancelled = true; };
   }, [user]);
 
   const load = useCallback(async () => {

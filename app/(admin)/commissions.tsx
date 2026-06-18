@@ -133,18 +133,23 @@ export default function CommissionsScreen() {
 
   useEffect(() => {
     if (!tenantId) return;
-    loadProfessionals();
-    loadRules();
+    let cancelled = false;
+    Promise.all([loadProfessionals(), loadRules()]).then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [tenantId]);
 
   useEffect(() => {
     if (!tenantId) return;
-    loadSummaries();
+    let cancelled = false;
+    loadSummaries().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [tenantId, period, customStart, customEnd]);
 
   useEffect(() => {
     if (!tenantId || tab !== 2) return;
-    loadPayments();
+    let cancelled = false;
+    loadPayments().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [tenantId, tab]);
 
   const loadProfessionals = async () => {

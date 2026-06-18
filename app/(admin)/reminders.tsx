@@ -31,10 +31,12 @@ export default function RemindersScreen() {
 
   useEffect(() => {
     if (!tenantId) return;
+    let cancelled = false;
     supabase.from("reminder_settings")
       .select("id, hours_before, message_template")
       .eq("tenant_id", tenantId).single()
       .then(({ data: rs }) => {
+        if (cancelled) return;
         if (rs) {
           setSettingsId(rs.id);
           setHours(rs.hours_before ?? 24);
@@ -42,6 +44,7 @@ export default function RemindersScreen() {
         }
         setLoading(false);
       });
+    return () => { cancelled = true; };
   }, [tenantId]);
 
   const handleSave = async () => {

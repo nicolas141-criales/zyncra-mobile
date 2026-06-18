@@ -343,7 +343,7 @@ function EditApptModal({ appt, tenantId, professionals, onClose, onSaved }: {
                   const color  = PRO_PALETTE[idx % PRO_PALETTE.length];
                   const active = selectedPro?.id === p.id;
                   return (
-                    <Animated.View key={p.id} entering={FadeInDown.delay(i * 55).duration(300)}>
+                    <Animated.View key={p.id} entering={i < 10 ? FadeInDown.delay(i * 55).duration(300) : undefined}>
                       <TouchableOpacity
                         style={[em.selectCard, Shadow.sm, active && em.selectCardActive]}
                         onPress={() => setSelectedPro(p)}
@@ -410,7 +410,7 @@ function EditApptModal({ appt, tenantId, professionals, onClose, onSaved }: {
             {step === 2 && (
               <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
                 {services.map((svc, i) => (
-                  <Animated.View key={svc.id} entering={FadeInDown.delay(i * 55).duration(300)}>
+                  <Animated.View key={svc.id} entering={i < 10 ? FadeInDown.delay(i * 55).duration(300) : undefined}>
                     <TouchableOpacity
                       style={[em.svcCard, Shadow.sm, selectedService?.id === svc.id && em.selectCardActive]}
                       onPress={() => setSelectedService(svc)}
@@ -765,7 +765,11 @@ export default function AgendaScreen() {
   };
 
 
-  useEffect(() => { loadAppts(selected); }, [selected, tenantId, refreshKey]);
+  useEffect(() => {
+    let cancelled = false;
+    loadAppts(selected).then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
+  }, [selected, tenantId, refreshKey]);
   const onRefresh = async () => { setRefreshing(true); await loadAppts(selected); setRefreshing(false); };
 
   // Filter + group by time
