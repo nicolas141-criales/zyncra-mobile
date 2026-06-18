@@ -10,21 +10,24 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 
 function Field({ label, value, onChangeText, placeholder, keyboardType, multiline }: {
   label: string; value: string; onChangeText: (t: string) => void;
   placeholder: string; keyboardType?: "phone-pad" | "email-address" | "default"; multiline?: boolean;
 }) {
+  const { t } = useTheme();
   return (
     <View style={s.field}>
-      <Text style={s.fieldLabel}>{label}</Text>
+      <Text style={[s.fieldLabel, { color: t.muted }]}>{label}</Text>
       <TextInput
-        style={[s.input, multiline && { height: 80, textAlignVertical: "top" }]}
+        style={[s.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }, multiline && { height: 80, textAlignVertical: "top" }]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={Colors.subtle}
+        placeholderTextColor={t.subtle}
         keyboardType={keyboardType ?? "default"}
         multiline={multiline}
         autoCapitalize={keyboardType === "phone-pad" ? "none" : "sentences"}
@@ -35,6 +38,7 @@ function Field({ label, value, onChangeText, placeholder, keyboardType, multilin
 
 export default function BusinessInfoScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const { tenantId } = useAuth();
   const [name, setName]         = useState("");
   const [phone, setPhone]       = useState("");
@@ -75,7 +79,7 @@ export default function BusinessInfoScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
@@ -109,7 +113,7 @@ export default function BusinessInfoScreen() {
             )}
           </ScrollView>
 
-          <View style={s.bottomBar}>
+          <View style={[s.bottomBar, { backgroundColor: t.bg, borderTopColor: t.border }]}>
             <TouchableOpacity style={[s.btn, !canSave && { opacity: 0.4 }]} onPress={handleSave} disabled={!canSave || saving} activeOpacity={0.85}>
               <View style={s.btnGrad}>
                 {saving ? <ActivityIndicator color="white" /> : <Text style={s.btnText}>Guardar cambios</Text>}

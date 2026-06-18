@@ -11,6 +11,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 import { STATUS_META } from "@/constants/status";
 import { fmtDateShort } from "@/lib/format";
 import Avatar from "@/components/Avatar";
@@ -59,6 +60,7 @@ function StatBox({ value, label, color = Colors.text }: { value: string; label: 
 function EditModal({ visible, client, onClose, onSaved }: {
   visible: boolean; client: Client | null; onClose: () => void; onSaved: (c: Client) => void;
 }) {
+  const { t } = useTheme();
   const [name, setName]   = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -96,7 +98,7 @@ function EditModal({ visible, client, onClose, onSaved }: {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
         <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={em.header}>
           <View style={em.headerRow}>
             <TouchableOpacity onPress={onClose} style={em.iconBtn}>
@@ -153,6 +155,7 @@ function FieldsModal({ visible, fields, values, clientId, onClose, onSaved }: {
   onClose: () => void;
   onSaved: (newVals: FieldValue[]) => void;
 }) {
+  const { t } = useTheme();
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
@@ -191,7 +194,7 @@ function FieldsModal({ visible, fields, values, clientId, onClose, onSaved }: {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
         <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={fm.header}>
           <View style={fm.headerRow}>
             <TouchableOpacity onPress={onClose} style={fm.iconBtn}>
@@ -269,6 +272,7 @@ function FieldsModal({ visible, fields, values, clientId, onClose, onSaved }: {
 
 export default function ClientProfileScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [client, setClient]           = useState<Client | null>(null);
@@ -320,7 +324,7 @@ export default function ClientProfileScreen() {
 
   if (loading || !client) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2, alignItems: "center", justifyContent: "center" }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator color={Colors.red} size="large" />
       </SafeAreaView>
     );
@@ -342,7 +346,7 @@ export default function ClientProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>

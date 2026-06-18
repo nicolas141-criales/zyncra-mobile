@@ -1,5 +1,6 @@
 import { View, Text, TextInput, StyleSheet } from "react-native";
 import { Colors, Radius } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 
 type Props = {
   label: string;
@@ -11,15 +12,16 @@ type Props = {
 };
 
 export default function FormField({ label, value, onChangeText, placeholder, keyboardType, multiline }: Props) {
+  const { t } = useTheme();
   return (
     <View style={s.field}>
-      <Text style={s.label}>{label}</Text>
+      <Text style={[s.label, { color: t.muted }]}>{label}</Text>
       <TextInput
-        style={[s.input, multiline && { height: 80, textAlignVertical: "top" }]}
+        style={[s.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }, multiline && { height: 80, textAlignVertical: "top" }]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={Colors.subtle}
+        placeholderTextColor={t.subtle}
         keyboardType={keyboardType ?? "default"}
         multiline={multiline}
         autoCapitalize={keyboardType === "phone-pad" || keyboardType === "email-address" ? "none" : "sentences"}
@@ -30,6 +32,6 @@ export default function FormField({ label, value, onChangeText, placeholder, key
 
 const s = StyleSheet.create({
   field: { marginBottom: 16 },
-  label: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 },
-  input: { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
+  label: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 },
+  input: { borderWidth: 1.5, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular" },
 });

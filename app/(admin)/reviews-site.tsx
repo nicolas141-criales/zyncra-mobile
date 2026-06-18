@@ -10,6 +10,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
 import { Config } from "@/lib/config";
 import { useAuth } from "@/lib/auth";
 import { fmtDateFull } from "@/lib/format";
@@ -30,6 +32,7 @@ function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
 
 export default function SiteReviewsScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const { tenantId } = useAuth();
   const [settingsId, setSettingsId]     = useState<string | null>(null);
   const [tab, setTab]                   = useState<Tab>("resumen");
@@ -120,7 +123,7 @@ export default function SiteReviewsScreen() {
   const statusLabel  = { pending: "Pendiente", approved: "Aprobada", rejected: "Rechazada" };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
@@ -139,10 +142,10 @@ export default function SiteReviewsScreen() {
       </LinearGradient>
 
       {/* Tabs */}
-      <View style={s.tabBar}>
-        {TABS.map(t => (
-          <TouchableOpacity key={t.key} style={[s.tabBtn, tab === t.key && s.tabBtnActive]} onPress={() => setTab(t.key)} activeOpacity={0.75}>
-            <Text style={[s.tabLabel, tab === t.key && s.tabLabelActive]}>{t.label}</Text>
+      <View style={[s.tabBar, { backgroundColor: t.bgAlt, borderBottomColor: t.border }]}>
+        {TABS.map(tb => (
+          <TouchableOpacity key={tb.key} style={[s.tabBtn, tab === tb.key && s.tabBtnActive]} onPress={() => setTab(tb.key)} activeOpacity={0.75}>
+            <Text style={[s.tabLabel, { color: t.muted }, tab === tb.key && s.tabLabelActive]}>{tb.label}</Text>
           </TouchableOpacity>
         ))}
       </View>

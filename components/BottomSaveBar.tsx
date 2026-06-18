@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Colors, Radius } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 
 type Props = {
   label: string;
@@ -9,8 +10,9 @@ type Props = {
 };
 
 export default function BottomSaveBar({ label, saving, disabled, onPress }: Props) {
+  const { t } = useTheme();
   return (
-    <View style={s.bar}>
+    <View style={[s.bar, { borderTopColor: t.border, backgroundColor: t.bg }]}>
       <TouchableOpacity
         style={[s.btn, disabled && { opacity: 0.4 }]}
         onPress={onPress}
@@ -26,7 +28,7 @@ export default function BottomSaveBar({ label, saving, disabled, onPress }: Prop
 }
 
 const s = StyleSheet.create({
-  bar:      { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
+  bar:      { padding: 20, paddingBottom: 34, borderTopWidth: 1 },
   btn:      { borderRadius: Radius.full, overflow: "hidden" },
   btnInner: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
   btnText:  { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },

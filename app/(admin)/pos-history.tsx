@@ -10,6 +10,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { fmtMoneyFull } from "@/lib/format";
 
@@ -39,6 +41,7 @@ function addMonths(d: Date, n: number) {
 
 export default function PosHistoryScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const { tenantId } = useAuth();
   const [month, setMonth]       = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [sales, setSales]       = useState<HistorySale[]>([]);
@@ -106,7 +109,7 @@ export default function PosHistoryScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>

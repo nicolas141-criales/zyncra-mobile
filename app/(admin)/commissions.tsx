@@ -10,6 +10,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { fmtMoneyFull, fmtDateCompact } from "@/lib/format";
 
@@ -81,13 +83,14 @@ function calcCommission(rule: CommissionRule | null, revenue: number, count: num
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function KpiCard({ label, value, icon, color }: { label: string; value: string; icon: IoniconName; color: string }) {
+  const { t } = useTheme();
   return (
-    <View style={[kpi.card, Shadow.sm]}>
+    <View style={[kpi.card, Shadow.sm, { backgroundColor: t.bgAlt }]}>
       <View style={[kpi.iconBox, { backgroundColor: color + "18" }]}>
         <Ionicons name={icon} size={18} color={color} />
       </View>
-      <Text style={kpi.value}>{value}</Text>
-      <Text style={kpi.label}>{label}</Text>
+      <Text style={[kpi.value, { color: t.text }]}>{value}</Text>
+      <Text style={[kpi.label, { color: t.muted }]}>{label}</Text>
     </View>
   );
 }
@@ -103,6 +106,7 @@ const kpi = StyleSheet.create({
 
 export default function CommissionsScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const [tab, setTab]       = useState(0);
   const { tenantId } = useAuth();
 
@@ -302,10 +306,10 @@ export default function CommissionsScreen() {
         {(["week", "month", "custom"] as Period[]).map((p) => (
           <TouchableOpacity
             key={p}
-            style={[s.periodBtn, period === p && s.periodBtnActive]}
+            style={[s.periodBtn, { backgroundColor: t.bgAlt, borderColor: t.border }, period === p && s.periodBtnActive]}
             onPress={() => setPeriod(p)}
           >
-            <Text style={[s.periodBtnTxt, period === p && s.periodBtnTxtActive]}>
+            <Text style={[s.periodBtnTxt, { color: t.muted }, period === p && s.periodBtnTxtActive]}>
               {p === "week" ? "Esta semana" : p === "month" ? "Este mes" : "Rango"}
             </Text>
           </TouchableOpacity>
@@ -315,24 +319,24 @@ export default function CommissionsScreen() {
       {period === "custom" && (
         <Animated.View entering={FadeInDown.duration(300)} style={s.customRow}>
           <TextInput
-            style={[s.dateInput, { flex: 1 }]}
+            style={[s.dateInput, { flex: 1, backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]}
             placeholder="Inicio (YYYY-MM-DD)"
-            placeholderTextColor={Colors.subtle}
+            placeholderTextColor={t.subtle}
             value={customStart}
             onChangeText={setCustomStart}
           />
-          <Text style={{ color: Colors.muted, fontFamily: "SpaceGrotesk_400Regular" }}>→</Text>
+          <Text style={{ color: t.muted, fontFamily: "SpaceGrotesk_400Regular" }}>→</Text>
           <TextInput
-            style={[s.dateInput, { flex: 1 }]}
+            style={[s.dateInput, { flex: 1, backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]}
             placeholder="Fin (YYYY-MM-DD)"
-            placeholderTextColor={Colors.subtle}
+            placeholderTextColor={t.subtle}
             value={customEnd}
             onChangeText={setCustomEnd}
           />
         </Animated.View>
       )}
 
-      <Text style={s.rangeLabel}>{fmtDateCompact(rStart)} – {fmtDateCompact(rEnd)}</Text>
+      <Text style={[s.rangeLabel, { color: t.muted }]}>{fmtDateCompact(rStart)} – {fmtDateCompact(rEnd)}</Text>
 
       {/* KPIs */}
       <View style={s.kpiRow}>
@@ -346,31 +350,31 @@ export default function CommissionsScreen() {
         <ActivityIndicator color={Colors.red} style={{ marginTop: 32 }} />
       ) : summaries.length === 0 ? (
         <View style={s.emptyBox}>
-          <Ionicons name="receipt-outline" size={36} color={Colors.subtle} />
-          <Text style={s.emptyTxt}>Sin datos en este período</Text>
+          <Ionicons name="receipt-outline" size={36} color={t.subtle} />
+          <Text style={[s.emptyTxt, { color: t.muted }]}>Sin datos en este período</Text>
         </View>
       ) : (
-        <View style={[s.tableCard, Shadow.sm]}>
-          <View style={s.tableHeader}>
-            <Text style={[s.thTxt, { flex: 2 }]}>Profesional</Text>
-            <Text style={[s.thTxt, { flex: 1, textAlign: "right" }]}>Ingresos</Text>
-            <Text style={[s.thTxt, { flex: 1, textAlign: "right" }]}>Comisión</Text>
+        <View style={[s.tableCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
+          <View style={[s.tableHeader, { backgroundColor: t.bg }]}>
+            <Text style={[s.thTxt, { flex: 2, color: t.subtle }]}>Profesional</Text>
+            <Text style={[s.thTxt, { flex: 1, textAlign: "right", color: t.subtle }]}>Ingresos</Text>
+            <Text style={[s.thTxt, { flex: 1, textAlign: "right", color: t.subtle }]}>Comisión</Text>
             <Text style={[s.thTxt, { width: 70 }]}></Text>
           </View>
           {summaries.map((s2, i) => (
             <View key={s2.pro.id}>
-              {i > 0 && <View style={s.divider} />}
+              {i > 0 && <View style={[s.divider, { backgroundColor: t.border }]} />}
               <View style={s.tableRow}>
                 <View style={{ flex: 2, flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <View style={[s.proAvatar, { backgroundColor: s2.pro.color ?? Colors.red }]}>
                     <Text style={s.proAvatarTxt}>{s2.pro.name[0]}</Text>
                   </View>
                   <View>
-                    <Text style={s.proName}>{s2.pro.name}</Text>
-                    <Text style={s.proCitas}>{s2.appointments_count} citas</Text>
+                    <Text style={[s.proName, { color: t.text }]}>{s2.pro.name}</Text>
+                    <Text style={[s.proCitas, { color: t.muted }]}>{s2.appointments_count} citas</Text>
                   </View>
                 </View>
-                <Text style={[s.cellTxt, { flex: 1, textAlign: "right" }]}>{fmtMoneyFull(s2.revenue_total)}</Text>
+                <Text style={[s.cellTxt, { flex: 1, textAlign: "right", color: t.text }]}>{fmtMoneyFull(s2.revenue_total)}</Text>
                 <Text style={[s.cellTxtBold, { flex: 1, textAlign: "right", color: Colors.success }]}>
                   {fmtMoneyFull(s2.commission_amount)}
                 </Text>
@@ -485,7 +489,7 @@ export default function CommissionsScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>
@@ -500,10 +504,10 @@ export default function CommissionsScreen() {
       </LinearGradient>
 
       {/* Tab bar */}
-      <View style={s.tabBar}>
+      <View style={[s.tabBar, { backgroundColor: t.bgAlt, borderBottomColor: t.border }]}>
         {["Resumen", "Reglas", "Historial"].map((label, i) => (
           <TouchableOpacity key={i} style={s.tabItem} onPress={() => setTab(i)}>
-            <Text style={[s.tabTxt, tab === i && s.tabTxtActive]}>{label}</Text>
+            <Text style={[s.tabTxt, { color: t.muted }, tab === i && s.tabTxtActive]}>{label}</Text>
             {tab === i && <View style={s.tabUnderline} />}
           </TouchableOpacity>
         ))}

@@ -8,6 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -110,6 +111,7 @@ function openWhatsApp(msg: string) {
 
 export default function BillingScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const { tenantId } = useAuth();
   const [tenant, setTenant] = useState<TenantPlan | null>(null);
 
@@ -137,7 +139,7 @@ export default function BillingScreen() {
   const businessMsg = `Hola, quiero más información sobre el plan Business de Zyncra para mi negocio "${tenant?.name ?? ""}".`;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
 
         {/* ── Header ── */}

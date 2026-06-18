@@ -11,6 +11,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { fmtPhone, fmtDateCompact } from "@/lib/format";
 
@@ -34,6 +36,7 @@ const DEFAULT_MSG =
 
 export default function WhatsappScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const { tenantId } = useAuth();
   const [bizName, setBizName]         = useState("");
   const [tab, setTab]                 = useState<Tab>("nueva");
@@ -200,7 +203,7 @@ export default function WhatsappScreen() {
   const segmentLabel = { all: "Todos", active: "Activos", inactive: "Inactivos" };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
@@ -217,7 +220,7 @@ export default function WhatsappScreen() {
       </LinearGradient>
 
       {/* Tabs */}
-      <View style={s.tabBar}>
+      <View style={[s.tabBar, { backgroundColor: t.bgAlt, borderBottomColor: t.border }]}>
         {TABS.map(t => (
           <TouchableOpacity key={t.key} style={[s.tabBtn, tab === t.key && s.tabBtnActive]} onPress={() => setTab(t.key)} activeOpacity={0.75}>
             <Text style={[s.tabLabel, tab === t.key && s.tabLabelActive]}>{t.label}</Text>
@@ -233,8 +236,8 @@ export default function WhatsappScreen() {
 
               {/* Name */}
               <Text style={s.label}>Nombre de la campaña *</Text>
-              <TextInput style={s.input} value={campName} onChangeText={setCampName}
-                placeholder="Ej: Promo julio, Clientes inactivos..." placeholderTextColor={Colors.subtle} />
+              <TextInput style={[s.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]} value={campName} onChangeText={setCampName}
+                placeholder="Ej: Promo julio, Clientes inactivos..." placeholderTextColor={t.subtle} />
 
               {/* Segment */}
               <Text style={s.label}>Segmento de clientes</Text>
@@ -276,7 +279,7 @@ export default function WhatsappScreen() {
               </View>
               <View style={[s.textAreaWrap, Shadow.sm]}>
                 <TextInput style={s.textArea} value={message} onChangeText={setMessage}
-                  multiline textAlignVertical="top" placeholderTextColor={Colors.subtle} />
+                  multiline textAlignVertical="top" placeholderTextColor={t.subtle} />
                 <Text style={[s.charCount, message.length > 1000 && { color: Colors.red }]}>
                   {message.length} / 1000
                 </Text>
@@ -292,7 +295,7 @@ export default function WhatsappScreen() {
               {tmplMode && (
                 <View style={[s.tmplForm, Shadow.sm]}>
                   <TextInput style={[s.input, { marginBottom: 10 }]} value={tmplName} onChangeText={setTmplName}
-                    placeholder="Nombre de la plantilla" placeholderTextColor={Colors.subtle} />
+                    placeholder="Nombre de la plantilla" placeholderTextColor={t.subtle} />
                   <View style={{ flexDirection: "row", gap: 10 }}>
                     <TouchableOpacity style={[s.tmplBtn, { flex: 1, backgroundColor: Colors.border }]} onPress={() => setTmplMode(false)}>
                       <Text style={[s.tmplBtnText, { color: Colors.muted }]}>Cancelar</Text>
@@ -352,7 +355,7 @@ export default function WhatsappScreen() {
       {tab === "plantillas" && (
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
           {templates.length === 0 ? (
-            <Animated.View entering={FadeInDown.duration(350)} style={[s.emptyCard, Shadow.sm]}>
+            <Animated.View entering={FadeInDown.duration(350)} style={[s.emptyCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
               <Text style={{ fontSize: 32, marginBottom: 10 }}>📝</Text>
               <Text style={s.emptyTitle}>Sin plantillas</Text>
               <Text style={s.emptySub}>Guarda mensajes para reutilizarlos fácilmente</Text>
@@ -386,7 +389,7 @@ export default function WhatsappScreen() {
       {tab === "historial" && (
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
           {campaigns.length === 0 ? (
-            <Animated.View entering={FadeInDown.duration(350)} style={[s.emptyCard, Shadow.sm]}>
+            <Animated.View entering={FadeInDown.duration(350)} style={[s.emptyCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
               <Text style={{ fontSize: 32, marginBottom: 10 }}>📣</Text>
               <Text style={s.emptyTitle}>Sin campañas aún</Text>
               <Text style={s.emptySub}>Las campañas enviadas aparecerán aquí</Text>
@@ -437,7 +440,7 @@ export default function WhatsappScreen() {
 
       {/* ── SEND MODAL ── */}
       <Modal visible={sendModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSendModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
           <View style={s.modalHeader}>
             <Text style={s.modalTitle}>Enviar mensajes</Text>
             <Text style={s.modalSub}>{sentIds.size} / {sendClients.length} enviados</Text>

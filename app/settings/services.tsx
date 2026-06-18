@@ -11,6 +11,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { Colors, Radius, Shadow } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
+import ErrorState from "@/components/ErrorState";
 import GradientHeader from "@/components/GradientHeader";
 import BottomSaveBar from "@/components/BottomSaveBar";
 import ModalHeader from "@/components/ModalHeader";
@@ -29,6 +31,7 @@ function ServiceModal({ visible, service, tenantId, onClose, onSaved }: {
   visible: boolean; service: Service | null; tenantId: string;
   onClose: () => void; onSaved: () => void;
 }) {
+  const { t } = useTheme();
   const isEdit = service !== null;
   const [name, setName]         = useState("");
   const [price, setPrice]       = useState("");
@@ -78,7 +81,7 @@ function ServiceModal({ visible, service, tenantId, onClose, onSaved }: {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
         <ModalHeader
           title={isEdit ? "Editar servicio" : "Nuevo servicio"}
           onClose={onClose}
@@ -107,8 +110,10 @@ function ServiceModal({ visible, service, tenantId, onClose, onSaved }: {
 export default function ServicesScreen() {
   const router = useRouter();
   const { tenantId } = useAuth();
+  const { t } = useTheme();
   const [services, setServices]   = useState<Service[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError]         = useState(false);
   const [modal, setModal]         = useState<{ visible: boolean; service: Service | null }>({ visible: false, service: null });
 
   const load = async () => {
@@ -133,7 +138,7 @@ export default function ServicesScreen() {
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <GradientHeader
         title="Servicios"
         subtitle={`${services.length} en tu catálogo`}
@@ -151,7 +156,7 @@ export default function ServicesScreen() {
           services.map((svc, i) => (
             <Animated.View key={svc.id} entering={i < 10 ? FadeInRight.delay(i * 50).duration(320) : undefined}>
               <TouchableOpacity
-                style={[s.row, Shadow.sm]}
+                style={[s.row, Shadow.sm, { backgroundColor: t.bgAlt }]}
                 onPress={() => setModal({ visible: true, service: svc })}
                 activeOpacity={0.75}
               >
@@ -159,12 +164,12 @@ export default function ServicesScreen() {
                   <Ionicons name="cut-outline" size={18} color={Colors.purple} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.name} numberOfLines={1}>{svc.name}</Text>
-                  <Text style={s.info}>{svc.duration_min} min</Text>
+                  <Text style={[s.name, { color: t.text }]} numberOfLines={1}>{svc.name}</Text>
+                  <Text style={[s.info, { color: t.muted }]}>{svc.duration_min} min</Text>
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
-                  <Text style={s.price}>${Math.round(svc.price).toLocaleString("es-CO")}</Text>
-                  <Ionicons name="chevron-forward" size={14} color={Colors.subtle} style={{ marginTop: 4 }} />
+                  <Text style={[s.price, { color: t.text }]}>${Math.round(svc.price).toLocaleString("es-CO")}</Text>
+                  <Ionicons name="chevron-forward" size={14} color={t.subtle} style={{ marginTop: 4 }} />
                 </View>
               </TouchableOpacity>
             </Animated.View>

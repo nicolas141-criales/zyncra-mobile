@@ -10,12 +10,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { Colors, Radius, Shadow } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 import GradientHeader from "@/components/GradientHeader";
 import BottomSaveBar from "@/components/BottomSaveBar";
 import FormField from "@/components/FormField";
 
 export default function BusinessInfoScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const { tenantId } = useAuth();
   const [name, setName]         = useState("");
   const [phone, setPhone]       = useState("");
@@ -56,7 +58,7 @@ export default function BusinessInfoScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <GradientHeader title="Info del negocio" subtitle="Nombre, teléfono y dirección" onBack={() => router.back()} />
 
       {loading ? (

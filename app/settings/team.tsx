@@ -13,6 +13,7 @@ import * as ImagePicker from "expo-image-picker";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 import { Config } from "@/lib/config";
 import Avatar from "@/components/Avatar";
 
@@ -158,7 +159,7 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
         <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.mHeader}>
           <View style={s.mHeaderRow}>
             <TouchableOpacity onPress={onClose} style={s.closeBtn}>
@@ -307,6 +308,7 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
 export default function TeamScreen() {
   const router = useRouter();
   const { tenantId } = useAuth();
+  const { t } = useTheme();
   const [pros, setPros]             = useState<Pro[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [modal, setModal]           = useState<{ visible: boolean; pro: Pro | null }>({ visible: false, pro: null });
@@ -333,7 +335,7 @@ export default function TeamScreen() {
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>

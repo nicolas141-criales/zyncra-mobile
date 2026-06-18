@@ -12,9 +12,11 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 import { Config } from "@/lib/config";
 import { useAuth } from "@/lib/auth";
 import Avatar from "@/components/Avatar";
+import ErrorState from "@/components/ErrorState";
 
 type Pro = { id: string; name: string; role: string; is_active: boolean; user_id: string | null; email: string | null; photo_url: string | null };
 
@@ -22,6 +24,7 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
   visible: boolean; pro: Pro | null; tenantId: string;
   onClose: () => void; onSaved: () => void;
 }) {
+  const { t } = useTheme();
   const isEdit = pro !== null;
   const [name, setName]         = useState("");
   const [role, setRole]         = useState("");
@@ -144,7 +147,7 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
         <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.mHeader}>
           <View style={s.mHeaderRow}>
             <TouchableOpacity onPress={onClose} style={s.closeBtn}>
@@ -173,23 +176,23 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
                   </Text>
                 </View>
               )}
-              <View style={s.photoEditBadge}>
+              <View style={[s.photoEditBadge, { borderColor: t.bg }]}>
                 <Ionicons name="camera" size={14} color="white" />
               </View>
             </TouchableOpacity>
-            <Text style={s.photoHint}>Toca para cambiar la foto</Text>
+            <Text style={[s.photoHint, { color: t.muted }]}>Toca para cambiar la foto</Text>
 
-            <Text style={[s.fieldLabel, { marginTop: 20 }]}>Nombre *</Text>
-            <TextInput style={s.input} value={name} onChangeText={setName} placeholder="Ej: Maria Lopez" placeholderTextColor={Colors.subtle} autoCapitalize="words" />
+            <Text style={[s.fieldLabel, { marginTop: 20, color: t.muted }]}>Nombre *</Text>
+            <TextInput style={[s.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]} value={name} onChangeText={setName} placeholder="Ej: Maria Lopez" placeholderTextColor={t.subtle} autoCapitalize="words" />
 
-            <Text style={[s.fieldLabel, { marginTop: 16 }]}>Cargo / Especialidad</Text>
-            <TextInput style={s.input} value={role} onChangeText={setRole} placeholder="Ej: Estilista, Barbero..." placeholderTextColor={Colors.subtle} autoCapitalize="words" />
+            <Text style={[s.fieldLabel, { marginTop: 16, color: t.muted }]}>Cargo / Especialidad</Text>
+            <TextInput style={[s.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]} value={role} onChangeText={setRole} placeholder="Ej: Estilista, Barbero..." placeholderTextColor={t.subtle} autoCapitalize="words" />
 
             {isEdit && (
-              <View style={[s.switchRow, Shadow.sm]}>
+              <View style={[s.switchRow, Shadow.sm, { backgroundColor: t.bgAlt }]}>
                 <View>
-                  <Text style={s.switchLabel}>Activo</Text>
-                  <Text style={s.switchSub}>Recibe citas en la agenda</Text>
+                  <Text style={[s.switchLabel, { color: t.text }]}>Activo</Text>
+                  <Text style={[s.switchSub, { color: t.muted }]}>Recibe citas en la agenda</Text>
                 </View>
                 <Switch
                   value={active}
@@ -202,34 +205,34 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
 
             {isEdit && (
               <View style={{ marginTop: 28 }}>
-                <Text style={[s.fieldLabel, { marginBottom: 12 }]}>Cuenta de acceso</Text>
+                <Text style={[s.fieldLabel, { marginBottom: 12, color: t.muted }]}>Cuenta de acceso</Text>
                 {hasAccount ? (
-                  <View style={[s.accountCard, { borderColor: Colors.success + "55" }]}>
+                  <View style={[s.accountCard, { backgroundColor: t.bgAlt, borderColor: Colors.success + "55" }]}>
                     <View style={s.accountCardRow}>
                       <View style={[s.accountIcon, { backgroundColor: Colors.success + "18" }]}>
                         <Ionicons name="shield-checkmark-outline" size={18} color={Colors.success} />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={[s.accountCardTitle, { color: Colors.success }]}>Cuenta activa</Text>
-                        <Text style={s.accountCardSub}>{pro?.email ?? accEmail}</Text>
+                        <Text style={[s.accountCardSub, { color: t.muted }]}>{pro?.email ?? accEmail}</Text>
                       </View>
                     </View>
                   </View>
                 ) : (
-                  <View style={s.accountCard}>
+                  <View style={[s.accountCard, { backgroundColor: t.bgAlt, borderColor: t.border }]}>
                     <View style={s.accountCardRow}>
                       <View style={[s.accountIcon, { backgroundColor: "#f59e0b18" }]}>
                         <Ionicons name="person-add-outline" size={18} color="#f59e0b" />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={s.accountCardTitle}>Sin cuenta de acceso</Text>
-                        <Text style={s.accountCardSub}>Crea una cuenta para que pueda ingresar</Text>
+                        <Text style={[s.accountCardTitle, { color: t.text }]}>Sin cuenta de acceso</Text>
+                        <Text style={[s.accountCardSub, { color: t.muted }]}>Crea una cuenta para que pueda ingresar</Text>
                       </View>
                     </View>
-                    <Text style={[s.fieldLabel, { marginTop: 16 }]}>Correo</Text>
-                    <TextInput style={s.input} value={accEmail} onChangeText={setAccEmail} placeholder="correo@ejemplo.com" placeholderTextColor={Colors.subtle} keyboardType="email-address" autoCapitalize="none" />
-                    <Text style={[s.fieldLabel, { marginTop: 12 }]}>Contrasena inicial</Text>
-                    <TextInput style={s.input} value={accPass} onChangeText={setAccPass} placeholder="Minimo 6 caracteres" placeholderTextColor={Colors.subtle} secureTextEntry />
+                    <Text style={[s.fieldLabel, { marginTop: 16, color: t.muted }]}>Correo</Text>
+                    <TextInput style={[s.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]} value={accEmail} onChangeText={setAccEmail} placeholder="correo@ejemplo.com" placeholderTextColor={t.subtle} keyboardType="email-address" autoCapitalize="none" />
+                    <Text style={[s.fieldLabel, { marginTop: 12, color: t.muted }]}>Contrasena inicial</Text>
+                    <TextInput style={[s.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]} value={accPass} onChangeText={setAccPass} placeholder="Minimo 6 caracteres" placeholderTextColor={t.subtle} secureTextEntry />
                     <TouchableOpacity style={[s.accBtn, accLoading && { opacity: 0.6 }]} onPress={handleCreateAccount} disabled={accLoading} activeOpacity={0.8}>
                       {accLoading
                         ? <ActivityIndicator color="white" size="small" />
@@ -242,7 +245,7 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
             )}
           </ScrollView>
 
-          <View style={s.bottomBar}>
+          <View style={[s.bottomBar, { borderTopColor: t.border, backgroundColor: t.bg }]}>
             <TouchableOpacity style={[s.btn, !canSave && { opacity: 0.4 }]} onPress={handleSave} disabled={!canSave || saving} activeOpacity={0.85}>
               <View style={s.btnGrad}>
                 {saving ? <ActivityIndicator color="white" /> : <Text style={s.btnText}>{isEdit ? "Guardar cambios" : "Agregar profesional"}</Text>}
@@ -258,17 +261,24 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
 
 export default function TeamScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const [pros, setPros]             = useState<Pro[]>([]);
   const { tenantId } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError]           = useState(false);
   const [modal, setModal]           = useState<{ visible: boolean; pro: Pro | null }>({ visible: false, pro: null });
 
   const load = async () => {
     if (!tenantId) return;
-    const { data } = await supabase.from("professionals")
-      .select("id, name, role, is_active, user_id, email, photo_url")
-      .eq("tenant_id", tenantId).order("name");
-    setPros(data ?? []);
+    setError(false);
+    try {
+      const { data } = await supabase.from("professionals")
+        .select("id, name, role, is_active, user_id, email, photo_url")
+        .eq("tenant_id", tenantId).order("name");
+      setPros(data ?? []);
+    } catch {
+      setError(true);
+    }
   };
 
   useEffect(() => {
@@ -278,8 +288,24 @@ export default function TeamScreen() {
   }, [tenantId]);
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
+  if (error) return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+        <View style={s.headerRow}>
+          <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+            <Ionicons name="arrow-back" size={20} color="white" />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={s.headerTitle}>Equipo</Text>
+          </View>
+        </View>
+      </LinearGradient>
+      <ErrorState onRetry={load} />
+    </SafeAreaView>
+  );
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
@@ -300,23 +326,23 @@ export default function TeamScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.red} />}
       >
         {pros.length === 0 ? (
-          <Animated.View entering={FadeInDown.duration(400)} style={[s.empty, Shadow.sm]}>
-            <Ionicons name="people-outline" size={44} color={Colors.subtle} style={{ marginBottom: 12 }} />
-            <Text style={s.emptyTitle}>Sin profesionales</Text>
-            <Text style={s.emptySub}>Toca + para agregar miembros de tu equipo</Text>
+          <Animated.View entering={FadeInDown.duration(400)} style={[s.empty, Shadow.sm, { backgroundColor: t.bgAlt }]}>
+            <Ionicons name="people-outline" size={44} color={t.subtle} style={{ marginBottom: 12 }} />
+            <Text style={[s.emptyTitle, { color: t.text }]}>Sin profesionales</Text>
+            <Text style={[s.emptySub, { color: t.muted }]}>Toca + para agregar miembros de tu equipo</Text>
           </Animated.View>
         ) : (
           pros.map((p, i) => (
             <Animated.View key={p.id} entering={i < 10 ? FadeInRight.delay(i * 50).duration(320) : undefined}>
               <TouchableOpacity
-                style={[s.row, Shadow.sm, !p.is_active && { opacity: 0.55 }]}
+                style={[s.row, Shadow.sm, { backgroundColor: t.bgAlt }, !p.is_active && { opacity: 0.55 }]}
                 onPress={() => setModal({ visible: true, pro: p })}
                 activeOpacity={0.75}
               >
                 <Avatar name={p.name} photoUrl={p.photo_url} size={52} color={Colors.red} />
                 <View style={{ flex: 1 }}>
-                  <Text style={s.name}>{p.name}</Text>
-                  <Text style={s.role}>{p.role}</Text>
+                  <Text style={[s.name, { color: t.text }]}>{p.name}</Text>
+                  <Text style={[s.role, { color: t.muted }]}>{p.role}</Text>
                   <View style={{ flexDirection: "row", gap: 6, marginTop: 5 }}>
                     {p.user_id && (
                       <View style={s.activeBadge}>
@@ -331,7 +357,7 @@ export default function TeamScreen() {
                     )}
                   </View>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color={Colors.subtle} />
+                <Ionicons name="chevron-forward" size={16} color={t.subtle} />
               </TouchableOpacity>
             </Animated.View>
           ))

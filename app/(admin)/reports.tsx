@@ -10,6 +10,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { fmtMoney, pct } from "@/lib/format";
 
@@ -105,13 +107,14 @@ function KpiCard({ label, value, sub, icon, color, trend, delay }: {
   label: string; value: string; sub?: string; icon: IoniconName;
   color: string; trend?: "up" | "down" | "neutral"; delay: number;
 }) {
+  const { t } = useTheme();
   return (
-    <Animated.View entering={FadeInDown.delay(delay).duration(350)} style={[kpi.card, Shadow.sm]}>
+    <Animated.View entering={FadeInDown.delay(delay).duration(350)} style={[kpi.card, Shadow.sm, { backgroundColor: t.bgAlt }]}>
       <View style={[kpi.iconBox, { backgroundColor: color + "18" }]}>
         <Ionicons name={icon} size={18} color={color} />
       </View>
       <Text style={[kpi.value, { color }]}>{value}</Text>
-      <Text style={kpi.label}>{label}</Text>
+      <Text style={[kpi.label, { color: t.muted }]}>{label}</Text>
       {(sub || trend) && (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
           {trend && trend !== "neutral" && (
@@ -209,6 +212,7 @@ const rk = StyleSheet.create({
 
 export default function ReportsScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const [period, setPeriod] = useState<Period>("month");
   const { tenantId } = useAuth();
   const [loading, setLoading]   = useState(true);
@@ -347,7 +351,7 @@ export default function ReportsScreen() {
   const periodLabel = period === "week" ? "esta semana" : period === "month" ? "este mes" : "este año";
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>
@@ -386,7 +390,7 @@ export default function ReportsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.red} />}
         >
           {/* KPI row 1 */}
-          <Text style={s.sectionTitle}>Resumen {periodLabel}</Text>
+          <Text style={[s.sectionTitle, { color: t.subtle }]}>Resumen {periodLabel}</Text>
           <View style={s.kpiRow}>
             <KpiCard
               label="Ingresos" value={fmtMoney(revenue)} icon="cash-outline" color={Colors.red}
@@ -410,29 +414,29 @@ export default function ReportsScreen() {
 
           {/* Revenue chart */}
           {revenueSlots.some(v => v > 0) && (
-            <Animated.View entering={FadeInDown.delay(300).duration(400)} style={[s.card, Shadow.sm]}>
+            <Animated.View entering={FadeInDown.delay(300).duration(400)} style={[s.card, Shadow.sm, { backgroundColor: t.bgAlt }]}>
               <View style={s.cardHeader}>
                 <View style={[s.cardIconBox, { backgroundColor: Colors.red + "14" }]}>
                   <Ionicons name="bar-chart-outline" size={16} color={Colors.red} />
                 </View>
-                <Text style={s.cardTitle}>Ingresos por {period === "week" ? "día" : period === "month" ? "día" : "mes"}</Text>
+                <Text style={[s.cardTitle, { color: t.text }]}>Ingresos por {period === "week" ? "día" : period === "month" ? "día" : "mes"}</Text>
               </View>
               <BarChart data={revenueSlots} labels={slotLabels} color={Colors.red} />
-              <View style={s.chartFooter}>
-                <Text style={s.chartFooterTxt}>Total: {fmtMoney(revenue)}</Text>
-                <Text style={s.chartFooterTxt}>Prom/día: {fmtMoney(revenueSlots.filter(v => v > 0).reduce((a, b) => a + b, 0) / Math.max(revenueSlots.filter(v => v > 0).length, 1))}</Text>
+              <View style={[s.chartFooter, { borderTopColor: t.border }]}>
+                <Text style={[s.chartFooterTxt, { color: t.muted }]}>Total: {fmtMoney(revenue)}</Text>
+                <Text style={[s.chartFooterTxt, { color: t.muted }]}>Prom/día: {fmtMoney(revenueSlots.filter(v => v > 0).reduce((a, b) => a + b, 0) / Math.max(revenueSlots.filter(v => v > 0).length, 1))}</Text>
               </View>
             </Animated.View>
           )}
 
           {/* Top services */}
           {topServices.length > 0 && (
-            <Animated.View entering={FadeInDown.delay(360).duration(400)} style={[s.card, Shadow.sm]}>
+            <Animated.View entering={FadeInDown.delay(360).duration(400)} style={[s.card, Shadow.sm, { backgroundColor: t.bgAlt }]}>
               <View style={s.cardHeader}>
                 <View style={[s.cardIconBox, { backgroundColor: "#8b5cf614" }]}>
                   <Ionicons name="cut-outline" size={16} color="#8b5cf6" />
                 </View>
-                <Text style={s.cardTitle}>Top servicios</Text>
+                <Text style={[s.cardTitle, { color: t.text }]}>Top servicios</Text>
               </View>
               {topServices.map((svc, i) => (
                 <RankRow
@@ -446,12 +450,12 @@ export default function ReportsScreen() {
 
           {/* Staff performance */}
           {staffPerf.length > 0 && (
-            <Animated.View entering={FadeInDown.delay(420).duration(400)} style={[s.card, Shadow.sm]}>
+            <Animated.View entering={FadeInDown.delay(420).duration(400)} style={[s.card, Shadow.sm, { backgroundColor: t.bgAlt }]}>
               <View style={s.cardHeader}>
                 <View style={[s.cardIconBox, { backgroundColor: Colors.blue + "14" }]}>
                   <Ionicons name="people-outline" size={16} color={Colors.blue} />
                 </View>
-                <Text style={s.cardTitle}>Rendimiento del equipo</Text>
+                <Text style={[s.cardTitle, { color: t.text }]}>Rendimiento del equipo</Text>
               </View>
               {staffPerf.map((p, i) => (
                 <Animated.View key={p.name} entering={i < 10 ? FadeInRight.delay(i * 60).duration(320) : undefined} style={s.staffRow}>
@@ -459,12 +463,12 @@ export default function ReportsScreen() {
                     <Text style={s.staffAvatarTxt}>{p.name[0]}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.staffName}>{p.name}</Text>
-                    <Text style={s.staffSub}>{p.count} citas</Text>
+                    <Text style={[s.staffName, { color: t.text }]}>{p.name}</Text>
+                    <Text style={[s.staffSub, { color: t.muted }]}>{p.count} citas</Text>
                   </View>
                   <View style={{ alignItems: "flex-end" }}>
-                    <Text style={s.staffRevenue}>{fmtMoney(p.revenue)}</Text>
-                    <View style={s.staffTrack}>
+                    <Text style={[s.staffRevenue, { color: t.text }]}>{fmtMoney(p.revenue)}</Text>
+                    <View style={[s.staffTrack, { backgroundColor: t.border }]}>
                       <View style={[s.staffFill, { width: `${(p.revenue / topStaffRev) * 100}%`, backgroundColor: [Colors.red, Colors.blue, Colors.success, "#f59e0b", "#8b5cf6"][i] }]} />
                     </View>
                   </View>
@@ -475,13 +479,13 @@ export default function ReportsScreen() {
 
           {/* Hourly distribution */}
           {hourly.length > 0 && (
-            <Animated.View entering={FadeInDown.delay(480).duration(400)} style={[s.card, Shadow.sm]}>
+            <Animated.View entering={FadeInDown.delay(480).duration(400)} style={[s.card, Shadow.sm, { backgroundColor: t.bgAlt }]}>
               <View style={s.cardHeader}>
                 <View style={[s.cardIconBox, { backgroundColor: Colors.success + "14" }]}>
                   <Ionicons name="time-outline" size={16} color={Colors.success} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.cardTitle}>Horarios más activos</Text>
+                  <Text style={[s.cardTitle, { color: t.text }]}>Horarios más activos</Text>
                   {peakHour.count > 0 && (
                     <Text style={s.cardSub}>Pico: {peakHour.hour}:00 – {peakHour.hour + 1}:00</Text>
                   )}
@@ -508,8 +512,8 @@ export default function ReportsScreen() {
           {!loading && revenue === 0 && apptCount === 0 && (
             <View style={s.emptyBox}>
               <Ionicons name="bar-chart-outline" size={40} color={Colors.subtle} />
-              <Text style={s.emptyTitle}>Sin datos {periodLabel}</Text>
-              <Text style={s.emptyTxt}>Los reportes aparecerán cuando haya citas registradas.</Text>
+              <Text style={[s.emptyTitle, { color: t.text }]}>Sin datos {periodLabel}</Text>
+              <Text style={[s.emptyTxt, { color: t.muted }]}>Los reportes aparecerán cuando haya citas registradas.</Text>
             </View>
           )}
         </ScrollView>

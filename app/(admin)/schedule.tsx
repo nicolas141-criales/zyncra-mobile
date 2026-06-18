@@ -10,6 +10,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { fmt12Hour } from "@/lib/format";
 
@@ -94,6 +96,7 @@ const tp = StyleSheet.create({
 
 export default function ScheduleScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const { tenantId } = useAuth();
   const [schedule, setSchedule] = useState<Schedule>(buildDefault());
   const [loading, setLoading]   = useState(true);
@@ -133,7 +136,7 @@ export default function ScheduleScreen() {
   const openCount = DAYS.filter(d => schedule[d.key]?.open).length;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
@@ -206,7 +209,7 @@ export default function ScheduleScreen() {
             </Animated.View>
           )}
 
-          <View style={s.bottomBar}>
+          <View style={[s.bottomBar, { backgroundColor: t.bg, borderTopColor: t.border }]}>
             <TouchableOpacity style={s.btn} onPress={handleSave} disabled={saving} activeOpacity={0.85}>
               <View style={s.btnInner}>
                 {saving ? <ActivityIndicator color="white" /> : <Text style={s.btnText}>Guardar horario</Text>}

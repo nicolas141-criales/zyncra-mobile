@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { Colors, Radius, Shadow } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 import { fmt12Hour } from "@/lib/format";
 import GradientHeader from "@/components/GradientHeader";
 import BottomSaveBar from "@/components/BottomSaveBar";
@@ -96,6 +97,7 @@ const tp = StyleSheet.create({
 export default function ScheduleScreen() {
   const router = useRouter();
   const { tenantId } = useAuth();
+  const { t } = useTheme();
   const [schedule, setSchedule] = useState<Schedule>(buildDefault());
   const [loading, setLoading]   = useState(true);
   const [saving, setSaving]     = useState(false);
@@ -134,7 +136,7 @@ export default function ScheduleScreen() {
   const openCount = DAYS.filter(d => schedule[d.key]?.open).length;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <GradientHeader
         title="Horario de atencion"
         subtitle={`${openCount} dia${openCount !== 1 ? "s" : ""} activo${openCount !== 1 ? "s" : ""}`}

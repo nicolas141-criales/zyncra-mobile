@@ -10,6 +10,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { fmtMoneyFull, fmt12 } from "@/lib/format";
 import { STATUS_META } from "@/constants/status";
@@ -56,6 +58,7 @@ function buildDayRange(n: number): { date: Date; label: string; iso: string }[] 
 function RescheduleModal({ appt, tenantId, onClose, onSaved }: {
   appt: Appt | null; tenantId: string; onClose: () => void; onSaved: () => void;
 }) {
+  const { t } = useTheme();
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
   const [saving, setSaving]   = useState(false);
@@ -88,7 +91,7 @@ function RescheduleModal({ appt, tenantId, onClose, onSaved }: {
 
   return (
     <Modal visible={!!appt} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
         <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={rm.header}>
           <View style={rm.headerRow}>
             <TouchableOpacity onPress={onClose} style={rm.closeBtn}>
@@ -105,25 +108,25 @@ function RescheduleModal({ appt, tenantId, onClose, onSaved }: {
 
         <ScrollView contentContainerStyle={{ padding: 24, gap: 20 }}>
           <View>
-            <Text style={rm.fieldLabel}>Nueva fecha (YYYY-MM-DD)</Text>
+            <Text style={[rm.fieldLabel, { color: t.muted }]}>Nueva fecha (YYYY-MM-DD)</Text>
             <TextInput
-              style={rm.input}
+              style={[rm.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]}
               value={newDate}
               onChangeText={setNewDate}
               placeholder="2026-06-15"
-              placeholderTextColor={Colors.subtle}
+              placeholderTextColor={t.subtle}
               keyboardType="numeric"
               maxLength={10}
             />
           </View>
           <View>
-            <Text style={rm.fieldLabel}>Nueva hora (HH:MM, 24h)</Text>
+            <Text style={[rm.fieldLabel, { color: t.muted }]}>Nueva hora (HH:MM, 24h)</Text>
             <TextInput
-              style={rm.input}
+              style={[rm.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]}
               value={newTime}
               onChangeText={setNewTime}
               placeholder="14:00"
-              placeholderTextColor={Colors.subtle}
+              placeholderTextColor={t.subtle}
               keyboardType="numeric"
               maxLength={5}
             />
@@ -131,22 +134,22 @@ function RescheduleModal({ appt, tenantId, onClose, onSaved }: {
 
           {/* Quick hour presets */}
           <View>
-            <Text style={[rm.fieldLabel, { marginBottom: 10 }]}>Horas rápidas</Text>
+            <Text style={[rm.fieldLabel, { marginBottom: 10, color: t.muted }]}>Horas rápidas</Text>
             <View style={rm.presets}>
               {["08:00","09:00","10:00","11:00","12:00","14:00","15:00","16:00","17:00","18:00"].map(h => (
                 <TouchableOpacity
                   key={h}
-                  style={[rm.preset, newTime === h && rm.presetActive]}
+                  style={[rm.preset, { backgroundColor: t.bgAlt, borderColor: t.border }, newTime === h && rm.presetActive]}
                   onPress={() => setNewTime(h)}
                 >
-                  <Text style={[rm.presetText, newTime === h && { color: "white" }]}>{h}</Text>
+                  <Text style={[rm.presetText, { color: t.text }, newTime === h && { color: "white" }]}>{h}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
         </ScrollView>
 
-        <View style={rm.bottomBar}>
+        <View style={[rm.bottomBar, { backgroundColor: t.bg, borderTopColor: t.border }]}>
           <TouchableOpacity
             style={[rm.btn, saving && { opacity: 0.6 }]}
             onPress={handleSave}
@@ -193,6 +196,7 @@ const rm = StyleSheet.create({
 
 export default function UpcomingScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const { tenantId } = useAuth();
   const [appts, setAppts]             = useState<Appt[]>([]);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
@@ -265,7 +269,7 @@ export default function UpcomingScreen() {
     .reduce((s, a) => s + Number(a.services?.price ?? 0), 0);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>
@@ -307,21 +311,21 @@ export default function UpcomingScreen() {
             <Animated.View entering={FadeInDown.duration(300)}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.proFilter}>
                 <TouchableOpacity
-                  style={[s.proChip, selectedPro === "all" && s.proChipActive]}
+                  style={[s.proChip, { backgroundColor: t.bgAlt, borderColor: t.border }, selectedPro === "all" && s.proChipActive]}
                   onPress={() => setSelectedPro("all")}
                 >
-                  <Text style={[s.proChipText, selectedPro === "all" && { color: "white" }]}>Todos</Text>
+                  <Text style={[s.proChipText, { color: t.text }, selectedPro === "all" && { color: "white" }]}>Todos</Text>
                 </TouchableOpacity>
                 {professionals.map(pro => (
                   <TouchableOpacity
                     key={pro.id}
-                    style={[s.proChip, selectedPro === pro.id && s.proChipActive]}
+                    style={[s.proChip, { backgroundColor: t.bgAlt, borderColor: t.border }, selectedPro === pro.id && s.proChipActive]}
                     onPress={() => setSelectedPro(pro.id)}
                   >
                     {pro.color && (
                       <View style={[s.proColorDot, { backgroundColor: pro.color }]} />
                     )}
-                    <Text style={[s.proChipText, selectedPro === pro.id && { color: "white" }]}>{pro.name}</Text>
+                    <Text style={[s.proChipText, { color: t.text }, selectedPro === pro.id && { color: "white" }]}>{pro.name}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -339,9 +343,9 @@ export default function UpcomingScreen() {
               <Animated.View key={day.iso} entering={FadeInDown.delay(di * 40).duration(350)}>
                 {/* Day header */}
                 <View style={s.dayHeader}>
-                  <Text style={s.dayLabel}>{day.label}</Text>
+                  <Text style={[s.dayLabel, { color: t.text }]}>{day.label}</Text>
                   <View style={s.dayMeta}>
-                    <Text style={s.dayCount}>{dayAppts.length} cita{dayAppts.length !== 1 ? "s" : ""}</Text>
+                    <Text style={[s.dayCount, { color: t.muted }]}>{dayAppts.length} cita{dayAppts.length !== 1 ? "s" : ""}</Text>
                     {dayRevenue > 0 && <Text style={s.dayRevenue}>{fmtMoneyFull(dayRevenue)}</Text>}
                   </View>
                 </View>
@@ -353,7 +357,7 @@ export default function UpcomingScreen() {
 
                   return (
                     <Animated.View key={appt.id} entering={FadeInRight.delay(ai * 50).duration(300)}>
-                      <View style={[s.apptCard, Shadow.sm]}>
+                      <View style={[s.apptCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
                         <View style={[s.apptAccent, { backgroundColor: proColor }]} />
                         <View style={{ flex: 1, padding: 12 }}>
                           {/* Top row */}
@@ -364,22 +368,22 @@ export default function UpcomingScreen() {
                               </Text>
                             </View>
                             {appt.services?.price ? (
-                              <Text style={s.apptPrice}>{fmtMoneyFull(appt.services.price)}</Text>
+                              <Text style={[s.apptPrice, { color: t.text }]}>{fmtMoneyFull(appt.services.price)}</Text>
                             ) : null}
                           </View>
 
                           {/* Client & service */}
-                          <Text style={s.apptClient} numberOfLines={1}>
+                          <Text style={[s.apptClient, { color: t.text }]} numberOfLines={1}>
                             {appt.clients?.name ?? "Sin cliente"}
                           </Text>
-                          <Text style={s.apptService} numberOfLines={1}>
+                          <Text style={[s.apptService, { color: t.muted }]} numberOfLines={1}>
                             {appt.services?.name ?? "Sin servicio"}
                           </Text>
 
                           {pro?.name && (
                             <View style={s.proRow}>
                               <View style={[s.proDot, { backgroundColor: proColor }]} />
-                              <Text style={s.proName}>{pro.name}</Text>
+                              <Text style={[s.proName, { color: t.muted }]}>{pro.name}</Text>
                             </View>
                           )}
 
@@ -440,10 +444,10 @@ export default function UpcomingScreen() {
 
           {/* Empty state */}
           {visibleAppts.length === 0 && (
-            <Animated.View entering={FadeInDown.delay(100).duration(350)} style={[s.empty, Shadow.sm, { margin: 16 }]}>
-              <Ionicons name="calendar-outline" size={40} color={Colors.subtle} style={{ marginBottom: 12 }} />
-              <Text style={s.emptyTitle}>Sin citas próximas</Text>
-              <Text style={s.emptySub}>No hay citas agendadas para los próximos 14 días</Text>
+            <Animated.View entering={FadeInDown.delay(100).duration(350)} style={[s.empty, Shadow.sm, { margin: 16, backgroundColor: t.bgAlt }]}>
+              <Ionicons name="calendar-outline" size={40} color={t.subtle} style={{ marginBottom: 12 }} />
+              <Text style={[s.emptyTitle, { color: t.text }]}>Sin citas próximas</Text>
+              <Text style={[s.emptySub, { color: t.muted }]}>No hay citas agendadas para los próximos 14 días</Text>
             </Animated.View>
           )}
         </ScrollView>

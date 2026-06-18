@@ -11,6 +11,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 
 type Service = {
@@ -25,15 +27,16 @@ function Field({ label, value, onChangeText, placeholder, keyboardType, multilin
   label: string; value: string; onChangeText: (t: string) => void;
   placeholder: string; keyboardType?: "numeric" | "default"; multiline?: boolean;
 }) {
+  const { t } = useTheme();
   return (
     <View style={{ marginBottom: 16 }}>
-      <Text style={f.label}>{label}</Text>
+      <Text style={[f.label, { color: t.muted }]}>{label}</Text>
       <TextInput
-        style={[f.input, multiline && { height: 80, textAlignVertical: "top" }]}
+        style={[f.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }, multiline && { height: 80, textAlignVertical: "top" }]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={Colors.subtle}
+        placeholderTextColor={t.subtle}
         keyboardType={keyboardType ?? "default"}
         multiline={multiline}
         autoCapitalize={keyboardType === "numeric" ? "none" : "sentences"}
@@ -51,6 +54,7 @@ function ServiceModal({ visible, service, tenantId, onClose, onSaved }: {
   visible: boolean; service: Service | null; tenantId: string;
   onClose: () => void; onSaved: () => void;
 }) {
+  const { t } = useTheme();
   const isEdit = service !== null;
   const [name, setName]         = useState("");
   const [price, setPrice]       = useState("");
@@ -100,7 +104,7 @@ function ServiceModal({ visible, service, tenantId, onClose, onSaved }: {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
         <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.mHeader}>
           <View style={s.mHeaderRow}>
             <TouchableOpacity onPress={onClose} style={s.closeBtn}>
@@ -128,7 +132,7 @@ function ServiceModal({ visible, service, tenantId, onClose, onSaved }: {
             </View>
             <Field label="Descripción" value={desc} onChangeText={setDesc} placeholder="Opcional..." multiline />
           </ScrollView>
-          <View style={s.bottomBar}>
+          <View style={[s.bottomBar, { backgroundColor: t.bg, borderTopColor: t.border }]}>
             <TouchableOpacity style={[s.btn, !canSave && { opacity: 0.4 }]} onPress={handleSave} disabled={!canSave || saving} activeOpacity={0.85}>
               <View style={s.btnGrad}>
                 {saving ? <ActivityIndicator color="white" /> : <Text style={s.btnText}>{isEdit ? "Guardar cambios" : "Crear servicio"}</Text>}
@@ -143,6 +147,7 @@ function ServiceModal({ visible, service, tenantId, onClose, onSaved }: {
 
 export default function ServicesScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const [services, setServices]   = useState<Service[]>([]);
   const { tenantId } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
@@ -164,7 +169,7 @@ export default function ServicesScreen() {
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
@@ -185,16 +190,16 @@ export default function ServicesScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.red} />}
       >
         {services.length === 0 ? (
-          <Animated.View entering={FadeInDown.duration(400)} style={[s.empty, Shadow.sm]}>
-            <Ionicons name="cut-outline" size={44} color={Colors.subtle} style={{ marginBottom: 12 }} />
-            <Text style={s.emptyTitle}>Sin servicios</Text>
-            <Text style={s.emptySub}>Toca + para agregar tu primer servicio</Text>
+          <Animated.View entering={FadeInDown.duration(400)} style={[s.empty, Shadow.sm, { backgroundColor: t.bgAlt }]}>
+            <Ionicons name="cut-outline" size={44} color={t.subtle} style={{ marginBottom: 12 }} />
+            <Text style={[s.emptyTitle, { color: t.text }]}>Sin servicios</Text>
+            <Text style={[s.emptySub, { color: t.muted }]}>Toca + para agregar tu primer servicio</Text>
           </Animated.View>
         ) : (
           services.map((svc, i) => (
             <Animated.View key={svc.id} entering={i < 10 ? FadeInRight.delay(i * 50).duration(320) : undefined}>
               <TouchableOpacity
-                style={[s.row, Shadow.sm]}
+                style={[s.row, Shadow.sm, { backgroundColor: t.bgAlt }]}
                 onPress={() => setModal({ visible: true, service: svc })}
                 activeOpacity={0.75}
               >
@@ -202,12 +207,12 @@ export default function ServicesScreen() {
                   <Ionicons name="cut-outline" size={18} color={Colors.purple} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.name} numberOfLines={1}>{svc.name}</Text>
-                  <Text style={s.info}>{svc.duration_min} min</Text>
+                  <Text style={[s.name, { color: t.text }]} numberOfLines={1}>{svc.name}</Text>
+                  <Text style={[s.info, { color: t.muted }]}>{svc.duration_min} min</Text>
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
-                  <Text style={s.price}>${Math.round(svc.price).toLocaleString("es-CO")}</Text>
-                  <Ionicons name="chevron-forward" size={14} color={Colors.subtle} style={{ marginTop: 4 }} />
+                  <Text style={[s.price, { color: t.text }]}>${Math.round(svc.price).toLocaleString("es-CO")}</Text>
+                  <Ionicons name="chevron-forward" size={14} color={t.subtle} style={{ marginTop: 4 }} />
                 </View>
               </TouchableOpacity>
             </Animated.View>

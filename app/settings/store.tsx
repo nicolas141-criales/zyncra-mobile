@@ -13,6 +13,7 @@ import * as ImagePicker from "expo-image-picker";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 import { Config } from "@/lib/config";
 import GradientHeader from "@/components/GradientHeader";
 import BottomSaveBar from "@/components/BottomSaveBar";
@@ -97,6 +98,7 @@ const sc = StyleSheet.create({
 export default function StoreScreen() {
   const router = useRouter();
   const { tenantId } = useAuth();
+  const { t } = useTheme();
 
   const [slug,       setSlug]       = useState<string>("");
   const [loading,    setLoading]    = useState(true);
@@ -218,7 +220,7 @@ export default function StoreScreen() {
   const logoDisplay = logoUri ?? (logoUrl ? `${logoUrl}` : null);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <GradientHeader title="Mi Tienda" subtitle="Personaliza y comparte tu negocio" onBack={() => router.back()} />
 
       {loading ? (

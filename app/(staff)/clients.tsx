@@ -11,9 +11,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 import { STATUS_META } from "@/constants/status";
 import { fmtDateShort, fmtMoneyFull } from "@/lib/format";
 import Avatar from "@/components/Avatar";
+import ErrorState from "@/components/ErrorState";
 
 type ClientEntry = {
   id: string;
@@ -68,13 +70,14 @@ function ClientModal({ client, proId, onClose }: {
     return () => { cancelled = true; };
   }, [client, proId]);
 
+  const { t } = useTheme();
   if (!client) return null;
 
   const totalSpent = history.filter(a => a.status === "completed").reduce((s, a) => s + a.price, 0);
 
   return (
     <Modal visible={!!client} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
         <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={cm.header}>
           <View style={cm.headerRow}>
             <TouchableOpacity onPress={onClose} style={cm.iconBtn}>
@@ -197,6 +200,7 @@ const cm = StyleSheet.create({
 
 export default function StaffClientsScreen() {
   const { user } = useAuth();
+  const { t } = useTheme();
   const [proId, setProId]           = useState<string | null>(null);
   const [clients, setClients]       = useState<ClientEntry[]>([]);
   const [filtered, setFiltered]     = useState<ClientEntry[]>([]);
@@ -204,6 +208,7 @@ export default function StaffClientsScreen() {
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selected, setSelected]     = useState<ClientEntry | null>(null);
+  const [error, setError]           = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -216,7 +221,9 @@ export default function StaffClientsScreen() {
   const load = useCallback(async () => {
     if (!proId) return;
     setLoading(true);
-    const { data: appts } = await supabase
+    setError(false);
+    try {
+    const { data: appts, error: err } = await supabase
       .from("appointments")
       .select("appointment_date, client_id, status, clients(id,name,phone,email), services(name,price)")
       .eq("professional_id", proId)
@@ -246,6 +253,10 @@ export default function StaffClientsScreen() {
     setClients(list);
     setFiltered(list);
     setLoading(false);
+    } catch {
+      setError(true);
+      setLoading(false);
+    }
   }, [proId]);
 
   useEffect(() => { if (proId) load(); }, [proId]);
@@ -291,7 +302,7 @@ export default function StaffClientsScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <Text style={s.headerTitle}>Mis Clientes</Text>
@@ -302,24 +313,26 @@ export default function StaffClientsScreen() {
 
       {/* Search */}
       <View style={s.searchWrap}>
-        <View style={[s.searchBox, Shadow.sm]}>
-          <Ionicons name="search-outline" size={16} color={Colors.subtle} />
+        <View style={[s.searchBox, Shadow.sm, { backgroundColor: t.bgAlt }]}>
+          <Ionicons name="search-outline" size={16} color={t.subtle} />
           <TextInput
-            style={s.searchInput}
+            style={[s.searchInput, { color: t.text }]}
             value={query}
             onChangeText={handleSearch}
             placeholder="Buscar por nombre o teléfono..."
-            placeholderTextColor={Colors.subtle}
+            placeholderTextColor={t.subtle}
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={() => handleSearch("")}>
-              <Ionicons name="close-circle" size={16} color={Colors.subtle} />
+              <Ionicons name="close-circle" size={16} color={t.subtle} />
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      {loading ? (
+      {error ? (
+        <ErrorState onRetry={load} />
+      ) : loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator color={Colors.red} size="large" />
         </View>

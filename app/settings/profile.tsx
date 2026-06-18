@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 
 function getInitials(name: string, email: string) {
   const n = name.trim();
@@ -52,6 +53,7 @@ function FieldBlock({
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const { user } = useAuth();
   const [email, setEmail]         = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -114,7 +116,7 @@ export default function ProfileScreen() {
   const initials = getInitials(displayName, email);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>

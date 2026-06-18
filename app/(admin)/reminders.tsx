@@ -10,6 +10,8 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 
 const HOUR_OPTIONS = [1, 2, 6, 12, 24, 48];
@@ -21,6 +23,7 @@ const VARIABLES = ["{{nombre}}", "{{servicio}}", "{{fecha}}", "{{hora}}"];
 
 export default function RemindersScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const { tenantId } = useAuth();
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [hours, setHours]         = useState(24);
@@ -68,7 +71,7 @@ export default function RemindersScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
@@ -161,7 +164,7 @@ export default function RemindersScreen() {
             </Animated.View>
           </ScrollView>
 
-          <View style={s.bottomBar}>
+          <View style={[s.bottomBar, { backgroundColor: t.bg, borderTopColor: t.border }]}>
             <TouchableOpacity style={s.btn} onPress={handleSave} disabled={saving} activeOpacity={0.85}>
               <View style={s.btnGrad}>
                 {saving ? <ActivityIndicator color="white" /> : <Text style={s.btnText}>Guardar configuración</Text>}

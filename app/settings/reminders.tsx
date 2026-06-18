@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
 import { Colors, Radius, Shadow } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 import GradientHeader from "@/components/GradientHeader";
 
 const HOUR_OPTIONS = [
@@ -42,6 +43,7 @@ function previewText(tmpl: string) {
 
 export default function RemindersScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const { tenantId } = useAuth();
   const inputRef = useRef<TextInput>(null);
   const [settingsId, setSettingsId] = useState<string | null>(null);
@@ -99,7 +101,7 @@ export default function RemindersScreen() {
   const charCount = template.length;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <GradientHeader
         title="Recordatorios"
         subtitle="Mensajes automáticos por WhatsApp"
