@@ -677,7 +677,7 @@ export default function FinanzasScreen() {
         .maybeSingle(),
     ]);
 
-    setSales((salesRes.data ?? []) as Sale[]);
+    setSales((salesRes.data ?? []) as unknown as Sale[]);
 
     const activeSession = sessionRes.data as CashSession | null;
     setSession(activeSession);

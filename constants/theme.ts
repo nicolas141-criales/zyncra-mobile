@@ -1,22 +1,23 @@
 export const Colors = {
   red:     "#fb0f05",
   blue:    "#0027fe",
-  purple:  "#0027fe",           // mapped to blue — no more purple in brand
+  purple:  "#0027fe",
+  ink:     "#1a1a2e",
   // Backgrounds
-  cream:   "#FFFFFF",           // was: #fdfcfa
-  cream2:  "#F4F4F9",           // was: #f5f4f2
+  cream:   "#FFFFFF",
+  cream2:  "#F4F4F9",
   bg:      "#FFFFFF",
   bgElev:  "#F4F4F9",
   // Borders
-  border:  "rgba(20,15,30,0.08)",       // was: #e8e6e2
+  border:  "rgba(20,15,30,0.08)",
   borderStrong: "rgba(20,15,30,0.16)",
   // Text
-  text:    "#14111C",           // was: #111118
+  text:    "#14111C",
   dim:     "#564E66",
-  muted:   "#564E66",           // was: #6b6b80
-  subtle:  "#8E879B",           // was: #a0a0b0
+  muted:   "#564E66",
+  subtle:  "#8E879B",
   white:   "#ffffff",
-  success: "#10b981",           // was: #16a34a
+  success: "#10b981",
   card:    "#ffffff",
 };
 
@@ -24,6 +25,23 @@ export const Gradients = {
   brand:     ["#fb0f05", "#0027fe"] as const,
   brandH:    ["#fb0f05", "#0027fe"] as const,
   brandSoft: ["rgba(251,15,5,0.10)", "rgba(0,39,254,0.05)"] as const,
+  ink:       ["#1a1a2e", "#0f0f1a"] as const,
+};
+
+export const Fonts = {
+  regular:  "SpaceGrotesk_400Regular",
+  semibold: "SpaceGrotesk_600SemiBold",
+  bold:     "SpaceGrotesk_700Bold",
+  mono:     "JetBrainsMono_500Medium",
+  monoBold: "JetBrainsMono_700Bold",
+};
+
+export const MonoLabel = {
+  fontFamily: "JetBrainsMono_500Medium" as const,
+  fontSize: 10,
+  letterSpacing: 0.8,
+  textTransform: "uppercase" as const,
+  color: "#8E879B",
 };
 
 export const Radius = {

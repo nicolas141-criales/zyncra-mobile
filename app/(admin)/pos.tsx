@@ -303,8 +303,8 @@ export default function PosScreen() {
         .lte("created_at", `${dateStr}T23:59:59`)
         .order("created_at", { ascending: false }),
     ]);
-    setAppts((apptData as Appt[]) ?? []);
-    setSales((salesData as PosSale[]) ?? []);
+    setAppts((apptData as unknown as Appt[]) ?? []);
+    setSales((salesData as unknown as PosSale[]) ?? []);
     setLoading(false);
   }, [tenantId]);
 

@@ -16,7 +16,7 @@ import { fmtDateShort } from "@/lib/format";
 import { STATUS_META } from "@/constants/status";
 import Avatar from "@/components/Avatar";
 
-type Client = { id: string; name: string; phone?: string; email?: string; no_shows?: number; created_at?: string };
+type Client = { id: string; name: string; phone?: string; email?: string | null; no_shows?: number; created_at?: string };
 type Appt = {
   id: string; appointment_date: string; appointment_time: string; status: string; notes?: string;
   services: { name: string; price: number } | null;
@@ -149,7 +149,7 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
         .select("field_id,value")
         .eq("client_id", initialClient.id),
     ]);
-    setAppts((apptRes.data ?? []) as Appt[]);
+    setAppts((apptRes.data ?? []) as unknown as Appt[]);
     setCustomFields((cfRes.data ?? []) as CustomField[]);
     const map: Record<string, string> = {};
     (fvRes.data ?? []).forEach((r: any) => { map[r.field_id] = r.value ?? ""; });

@@ -397,7 +397,7 @@ export default function CommissionsScreen() {
             Ingresos del período
           </Text>
           <Text style={{ fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, letterSpacing: -0.5 }}>
-            {fmt(totalRevenue)}
+            {fmtMoneyFull(totalRevenue)}
           </Text>
           <MiniBar data={chartSlots} color={Colors.blue} />
           <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>

@@ -19,7 +19,7 @@ import Avatar from "@/components/Avatar";
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
 type Client = {
-  id: string; name: string; phone?: string; email?: string;
+  id: string; name: string; phone?: string; email?: string | null;
   no_shows?: number; created_at?: string; tenant_id?: string;
 };
 
@@ -294,7 +294,7 @@ export default function ClientProfileScreen() {
         .limit(30),
     ]);
     if (c) setClient(c);
-    setAppts((a ?? []) as Appt[]);
+    setAppts((a ?? []) as unknown as Appt[]);
 
     if (c?.tenant_id) {
       const [{ data: cf }, { data: fv }] = await Promise.all([

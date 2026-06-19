@@ -121,7 +121,7 @@ export default function InventarioScreen() {
         .limit(100),
     ]);
     if (prodRes.data) setProducts(prodRes.data as Product[]);
-    if (movRes.data)  setMovements(movRes.data as Movement[]);
+    if (movRes.data)  setMovements(movRes.data as unknown as Movement[]);
     setLoading(false);
   }, [tenantId]);
 

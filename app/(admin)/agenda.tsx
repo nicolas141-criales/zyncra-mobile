@@ -43,7 +43,7 @@ const PRO_PALETTE = [
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Professional = { id: string; name: string };
+type Professional = { id: string; name: string; role?: string };
 
 type EditClient  = { id: string; name: string; phone: string };
 type EditService = { id: string; name: string; duration_minutes: number; price: number };
@@ -735,7 +735,7 @@ export default function AgendaScreen() {
         .eq("is_active", true)
         .order("name"),
     ]);
-    setAppts((apptData as Appt[]) ?? []);
+    setAppts((apptData as unknown as Appt[]) ?? []);
     setProfessionals((proData as Professional[]) ?? []);
   }, [tenantId]);
 

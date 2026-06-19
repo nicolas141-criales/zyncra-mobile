@@ -225,7 +225,7 @@ export default function UpcomingScreen() {
         .eq("is_active", true),
     ]);
 
-    setAppts((apptData ?? []) as Appt[]);
+    setAppts((apptData ?? []) as unknown as Appt[]);
     setProfessionals((proData ?? []) as Professional[]);
     setLoading(false);
   }, [tenantId]);

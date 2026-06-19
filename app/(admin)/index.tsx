@@ -148,7 +148,7 @@ export default function DashboardScreen() {
         .limit(2000),
     ]);
 
-    const all      = (todayAppts as Appt[]) ?? [];
+    const all      = (todayAppts as unknown as Appt[]) ?? [];
     const allSales = sales ?? [];
     const getApptPrice = (a: any) => Number((Array.isArray(a.services) ? a.services[0] : a.services)?.price ?? 0);
     const posDay   = allSales.filter(s => s.created_at?.slice(0, 10) === dateStr).reduce((acc, s) => acc + Number(s.total ?? 0), 0);

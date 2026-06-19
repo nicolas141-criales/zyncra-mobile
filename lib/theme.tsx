@@ -47,7 +47,10 @@ const DARK = {
   statusBar:    "light" as const,
 };
 
-export type ThemeColors = typeof LIGHT;
+export type ThemeColors = Omit<typeof LIGHT, "blurTint" | "statusBar"> & {
+  blurTint: "light" | "dark";
+  statusBar: "dark" | "light";
+};
 
 type ThemeCtx = {
   mode: ThemeMode;

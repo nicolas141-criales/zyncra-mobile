@@ -60,7 +60,7 @@ export default function PosHistoryScreen() {
       .gte("created_at", `${start}T00:00:00`)
       .lte("created_at", `${end}T23:59:59`)
       .order("created_at", { ascending: false });
-    setSales((data ?? []) as HistorySale[]);
+    setSales((data ?? []) as unknown as HistorySale[]);
     setLoading(false);
   }, [tenantId]);
 

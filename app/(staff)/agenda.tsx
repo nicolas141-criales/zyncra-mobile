@@ -134,7 +134,7 @@ export default function StaffAgendaScreen() {
         .eq("appointment_date", dateStr)
         .order("appointment_time");
       if (err) throw err;
-      setAppts((data as Appt[]) ?? []);
+      setAppts((data as unknown as Appt[]) ?? []);
     } catch {
       setError(true);
     }
