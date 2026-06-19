@@ -18,7 +18,29 @@ import { useAuth } from "@/lib/auth";
 import Avatar from "@/components/Avatar";
 import ErrorState from "@/components/ErrorState";
 
-type Pro = { id: string; name: string; role: string; is_active: boolean; user_id: string | null; email: string | null; photo_url: string | null };
+type DayConfig = { enabled: boolean; start: string; end: string };
+type ProSchedule = { mon: DayConfig; tue: DayConfig; wed: DayConfig; thu: DayConfig; fri: DayConfig; sat: DayConfig; sun: DayConfig };
+type Pro = { id: string; name: string; role: string; is_active: boolean; user_id: string | null; email: string | null; photo_url: string | null; schedule?: any };
+
+const DAYS: { key: keyof ProSchedule; label: string }[] = [
+  { key: "mon", label: "Lun" }, { key: "tue", label: "Mar" }, { key: "wed", label: "Mié" },
+  { key: "thu", label: "Jue" }, { key: "fri", label: "Vie" }, { key: "sat", label: "Sáb" }, { key: "sun", label: "Dom" },
+];
+const TIME_OPTS = Array.from({ length: 29 }, (_, i) => {
+  const total = 480 + i * 30; // 08:00 - 22:00 in 30min steps
+  const h = Math.floor(total / 60), m = total % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+});
+const DEFAULT_DAY: DayConfig = { enabled: false, start: "09:00", end: "18:00" };
+function buildSched(raw: any): ProSchedule {
+  const base = { mon: DEFAULT_DAY, tue: DEFAULT_DAY, wed: DEFAULT_DAY, thu: DEFAULT_DAY, fri: { enabled: true, start: "09:00", end: "18:00" }, sat: DEFAULT_DAY, sun: DEFAULT_DAY };
+  if (!raw || typeof raw !== "object") return base;
+  const merged: any = { ...base };
+  for (const k of Object.keys(base)) {
+    if (raw[k]) merged[k] = { ...DEFAULT_DAY, ...raw[k] };
+  }
+  return merged as ProSchedule;
+}
 
 function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
   visible: boolean; pro: Pro | null; tenantId: string;
@@ -36,6 +58,9 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
   const [accPass, setAccPass]       = useState("");
   const [accLoading, setAccLoading] = useState(false);
   const [accSuccess, setAccSuccess] = useState(false);
+  const [useCustomSched, setUseCustomSched] = useState(false);
+  const [proSched, setProSched]     = useState<ProSchedule>(buildSched(null));
+  const [bizSched, setBizSched]     = useState<ProSchedule>(buildSched(null));
 
   useEffect(() => {
     if (visible) {
@@ -46,6 +71,13 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
       setAccPass("");
       setAccSuccess(false);
       setPhotoUri(null);
+      supabase.from("tenants").select("settings").eq("id", tenantId).single()
+        .then(({ data }) => {
+          const biz = buildSched((data?.settings as any)?.schedule);
+          setBizSched(biz);
+          if (pro?.schedule) { setUseCustomSched(true); setProSched(buildSched(pro.schedule)); }
+          else { setUseCustomSched(false); setProSched(buildSched(biz)); }
+        });
     }
   }, [visible, pro]);
 
@@ -93,6 +125,7 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
     try {
       const payload: Record<string, unknown> = {
         name: name.trim(), role: role.trim() || "Profesional", is_active: active,
+        schedule: useCustomSched ? proSched : null,
       };
       if (isEdit) {
         if (photoUri) {
@@ -243,6 +276,41 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
                 )}
               </View>
             )}
+            {/* Schedule section */}
+            <View style={{ marginTop: 28 }}>
+              <View style={[s.switchRow, Shadow.sm, { backgroundColor: t.bgAlt }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[s.switchLabel, { color: t.text }]}>Horario propio</Text>
+                  <Text style={[s.switchSub, { color: t.muted }]}>Diferente al horario del negocio</Text>
+                </View>
+                <Switch
+                  value={useCustomSched}
+                  onValueChange={v => { setUseCustomSched(v); if (!v) setProSched(buildSched(bizSched)); }}
+                  trackColor={{ false: Colors.border, true: Colors.blue + "aa" }}
+                  thumbColor={useCustomSched ? Colors.blue : Colors.subtle}
+                />
+              </View>
+              {useCustomSched && DAYS.map(({ key, label }) => {
+                const day = proSched[key];
+                return (
+                  <View key={key} style={[s.schedRow, { backgroundColor: t.bgAlt, borderColor: t.border }]}>
+                    <TouchableOpacity
+                      style={[s.schedDayBtn, day.enabled && { backgroundColor: Colors.blue + "18" }]}
+                      onPress={() => setProSched(p => ({ ...p, [key]: { ...p[key], enabled: !p[key].enabled } }))}
+                    >
+                      <Text style={[s.schedDayLabel, { color: day.enabled ? Colors.blue : t.muted }]}>{label}</Text>
+                    </TouchableOpacity>
+                    {day.enabled && (
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <Text style={[s.schedTime, { color: t.text }]}>{day.start}</Text>
+                        <Text style={[s.schedTimeSep, { color: t.muted }]}>-</Text>
+                        <Text style={[s.schedTime, { color: t.text }]}>{day.end}</Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
           </ScrollView>
 
           <View style={[s.bottomBar, { borderTopColor: t.border, backgroundColor: t.bg }]}>
@@ -273,7 +341,7 @@ export default function TeamScreen() {
     setError(false);
     try {
       const { data } = await supabase.from("professionals")
-        .select("id, name, role, is_active, user_id, email, photo_url")
+        .select("id, name, role, is_active, user_id, email, photo_url, schedule")
         .eq("tenant_id", tenantId).order("name");
       setPros(data ?? []);
     } catch {
@@ -350,6 +418,12 @@ export default function TeamScreen() {
                         <Text style={[s.badgeText, { color: Colors.success }]}>Cuenta activa</Text>
                       </View>
                     )}
+                    {p.schedule && (
+                      <View style={[s.activeBadge, { backgroundColor: Colors.blue + "14" }]}>
+                        <Ionicons name="time-outline" size={10} color={Colors.blue} />
+                        <Text style={[s.badgeText, { color: Colors.blue }]}>Horario propio</Text>
+                      </View>
+                    )}
                     {!p.is_active && (
                       <View style={s.inactiveBadge}>
                         <Text style={s.inactiveBadgeText}>Inactivo</Text>
@@ -416,6 +490,11 @@ const s = StyleSheet.create({
   accountCardSub:   { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
   accBtn:           { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: Colors.red, borderRadius: Radius.md, paddingVertical: 13, marginTop: 4 },
   accBtnText:       { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
+  schedRow:         { flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.sm, paddingHorizontal: 10, paddingVertical: 8, marginTop: 6 },
+  schedDayBtn:      { width: 40, height: 28, borderRadius: 8, alignItems: "center", justifyContent: "center" },
+  schedDayLabel:    { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold" },
+  schedTime:        { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" },
+  schedTimeSep:     { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular" },
   bottomBar:        { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
   btn:              { borderRadius: Radius.full, overflow: "hidden" },
   btnGrad:          { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },

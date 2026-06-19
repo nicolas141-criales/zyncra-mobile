@@ -249,7 +249,7 @@ export default function ReportsScreen() {
     const { start, end }         = getRange(period);
     const { start: ps, end: pe } = getPrevRange(period);
 
-    const [curRes, prevRes] = await Promise.all([
+    const [curRes, prevRes, posRes, prevPosRes] = await Promise.all([
       supabase.from("appointments")
         .select("id, appointment_date, appointment_time, status, services(name, price), professionals(name), clients(id, created_at)")
         .eq("tenant_id", tenantId)
@@ -260,16 +260,26 @@ export default function ReportsScreen() {
         .eq("tenant_id", tenantId)
         .gte("appointment_date", ps)
         .lte("appointment_date", pe),
+      supabase.from("pos_sales").select("total, created_at").eq("tenant_id", tenantId)
+        .gte("created_at", start).lte("created_at", end + "T23:59:59").limit(5000),
+      supabase.from("pos_sales").select("total").eq("tenant_id", tenantId)
+        .gte("created_at", ps).lte("created_at", pe + "T23:59:59").limit(5000),
     ]);
 
     const cur: any[]  = curRes.data  ?? [];
     const prev: any[] = prevRes.data ?? [];
+    const posData: any[] = posRes.data ?? [];
+    const prevPosData: any[] = prevPosRes.data ?? [];
 
     // KPIs
     const done  = cur.filter(a => a.status === "completed" || a.status === "confirmed");
-    const rev   = done.reduce((s: number, a: any) => s + (a.services?.price ?? 0), 0);
+    const apptRev  = done.reduce((s: number, a: any) => s + (a.services?.price ?? 0), 0);
+    const posRev   = posData.reduce((s: number, p: any) => s + Number(p.total ?? 0), 0);
+    const rev      = apptRev + posRev;
     const prevDone = prev.filter(a => a.status === "completed" || a.status === "confirmed");
-    const prevRev  = prevDone.reduce((s: number, a: any) => s + (a.services?.price ?? 0), 0);
+    const prevApptRev = prevDone.reduce((s: number, a: any) => s + (a.services?.price ?? 0), 0);
+    const prevPosRev  = prevPosData.reduce((s: number, p: any) => s + Number(p.total ?? 0), 0);
+    const prevRev  = prevApptRev + prevPosRev;
     const noShows  = cur.filter(a => a.status === "no_show").length;
     const totalFinished = done.length + noShows;
 
@@ -290,11 +300,16 @@ export default function ReportsScreen() {
     const dates = buildSlotDates(period);
     const labels = buildSlots(period);
     const slotRev = dates.map(slotKey => {
-      const matches = done.filter((a: any) => {
+      const apptMatches = done.filter((a: any) => {
         if (period === "year") return a.appointment_date?.startsWith(slotKey);
         return a.appointment_date === slotKey;
       });
-      return matches.reduce((s: number, a: any) => s + (a.services?.price ?? 0), 0);
+      const posMatches = posData.filter((p: any) => {
+        const d = (p.created_at ?? "").slice(0, period === "year" ? 7 : 10);
+        return d === slotKey;
+      });
+      return apptMatches.reduce((s: number, a: any) => s + (a.services?.price ?? 0), 0)
+           + posMatches.reduce((s: number, p: any) => s + Number(p.total ?? 0), 0);
     });
     setRevenueSlots(slotRev);
     setSlotLabels(labels);

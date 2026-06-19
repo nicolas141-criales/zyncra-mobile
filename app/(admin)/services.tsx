@@ -21,6 +21,8 @@ type Service = {
   price: number;
   duration_min: number;
   description?: string;
+  tags?: string[] | null;
+  apptCount?: number;
 };
 
 function Field({ label, value, onChangeText, placeholder, keyboardType, multiline }: {
@@ -60,6 +62,7 @@ function ServiceModal({ visible, service, tenantId, onClose, onSaved }: {
   const [price, setPrice]       = useState("");
   const [duration, setDuration] = useState("");
   const [desc, setDesc]         = useState("");
+  const [tagInput, setTagInput] = useState("");
   const [saving, setSaving]     = useState(false);
 
   useEffect(() => {
@@ -68,6 +71,7 @@ function ServiceModal({ visible, service, tenantId, onClose, onSaved }: {
       setPrice(service?.price != null ? String(service.price) : "");
       setDuration(service?.duration_min != null ? String(service.duration_min) : "");
       setDesc(service?.description ?? "");
+      setTagInput(service?.tags?.join(", ") ?? "");
     }
   }, [visible, service]);
 
@@ -77,11 +81,13 @@ function ServiceModal({ visible, service, tenantId, onClose, onSaved }: {
     if (!canSave) return;
     setSaving(true);
     try {
+      const parsedTags = tagInput.split(",").map(t => t.trim()).filter(Boolean);
       const payload = {
         name: name.trim(),
         price: Number(price),
         duration_min: Number(duration) || 30,
         description: desc.trim() || null,
+        tags: parsedTags.length > 0 ? parsedTags : null,
       };
       if (isEdit) {
         await supabase.from("services").update(payload).eq("id", service!.id);
@@ -131,6 +137,7 @@ function ServiceModal({ visible, service, tenantId, onClose, onSaved }: {
               </View>
             </View>
             <Field label="Descripción" value={desc} onChangeText={setDesc} placeholder="Opcional..." multiline />
+            <Field label="Etiquetas (separadas por coma)" value={tagInput} onChangeText={setTagInput} placeholder="Ej: cabello, tintura, express" />
           </ScrollView>
           <View style={[s.bottomBar, { backgroundColor: t.bg, borderTopColor: t.border }]}>
             <TouchableOpacity style={[s.btn, !canSave && { opacity: 0.4 }]} onPress={handleSave} disabled={!canSave || saving} activeOpacity={0.85}>
@@ -155,10 +162,13 @@ export default function ServicesScreen() {
 
   const load = async () => {
     if (!tenantId) return;
-    const { data } = await supabase.from("services")
-      .select("id, name, price, duration_min, description")
-      .eq("tenant_id", tenantId).order("name");
-    setServices(data ?? []);
+    const [{ data: svcs }, { data: appts }] = await Promise.all([
+      supabase.from("services").select("id, name, price, duration_min, description, tags").eq("tenant_id", tenantId).order("name"),
+      supabase.from("appointments").select("service_id").eq("tenant_id", tenantId).in("status", ["completed", "confirmed"]).limit(5000),
+    ]);
+    const countMap: Record<string, number> = {};
+    (appts ?? []).forEach((a: any) => { if (a.service_id) countMap[a.service_id] = (countMap[a.service_id] ?? 0) + 1; });
+    setServices((svcs ?? []).map(s => ({ ...s, apptCount: countMap[s.id] ?? 0 })));
   };
 
   useEffect(() => {
@@ -208,7 +218,16 @@ export default function ServicesScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[s.name, { color: t.text }]} numberOfLines={1}>{svc.name}</Text>
-                  <Text style={[s.info, { color: t.muted }]}>{svc.duration_min} min</Text>
+                  <Text style={[s.info, { color: t.muted }]}>{svc.duration_min} min{svc.apptCount ? ` · ${svc.apptCount} citas` : ""}</Text>
+                  {svc.tags && svc.tags.length > 0 && (
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 5 }}>
+                      {svc.tags.slice(0, 3).map(tag => (
+                        <View key={tag} style={s.tag}>
+                          <Text style={s.tagTxt}>{tag}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
                   <Text style={[s.price, { color: t.text }]}>${Math.round(svc.price).toLocaleString("es-CO")}</Text>
@@ -245,6 +264,8 @@ const s = StyleSheet.create({
   name:       { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   info:       { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
   price:      { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
+  tag:        { backgroundColor: Colors.blue + "10", borderRadius: Radius.full, paddingHorizontal: 7, paddingVertical: 2 },
+  tagTxt:     { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.blue },
   empty:      { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 48, alignItems: "center", marginTop: 20 },
   emptyTitle: { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:   { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },

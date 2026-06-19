@@ -16,12 +16,14 @@ import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { fmtPhone, fmtDateCompact } from "@/lib/format";
 
-type Tab = "nueva" | "plantillas" | "historial";
+type Tab = "nueva" | "plantillas" | "historial" | "bot" | "conversaciones";
 type Segment = "all" | "active" | "inactive";
 
-type Template  = { id: string; name: string; message: string; created_at: string };
-type Campaign  = { id: string; name: string; segment: Segment; message: string; status: string; recipients_count: number; sent_at: string | null; created_at: string };
-type Client    = { id: string; name: string; phone: string };
+type Template     = { id: string; name: string; message: string; created_at: string };
+type Campaign     = { id: string; name: string; segment: Segment; message: string; status: string; recipients_count: number; sent_at: string | null; created_at: string };
+type Client       = { id: string; name: string; phone: string };
+type BotConfig    = { phone_number_id: string; access_token: string; verify_token: string; bot_enabled: boolean };
+type Conversation  = { id: string; phone: string; messages: { role: string; content: string }[]; last_message_at: string };
 
 const SEGMENT_OPTS: { key: Segment; label: string; sub: string; icon: string }[] = [
   { key: "all",      label: "Todos los clientes",   sub: "Todos con número registrado",          icon: "people-outline" },
@@ -65,6 +67,16 @@ export default function WhatsappScreen() {
   const [pendingCamp, setPendingCamp] = useState<Campaign | null>(null);
   const [loadingClients, setLoadingClients] = useState(false);
 
+  // Bot IA
+  const [botConfig, setBotConfig]     = useState<BotConfig>({ phone_number_id: "", access_token: "", verify_token: "", bot_enabled: false });
+  const [botSaving, setBotSaving]     = useState(false);
+  const [botSaved, setBotSaved]       = useState(false);
+
+  // Conversaciones
+  const [conversations, setConversations]   = useState<Conversation[]>([]);
+  const [convoLoading, setConvoLoading]     = useState(false);
+  const [expandedConvo, setExpandedConvo]   = useState<string | null>(null);
+
   useEffect(() => {
     if (!tenantId) return;
     supabase.from("tenants").select("name").eq("id", tenantId).single()
@@ -87,10 +99,47 @@ export default function WhatsappScreen() {
     setCampaigns((data ?? []) as Campaign[]);
   }, [tenantId]);
 
+  const loadBotConfig = useCallback(async () => {
+    if (!tenantId) return;
+    const { data } = await supabase.from("whatsapp_config")
+      .select("phone_number_id, access_token, verify_token, bot_enabled")
+      .eq("tenant_id", tenantId).maybeSingle();
+    if (data) setBotConfig(data as BotConfig);
+  }, [tenantId]);
+
+  const loadConversations = useCallback(async () => {
+    if (!tenantId) return;
+    setConvoLoading(true);
+    const { data } = await supabase.from("ai_conversations")
+      .select("id, phone, messages, last_message_at")
+      .eq("tenant_id", tenantId)
+      .order("last_message_at", { ascending: false })
+      .limit(50);
+    setConversations((data ?? []) as Conversation[]);
+    setConvoLoading(false);
+  }, [tenantId]);
+
+  const saveBotConfig = async () => {
+    if (!tenantId) return;
+    setBotSaving(true);
+    await supabase.from("whatsapp_config").upsert(
+      { tenant_id: tenantId, ...botConfig },
+      { onConflict: "tenant_id" }
+    );
+    setBotSaving(false);
+    setBotSaved(true);
+    setTimeout(() => setBotSaved(false), 2000);
+  };
+
   useEffect(() => {
     loadTemplates();
     loadCampaigns();
   }, [loadTemplates, loadCampaigns]);
+
+  useEffect(() => {
+    if (tab === "bot") loadBotConfig();
+    if (tab === "conversaciones") loadConversations();
+  }, [tab]);
 
   // Refresh segment count whenever segment or tenantId changes
   useEffect(() => {
@@ -195,9 +244,11 @@ export default function WhatsappScreen() {
   };
 
   const TABS: { key: Tab; label: string }[] = [
-    { key: "nueva",      label: "Nueva campaña" },
-    { key: "plantillas", label: "Plantillas" },
-    { key: "historial",  label: "Historial" },
+    { key: "nueva",          label: "Campaña" },
+    { key: "plantillas",     label: "Plantillas" },
+    { key: "historial",      label: "Historial" },
+    { key: "bot",            label: "Bot IA" },
+    { key: "conversaciones", label: "Chats" },
   ];
 
   const segmentLabel = { all: "Todos", active: "Activos", inactive: "Inactivos" };
@@ -438,6 +489,104 @@ export default function WhatsappScreen() {
         </ScrollView>
       )}
 
+      {/* ── BOT IA ── */}
+      {tab === "bot" && (
+        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
+          <Animated.View entering={FadeInDown.duration(350)}>
+            <View style={[s.botRow, Shadow.sm, { backgroundColor: t.bgAlt }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.botRowTitle, { color: t.text }]}>Bot activo</Text>
+                <Text style={[s.botRowSub, { color: t.muted }]}>Responde citas automáticamente</Text>
+              </View>
+              <TouchableOpacity
+                style={[s.toggleTrack, { backgroundColor: botConfig.bot_enabled ? Colors.success : Colors.border }]}
+                onPress={() => setBotConfig(p => ({ ...p, bot_enabled: !p.bot_enabled }))}
+                activeOpacity={0.8}
+              >
+                <View style={[s.toggleThumb, { transform: [{ translateX: botConfig.bot_enabled ? 20 : 2 }] }]} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={s.label}>Phone Number ID</Text>
+            <TextInput style={[s.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]}
+              value={botConfig.phone_number_id} onChangeText={v => setBotConfig(p => ({ ...p, phone_number_id: v }))}
+              placeholder="Número de la API de WhatsApp" placeholderTextColor={t.subtle} autoCapitalize="none" />
+
+            <Text style={s.label}>Access Token</Text>
+            <TextInput style={[s.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]}
+              value={botConfig.access_token} onChangeText={v => setBotConfig(p => ({ ...p, access_token: v }))}
+              placeholder="Token de acceso" placeholderTextColor={t.subtle} autoCapitalize="none" secureTextEntry />
+
+            <Text style={s.label}>Verify Token</Text>
+            <TextInput style={[s.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]}
+              value={botConfig.verify_token} onChangeText={v => setBotConfig(p => ({ ...p, verify_token: v }))}
+              placeholder="Token de verificación del webhook" placeholderTextColor={t.subtle} autoCapitalize="none" />
+
+            <TouchableOpacity style={[s.btn, { marginTop: 24 }, botSaving && { opacity: 0.6 }]}
+              onPress={saveBotConfig} disabled={botSaving} activeOpacity={0.85}>
+              <View style={s.btnInner}>
+                {botSaving ? <ActivityIndicator color="white" /> : (
+                  <><Ionicons name={botSaved ? "checkmark" : "save-outline"} size={16} color="white" />
+                  <Text style={s.btnText}>{botSaved ? "Guardado" : "Guardar configuración"}</Text></>
+                )}
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
+        </ScrollView>
+      )}
+
+      {/* ── CONVERSACIONES ── */}
+      {tab === "conversaciones" && (
+        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
+          {convoLoading ? (
+            <ActivityIndicator color={Colors.red} style={{ marginTop: 40 }} />
+          ) : conversations.length === 0 ? (
+            <Animated.View entering={FadeInDown.duration(350)} style={[s.emptyCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
+              <Text style={{ fontSize: 32, marginBottom: 10 }}>💬</Text>
+              <Text style={s.emptyTitle}>Sin conversaciones aún</Text>
+              <Text style={s.emptySub}>Los chats del bot aparecerán aquí</Text>
+            </Animated.View>
+          ) : (
+            conversations.map((c, i) => {
+              const last = c.messages?.[c.messages.length - 1];
+              const isOpen = expandedConvo === c.id;
+              return (
+                <Animated.View key={c.id} entering={i < 10 ? FadeInDown.delay(i * 40).duration(280) : undefined}>
+                  <TouchableOpacity style={[s.convoCard, Shadow.sm, { backgroundColor: t.bgAlt }]}
+                    onPress={() => setExpandedConvo(isOpen ? null : c.id)} activeOpacity={0.8}>
+                    <View style={s.convoCardTop}>
+                      <View style={s.convoAvatar}>
+                        <Ionicons name="person-outline" size={16} color={Colors.red} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[s.convoPhone, { color: t.text }]}>{c.phone}</Text>
+                        <Text style={[s.convoPreview, { color: t.muted }]} numberOfLines={1}>
+                          {last?.content ?? "Sin mensajes"}
+                        </Text>
+                      </View>
+                      <Ionicons name={isOpen ? "chevron-up" : "chevron-down"} size={14} color={t.subtle} />
+                    </View>
+                    {isOpen && (
+                      <View style={{ marginTop: 12, gap: 8 }}>
+                        {c.messages.map((m, mi) => (
+                          <View key={mi} style={[
+                            m.role === "assistant" ? s.msgBubbleBot : s.msgBubbleUser,
+                          ]}>
+                            <Text style={[s.msgText, { color: m.role === "assistant" ? "white" : Colors.text }]}>
+                              {m.content}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </Animated.View>
+              );
+            })
+          )}
+        </ScrollView>
+      )}
+
       {/* ── SEND MODAL ── */}
       <Modal visible={sendModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSendModal(false)}>
         <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
@@ -575,6 +724,23 @@ const s = StyleSheet.create({
   campRecipientsText:{ fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "#25D366" },
   statusBadge:  { borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 4 },
   statusBadgeText:{ fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold" },
+
+  // Bot
+  botRow:       { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.white, borderRadius: Radius.md, padding: 14, marginBottom: 8 },
+  botRowTitle:  { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
+  botRowSub:    { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
+  toggleTrack:  { width: 44, height: 24, borderRadius: 12, padding: 2, justifyContent: "center" },
+  toggleThumb:  { width: 20, height: 20, borderRadius: 10, backgroundColor: "white" },
+
+  // Conversaciones
+  convoCard:    { backgroundColor: Colors.white, borderRadius: Radius.md, padding: 14, marginBottom: 10 },
+  convoCardTop: { flexDirection: "row", alignItems: "center", gap: 10 },
+  convoAvatar:  { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.red + "14", alignItems: "center", justifyContent: "center" },
+  convoPhone:   { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
+  convoPreview: { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
+  msgBubbleBot: { backgroundColor: "#1a1a2e", borderRadius: 12, borderTopLeftRadius: 4, padding: 10, maxWidth: "80%", alignSelf: "flex-start" },
+  msgBubbleUser:{ backgroundColor: Colors.cream2, borderRadius: 12, borderTopRightRadius: 4, padding: 10, maxWidth: "80%", alignSelf: "flex-end", borderWidth: 1, borderColor: Colors.border },
+  msgText:      { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", lineHeight: 18 },
 
   // Send modal
   modalHeader:  { padding: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: Colors.border },
