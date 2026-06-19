@@ -10,6 +10,10 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
+import { fmtMoneyFull, fmtDateCompact } from "@/lib/format";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -70,15 +74,6 @@ function getRange(period: Period, customStart: string, customEnd: string): { sta
   return { start: customStart || now.toISOString().slice(0, 10), end: customEnd || now.toISOString().slice(0, 10) };
 }
 
-function fmt(n: number) {
-  return "$" + n.toLocaleString("es-CO", { minimumFractionDigits: 0 });
-}
-
-function fmtDate(s: string) {
-  const d = new Date(s + "T00:00:00");
-  return d.toLocaleDateString("es-CO", { day: "2-digit", month: "short" });
-}
-
 function calcCommission(rule: CommissionRule | null, revenue: number, count: number) {
   if (!rule) return 0;
   if (rule.type === "percentage") return Math.round(revenue * rule.value / 100);
@@ -107,13 +102,14 @@ function MiniBar({ data, color }: { data: number[]; color: string }) {
 }
 
 function KpiCard({ label, value, icon, color }: { label: string; value: string; icon: IoniconName; color: string }) {
+  const { t } = useTheme();
   return (
-    <View style={[kpi.card, Shadow.sm]}>
+    <View style={[kpi.card, Shadow.sm, { backgroundColor: t.bgAlt }]}>
       <View style={[kpi.iconBox, { backgroundColor: color + "18" }]}>
         <Ionicons name={icon} size={18} color={color} />
       </View>
-      <Text style={kpi.value}>{value}</Text>
-      <Text style={kpi.label}>{label}</Text>
+      <Text style={[kpi.value, { color: t.text }]}>{value}</Text>
+      <Text style={[kpi.label, { color: t.muted }]}>{label}</Text>
     </View>
   );
 }
@@ -129,8 +125,9 @@ const kpi = StyleSheet.create({
 
 export default function CommissionsScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const [tab, setTab]       = useState(0);
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const { tenantId } = useAuth();
 
   // Resumen
   const [period, setPeriod]         = useState<Period>("month");
@@ -161,27 +158,24 @@ export default function CommissionsScreen() {
   const [savingLiq, setSavingLiq] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
-
-  useEffect(() => {
     if (!tenantId) return;
-    loadProfessionals();
-    loadRules();
+    let cancelled = false;
+    Promise.all([loadProfessionals(), loadRules()]).then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [tenantId]);
 
   useEffect(() => {
     if (!tenantId) return;
-    loadSummaries();
+    let cancelled = false;
+    loadSummaries().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [tenantId, period, customStart, customEnd]);
 
   useEffect(() => {
     if (!tenantId || tab !== 2) return;
-    loadPayments();
+    let cancelled = false;
+    loadPayments().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [tenantId, tab]);
 
   const loadProfessionals = async () => {
@@ -358,10 +352,10 @@ export default function CommissionsScreen() {
         {(["week", "month", "custom"] as Period[]).map((p) => (
           <TouchableOpacity
             key={p}
-            style={[s.periodBtn, period === p && s.periodBtnActive]}
+            style={[s.periodBtn, { backgroundColor: t.bgAlt, borderColor: t.border }, period === p && s.periodBtnActive]}
             onPress={() => setPeriod(p)}
           >
-            <Text style={[s.periodBtnTxt, period === p && s.periodBtnTxtActive]}>
+            <Text style={[s.periodBtnTxt, { color: t.muted }, period === p && s.periodBtnTxtActive]}>
               {p === "week" ? "Esta semana" : p === "month" ? "Este mes" : "Rango"}
             </Text>
           </TouchableOpacity>
@@ -371,29 +365,29 @@ export default function CommissionsScreen() {
       {period === "custom" && (
         <Animated.View entering={FadeInDown.duration(300)} style={s.customRow}>
           <TextInput
-            style={[s.dateInput, { flex: 1 }]}
+            style={[s.dateInput, { flex: 1, backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]}
             placeholder="Inicio (YYYY-MM-DD)"
-            placeholderTextColor={Colors.subtle}
+            placeholderTextColor={t.subtle}
             value={customStart}
             onChangeText={setCustomStart}
           />
-          <Text style={{ color: Colors.muted, fontFamily: "SpaceGrotesk_400Regular" }}>→</Text>
+          <Text style={{ color: t.muted, fontFamily: "SpaceGrotesk_400Regular" }}>→</Text>
           <TextInput
-            style={[s.dateInput, { flex: 1 }]}
+            style={[s.dateInput, { flex: 1, backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]}
             placeholder="Fin (YYYY-MM-DD)"
-            placeholderTextColor={Colors.subtle}
+            placeholderTextColor={t.subtle}
             value={customEnd}
             onChangeText={setCustomEnd}
           />
         </Animated.View>
       )}
 
-      <Text style={s.rangeLabel}>{fmtDate(rStart)} – {fmtDate(rEnd)}</Text>
+      <Text style={[s.rangeLabel, { color: t.muted }]}>{fmtDateCompact(rStart)} – {fmtDateCompact(rEnd)}</Text>
 
       {/* KPIs */}
       <View style={s.kpiRow}>
-        <KpiCard label="Total comisiones" value={fmt(totalComisiones)} icon="cash-outline" color={Colors.success} />
-        <KpiCard label="Ingresos del período" value={fmt(totalRevenue)} icon="trending-up-outline" color={Colors.blue} />
+        <KpiCard label="Total comisiones" value={fmtMoneyFull(totalComisiones)} icon="cash-outline" color={Colors.success} />
+        <KpiCard label="Ingresos del período" value={fmtMoneyFull(totalRevenue)} icon="trending-up-outline" color={Colors.blue} />
         <KpiCard label="Con regla" value={`${prosConRegla}/${summaries.length}`} icon="people-outline" color="#f59e0b" />
       </View>
 
@@ -419,33 +413,33 @@ export default function CommissionsScreen() {
         <ActivityIndicator color={Colors.red} style={{ marginTop: 32 }} />
       ) : summaries.length === 0 ? (
         <View style={s.emptyBox}>
-          <Ionicons name="receipt-outline" size={36} color={Colors.subtle} />
-          <Text style={s.emptyTxt}>Sin datos en este período</Text>
+          <Ionicons name="receipt-outline" size={36} color={t.subtle} />
+          <Text style={[s.emptyTxt, { color: t.muted }]}>Sin datos en este período</Text>
         </View>
       ) : (
-        <View style={[s.tableCard, Shadow.sm]}>
-          <View style={s.tableHeader}>
-            <Text style={[s.thTxt, { flex: 2 }]}>Profesional</Text>
-            <Text style={[s.thTxt, { flex: 1, textAlign: "right" }]}>Ingresos</Text>
-            <Text style={[s.thTxt, { flex: 1, textAlign: "right" }]}>Comisión</Text>
+        <View style={[s.tableCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
+          <View style={[s.tableHeader, { backgroundColor: t.bg }]}>
+            <Text style={[s.thTxt, { flex: 2, color: t.subtle }]}>Profesional</Text>
+            <Text style={[s.thTxt, { flex: 1, textAlign: "right", color: t.subtle }]}>Ingresos</Text>
+            <Text style={[s.thTxt, { flex: 1, textAlign: "right", color: t.subtle }]}>Comisión</Text>
             <Text style={[s.thTxt, { width: 70 }]}></Text>
           </View>
           {summaries.map((s2, i) => (
             <View key={s2.pro.id}>
-              {i > 0 && <View style={s.divider} />}
+              {i > 0 && <View style={[s.divider, { backgroundColor: t.border }]} />}
               <View style={s.tableRow}>
                 <View style={{ flex: 2, flexDirection: "row", alignItems: "center", gap: 8 }}>
                   <View style={[s.proAvatar, { backgroundColor: s2.pro.color ?? Colors.red }]}>
                     <Text style={s.proAvatarTxt}>{s2.pro.name[0]}</Text>
                   </View>
                   <View>
-                    <Text style={s.proName}>{s2.pro.name}</Text>
-                    <Text style={s.proCitas}>{s2.appointments_count} citas</Text>
+                    <Text style={[s.proName, { color: t.text }]}>{s2.pro.name}</Text>
+                    <Text style={[s.proCitas, { color: t.muted }]}>{s2.appointments_count} citas</Text>
                   </View>
                 </View>
-                <Text style={[s.cellTxt, { flex: 1, textAlign: "right" }]}>{fmt(s2.revenue_total)}</Text>
+                <Text style={[s.cellTxt, { flex: 1, textAlign: "right", color: t.text }]}>{fmtMoneyFull(s2.revenue_total)}</Text>
                 <Text style={[s.cellTxtBold, { flex: 1, textAlign: "right", color: Colors.success }]}>
-                  {fmt(s2.commission_amount)}
+                  {fmtMoneyFull(s2.commission_amount)}
                 </Text>
                 <View style={{ width: 70, alignItems: "flex-end" }}>
                   {s2.rule && s2.appointments_count > 0 ? (
@@ -568,12 +562,12 @@ export default function CommissionsScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.proName}>{item.professional_name}</Text>
-                  <Text style={s.proCitas}>{fmtDate(item.period_start)} – {fmtDate(item.period_end)}</Text>
+                  <Text style={s.proCitas}>{fmtDateCompact(item.period_start)} – {fmtDateCompact(item.period_end)}</Text>
                 </View>
-                <Text style={s.payAmount}>{fmt(item.commission_amount)}</Text>
+                <Text style={s.payAmount}>{fmtMoneyFull(item.commission_amount)}</Text>
               </View>
               <View style={s.payDetails}>
-                <Text style={s.payDetailTxt}>{item.appointments_count} citas · {fmt(item.revenue_total)} ingresos</Text>
+                <Text style={s.payDetailTxt}>{item.appointments_count} citas · {fmtMoneyFull(item.revenue_total)} ingresos</Text>
                 {item.note ? <Text style={[s.payDetailTxt, { color: Colors.muted }]}>{item.note}</Text> : null}
                 {item.paid_at ? (
                   <Text style={[s.payDetailTxt, { color: Colors.success }]}>
@@ -590,7 +584,7 @@ export default function CommissionsScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
       <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
@@ -606,10 +600,10 @@ export default function CommissionsScreen() {
       </LinearGradient>
 
       {/* Tab bar */}
-      <View style={s.tabBar}>
+      <View style={[s.tabBar, { backgroundColor: t.bgAlt, borderBottomColor: t.border }]}>
         {["Resumen", "Reglas", "Historial"].map((label, i) => (
           <TouchableOpacity key={i} style={s.tabItem} onPress={() => setTab(i)}>
-            <Text style={[s.tabTxt, tab === i && s.tabTxtActive]}>{label}</Text>
+            <Text style={[s.tabTxt, { color: t.muted }, tab === i && s.tabTxtActive]}>{label}</Text>
             {tab === i && <View style={s.tabUnderline} />}
           </TouchableOpacity>
         ))}
@@ -664,8 +658,8 @@ export default function CommissionsScreen() {
                 <Ionicons name="information-circle-outline" size={14} color={Colors.blue} />
                 <Text style={m.previewTxt}>
                   {ruleType === "percentage"
-                    ? `Por $100.000 en ingresos → comisión de ${fmt(Math.round(100000 * parseFloat(ruleValue) / 100))}`
-                    : `Por 10 citas → comisión de ${fmt(parseFloat(ruleValue) * 10)}`
+                    ? `Por $100.000 en ingresos → comisión de ${fmtMoneyFull(Math.round(100000 * parseFloat(ruleValue) / 100))}`
+                    : `Por 10 citas → comisión de ${fmtMoneyFull(parseFloat(ruleValue) * 10)}`
                   }
                 </Text>
               </View>
@@ -699,7 +693,7 @@ export default function CommissionsScreen() {
                     <Text style={s.proAvatarTxt}>{liquidarPro.pro.name[0]}</Text>
                   </View>
                   <Text style={liq.proName}>{liquidarPro.pro.name}</Text>
-                  <Text style={liq.period}>{fmtDate(rStart)} – {fmtDate(rEnd)}</Text>
+                  <Text style={liq.period}>{fmtDateCompact(rStart)} – {fmtDateCompact(rEnd)}</Text>
 
                   <View style={liq.grid}>
                     <View style={liq.cell}>
@@ -707,11 +701,11 @@ export default function CommissionsScreen() {
                       <Text style={liq.cellLbl}>Citas</Text>
                     </View>
                     <View style={liq.cell}>
-                      <Text style={liq.cellVal}>{fmt(liquidarPro.revenue_total)}</Text>
+                      <Text style={liq.cellVal}>{fmtMoneyFull(liquidarPro.revenue_total)}</Text>
                       <Text style={liq.cellLbl}>Ingresos</Text>
                     </View>
                     <View style={liq.cell}>
-                      <Text style={[liq.cellVal, { color: Colors.success }]}>{fmt(liquidarPro.commission_amount)}</Text>
+                      <Text style={[liq.cellVal, { color: Colors.success }]}>{fmtMoneyFull(liquidarPro.commission_amount)}</Text>
                       <Text style={liq.cellLbl}>Comisión</Text>
                     </View>
                   </View>

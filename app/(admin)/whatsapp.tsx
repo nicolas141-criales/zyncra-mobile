@@ -11,15 +11,17 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
+import { fmtPhone, fmtDateCompact } from "@/lib/format";
 
-type Tab = "nueva" | "plantillas" | "historial" | "bot" | "conversaciones";
+type Tab = "nueva" | "plantillas" | "historial";
 type Segment = "all" | "active" | "inactive";
 
-type Template     = { id: string; name: string; message: string; created_at: string };
-type Campaign     = { id: string; name: string; segment: Segment; message: string; status: string; recipients_count: number; sent_at: string | null; created_at: string };
-type Client       = { id: string; name: string; phone: string };
-type BotConfig    = { phone_number_id: string; access_token: string; verify_token: string; bot_enabled: boolean };
-type Conversation = { id: string; phone: string; messages: { role: string; content: string }[]; last_message_at: string };
+type Template  = { id: string; name: string; message: string; created_at: string };
+type Campaign  = { id: string; name: string; segment: Segment; message: string; status: string; recipients_count: number; sent_at: string | null; created_at: string };
+type Client    = { id: string; name: string; phone: string };
 
 const SEGMENT_OPTS: { key: Segment; label: string; sub: string; icon: string }[] = [
   { key: "all",      label: "Todos los clientes",   sub: "Todos con número registrado",          icon: "people-outline" },
@@ -32,18 +34,10 @@ const VARIABLES = ["{{nombre}}", "{{negocio}}"];
 const DEFAULT_MSG =
   "Hola {{nombre}} 👋\n\nTe escribimos desde {{negocio}} con una novedad especial para ti...\n\n¿Agendamos tu próxima visita? 📅\n\n¡Te esperamos!";
 
-function fmt(phone: string) {
-  const d = phone.replace(/\D/g, "");
-  return d.startsWith("57") ? d : `57${d}`;
-}
-
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("es-CO", { day: "numeric", month: "short" });
-}
-
 export default function WhatsappScreen() {
   const router = useRouter();
-  const [tenantId, setTenantId]       = useState<string | null>(null);
+  const { t } = useTheme();
+  const { tenantId } = useAuth();
   const [bizName, setBizName]         = useState("");
   const [tab, setTab]                 = useState<Tab>("nueva");
 
@@ -71,27 +65,11 @@ export default function WhatsappScreen() {
   const [pendingCamp, setPendingCamp] = useState<Campaign | null>(null);
   const [loadingClients, setLoadingClients] = useState(false);
 
-  // Bot config
-  const [botConfig, setBotConfig]     = useState<BotConfig>({ phone_number_id: "", access_token: "", verify_token: "", bot_enabled: true });
-  const [botSaving, setBotSaving]     = useState(false);
-  const [botSaved, setBotSaved]       = useState(false);
-
-  // Conversaciones
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [convoLoading, setConvoLoading]   = useState(false);
-  const [expandedConvo, setExpandedConvo] = useState<string | null>(null);
-
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id, name").eq("owner_id", user.id).single()
-        .then(({ data }) => {
-          if (!data) return;
-          setTenantId(data.id);
-          setBizName(data.name ?? "");
-        });
-    });
-  }, []);
+    if (!tenantId) return;
+    supabase.from("tenants").select("name").eq("id", tenantId).single()
+      .then(({ data }) => { if (data) setBizName(data.name ?? ""); });
+  }, [tenantId]);
 
   const loadTemplates = useCallback(async () => {
     if (!tenantId) return;
@@ -109,36 +87,10 @@ export default function WhatsappScreen() {
     setCampaigns((data ?? []) as Campaign[]);
   }, [tenantId]);
 
-  const loadBotConfig = useCallback(async () => {
-    if (!tenantId) return;
-    const { data } = await supabase.from("whatsapp_config").select("phone_number_id, access_token, verify_token, bot_enabled").eq("tenant_id", tenantId).maybeSingle();
-    if (data) setBotConfig({ phone_number_id: data.phone_number_id ?? "", access_token: data.access_token ?? "", verify_token: data.verify_token ?? "", bot_enabled: data.bot_enabled ?? true });
-  }, [tenantId]);
-
-  const loadConversations = useCallback(async () => {
-    if (!tenantId) return;
-    setConvoLoading(true);
-    const { data } = await supabase.from("ai_conversations").select("id, phone, messages, last_message_at").eq("tenant_id", tenantId).order("last_message_at", { ascending: false }).limit(50);
-    setConversations((data ?? []) as Conversation[]);
-    setConvoLoading(false);
-  }, [tenantId]);
-
-  const saveBotConfig = async () => {
-    if (!tenantId) return;
-    setBotSaving(true);
-    await supabase.from("whatsapp_config").upsert({ tenant_id: tenantId, ...botConfig }, { onConflict: "tenant_id" });
-    setBotSaving(false);
-    setBotSaved(true);
-    setTimeout(() => setBotSaved(false), 2500);
-  };
-
   useEffect(() => {
     loadTemplates();
     loadCampaigns();
   }, [loadTemplates, loadCampaigns]);
-
-  useEffect(() => { if (tab === "bot")            loadBotConfig();     }, [tab, loadBotConfig]);
-  useEffect(() => { if (tab === "conversaciones") loadConversations(); }, [tab, loadConversations]);
 
   // Refresh segment count whenever segment or tenantId changes
   useEffect(() => {
@@ -206,7 +158,7 @@ export default function WhatsappScreen() {
     message.replace(/\{\{nombre\}\}/g, clientName).replace(/\{\{negocio\}\}/g, bizName);
 
   const handleSend = (c: Client) => {
-    const url = `https://wa.me/${fmt(c.phone)}?text=${encodeURIComponent(buildMsg(c.name))}`;
+    const url = `https://wa.me/${fmtPhone(c.phone)}?text=${encodeURIComponent(buildMsg(c.name))}`;
     Linking.openURL(url);
     setSentIds(prev => new Set([...prev, c.id]));
   };
@@ -243,19 +195,16 @@ export default function WhatsappScreen() {
   };
 
   const TABS: { key: Tab; label: string }[] = [
-    { key: "nueva",          label: "Campaña" },
-    { key: "plantillas",     label: "Plantillas" },
-    { key: "historial",      label: "Historial" },
-    { key: "bot",            label: "Bot IA" },
-    { key: "conversaciones", label: "Chats" },
+    { key: "nueva",      label: "Nueva campaña" },
+    { key: "plantillas", label: "Plantillas" },
+    { key: "historial",  label: "Historial" },
   ];
 
   const segmentLabel = { all: "Todos", active: "Activos", inactive: "Inactivos" };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
             <Ionicons name="arrow-back" size={20} color="white" />
@@ -271,7 +220,7 @@ export default function WhatsappScreen() {
       </LinearGradient>
 
       {/* Tabs */}
-      <View style={s.tabBar}>
+      <View style={[s.tabBar, { backgroundColor: t.bgAlt, borderBottomColor: t.border }]}>
         {TABS.map(t => (
           <TouchableOpacity key={t.key} style={[s.tabBtn, tab === t.key && s.tabBtnActive]} onPress={() => setTab(t.key)} activeOpacity={0.75}>
             <Text style={[s.tabLabel, tab === t.key && s.tabLabelActive]}>{t.label}</Text>
@@ -287,8 +236,8 @@ export default function WhatsappScreen() {
 
               {/* Name */}
               <Text style={s.label}>Nombre de la campaña *</Text>
-              <TextInput style={s.input} value={campName} onChangeText={setCampName}
-                placeholder="Ej: Promo julio, Clientes inactivos..." placeholderTextColor={Colors.subtle} />
+              <TextInput style={[s.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]} value={campName} onChangeText={setCampName}
+                placeholder="Ej: Promo julio, Clientes inactivos..." placeholderTextColor={t.subtle} />
 
               {/* Segment */}
               <Text style={s.label}>Segmento de clientes</Text>
@@ -330,7 +279,7 @@ export default function WhatsappScreen() {
               </View>
               <View style={[s.textAreaWrap, Shadow.sm]}>
                 <TextInput style={s.textArea} value={message} onChangeText={setMessage}
-                  multiline textAlignVertical="top" placeholderTextColor={Colors.subtle} />
+                  multiline textAlignVertical="top" placeholderTextColor={t.subtle} />
                 <Text style={[s.charCount, message.length > 1000 && { color: Colors.red }]}>
                   {message.length} / 1000
                 </Text>
@@ -346,7 +295,7 @@ export default function WhatsappScreen() {
               {tmplMode && (
                 <View style={[s.tmplForm, Shadow.sm]}>
                   <TextInput style={[s.input, { marginBottom: 10 }]} value={tmplName} onChangeText={setTmplName}
-                    placeholder="Nombre de la plantilla" placeholderTextColor={Colors.subtle} />
+                    placeholder="Nombre de la plantilla" placeholderTextColor={t.subtle} />
                   <View style={{ flexDirection: "row", gap: 10 }}>
                     <TouchableOpacity style={[s.tmplBtn, { flex: 1, backgroundColor: Colors.border }]} onPress={() => setTmplMode(false)}>
                       <Text style={[s.tmplBtnText, { color: Colors.muted }]}>Cancelar</Text>
@@ -406,18 +355,18 @@ export default function WhatsappScreen() {
       {tab === "plantillas" && (
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
           {templates.length === 0 ? (
-            <Animated.View entering={FadeInDown.duration(350)} style={[s.emptyCard, Shadow.sm]}>
+            <Animated.View entering={FadeInDown.duration(350)} style={[s.emptyCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
               <Text style={{ fontSize: 32, marginBottom: 10 }}>📝</Text>
               <Text style={s.emptyTitle}>Sin plantillas</Text>
               <Text style={s.emptySub}>Guarda mensajes para reutilizarlos fácilmente</Text>
             </Animated.View>
           ) : (
             templates.map((t, i) => (
-              <Animated.View key={t.id} entering={FadeInDown.delay(i * 50).duration(300)}>
+              <Animated.View key={t.id} entering={i < 10 ? FadeInDown.delay(i * 50).duration(300) : undefined}>
                 <View style={[s.tmplCard, Shadow.sm]}>
                   <View style={s.tmplCardTop}>
                     <Text style={s.tmplCardName}>{t.name}</Text>
-                    <Text style={s.tmplCardDate}>{fmtDate(t.created_at)}</Text>
+                    <Text style={s.tmplCardDate}>{fmtDateCompact(t.created_at)}</Text>
                   </View>
                   <Text style={s.tmplCardMsg} numberOfLines={4}>{t.message}</Text>
                   <View style={s.tmplCardActions}>
@@ -440,14 +389,14 @@ export default function WhatsappScreen() {
       {tab === "historial" && (
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
           {campaigns.length === 0 ? (
-            <Animated.View entering={FadeInDown.duration(350)} style={[s.emptyCard, Shadow.sm]}>
+            <Animated.View entering={FadeInDown.duration(350)} style={[s.emptyCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
               <Text style={{ fontSize: 32, marginBottom: 10 }}>📣</Text>
               <Text style={s.emptyTitle}>Sin campañas aún</Text>
               <Text style={s.emptySub}>Las campañas enviadas aparecerán aquí</Text>
             </Animated.View>
           ) : (
             campaigns.map((c, i) => (
-              <Animated.View key={c.id} entering={FadeInDown.delay(i * 50).duration(300)}>
+              <Animated.View key={c.id} entering={i < 10 ? FadeInDown.delay(i * 50).duration(300) : undefined}>
                 <View style={[s.campCard, Shadow.sm]}>
                   <View style={s.campCardTop}>
                     <Text style={s.campCardName}>{c.name}</Text>
@@ -458,7 +407,7 @@ export default function WhatsappScreen() {
                     </View>
                   </View>
                   <Text style={s.campCardMeta}>
-                    {segmentLabel[c.segment]} · {fmtDate(c.created_at)}
+                    {segmentLabel[c.segment]} · {fmtDateCompact(c.created_at)}
                   </Text>
                   <Text style={s.campCardMsg} numberOfLines={3}>{c.message}</Text>
                   <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 10 }}>
@@ -489,113 +438,9 @@ export default function WhatsappScreen() {
         </ScrollView>
       )}
 
-      {/* ── BOT IA ── */}
-      {tab === "bot" && (
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
-            <Animated.View entering={FadeInDown.duration(350)}>
-              <Text style={s.sectionLabel}>Configuración del bot de WhatsApp</Text>
-
-              {/* Enable toggle */}
-              <View style={[s.botRow, Shadow.sm]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.botRowLabel}>Bot activo</Text>
-                  <Text style={s.botRowSub}>Responde automáticamente a mensajes entrantes</Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => setBotConfig(p => ({ ...p, bot_enabled: !p.bot_enabled }))}
-                  style={[s.toggleTrack, { backgroundColor: botConfig.bot_enabled ? "#25D366" : Colors.border }]}
-                  activeOpacity={0.8}
-                >
-                  <View style={[s.toggleThumb, { left: botConfig.bot_enabled ? 22 : 3 }]} />
-                </TouchableOpacity>
-              </View>
-
-              {/* Credentials */}
-              <Text style={[s.botFieldLabel, { marginTop: 24 }]}>Phone Number ID</Text>
-              <TextInput style={s.botInput} value={botConfig.phone_number_id} onChangeText={v => setBotConfig(p => ({ ...p, phone_number_id: v }))} placeholder="ID de la línea de WhatsApp" placeholderTextColor={Colors.subtle} autoCapitalize="none" />
-
-              <Text style={[s.botFieldLabel, { marginTop: 14 }]}>Access Token</Text>
-              <TextInput style={s.botInput} value={botConfig.access_token} onChangeText={v => setBotConfig(p => ({ ...p, access_token: v }))} placeholder="Token de acceso (Meta)" placeholderTextColor={Colors.subtle} autoCapitalize="none" secureTextEntry />
-
-              <Text style={[s.botFieldLabel, { marginTop: 14 }]}>Verify Token</Text>
-              <TextInput style={s.botInput} value={botConfig.verify_token} onChangeText={v => setBotConfig(p => ({ ...p, verify_token: v }))} placeholder="Token de verificación del webhook" placeholderTextColor={Colors.subtle} autoCapitalize="none" />
-
-              {botSaved && (
-                <View style={[s.savedBanner, { marginTop: 16 }]}>
-                  <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
-                  <Text style={s.savedBannerText}>Configuración guardada</Text>
-                </View>
-              )}
-            </Animated.View>
-          </ScrollView>
-          <View style={s.bottomBar}>
-            <TouchableOpacity style={s.sendAllBtn} onPress={saveBotConfig} disabled={botSaving} activeOpacity={0.85}>
-              {botSaving ? <ActivityIndicator color="white" /> : <Text style={s.sendAllBtnText}>Guardar configuración</Text>}
-            </TouchableOpacity>
-          </View>
-        </KeyboardAvoidingView>
-      )}
-
-      {/* ── CONVERSACIONES ── */}
-      {tab === "conversaciones" && (
-        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-          {convoLoading ? (
-            <View style={{ alignItems: "center", paddingTop: 40 }}>
-              <ActivityIndicator color={Colors.red} size="large" />
-            </View>
-          ) : conversations.length === 0 ? (
-            <Animated.View entering={FadeInDown.duration(350)} style={[s.emptyCard, Shadow.sm]}>
-              <Ionicons name="chatbubble-ellipses-outline" size={44} color={Colors.subtle} style={{ marginBottom: 12 }} />
-              <Text style={s.emptyTitle}>Sin conversaciones</Text>
-              <Text style={s.emptySub}>Los chats del bot de IA aparecerán aquí</Text>
-            </Animated.View>
-          ) : (
-            conversations.map((c, i) => {
-              const lastMsg = c.messages?.[c.messages.length - 1];
-              const isExpanded = expandedConvo === c.id;
-              return (
-                <Animated.View key={c.id} entering={FadeInDown.delay(i * 40).duration(300)}>
-                  <TouchableOpacity
-                    style={[s.convoCard, Shadow.sm]}
-                    onPress={() => setExpandedConvo(isExpanded ? null : c.id)}
-                    activeOpacity={0.75}
-                  >
-                    <View style={s.convoTop}>
-                      <View style={s.convoAvatar}>
-                        <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={s.convoPhone}>{c.phone}</Text>
-                        {lastMsg && (
-                          <Text style={s.convoPreview} numberOfLines={1}>
-                            {lastMsg.role === "assistant" ? "Bot: " : "Cliente: "}{lastMsg.content}
-                          </Text>
-                        )}
-                      </View>
-                      <View style={{ alignItems: "flex-end", gap: 4 }}>
-                        <Text style={s.convoDate}>{fmtDate(c.last_message_at)}</Text>
-                        <View style={[s.msgCount, { backgroundColor: "#25D36618" }]}>
-                          <Text style={{ fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: "#25D366" }}>{c.messages?.length ?? 0} msgs</Text>
-                        </View>
-                      </View>
-                    </View>
-                    {isExpanded && c.messages?.map((m, mi) => (
-                      <View key={mi} style={[s.msgBubble, m.role === "assistant" ? s.msgBubbleBot : s.msgBubbleUser]}>
-                        <Text style={[s.msgText, m.role === "assistant" && { color: Colors.white }]}>{m.content}</Text>
-                      </View>
-                    ))}
-                  </TouchableOpacity>
-                </Animated.View>
-              );
-            })
-          )}
-        </ScrollView>
-      )}
-
       {/* ── SEND MODAL ── */}
       <Modal visible={sendModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSendModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
           <View style={s.modalHeader}>
             <Text style={s.modalTitle}>Enviar mensajes</Text>
             <Text style={s.modalSub}>{sentIds.size} / {sendClients.length} enviados</Text>
@@ -661,7 +506,7 @@ export default function WhatsappScreen() {
 const s = StyleSheet.create({
   header:       { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
   headerRow:    { flexDirection: "row", alignItems: "center", gap: 12 },
-  backBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  backBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
   headerTitle:  { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.3 },
   headerSub:    { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
 
@@ -671,7 +516,7 @@ const s = StyleSheet.create({
   tabLabel:     { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
   tabLabelActive:{ fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: Colors.red },
 
-  label:        { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8, marginTop: 18 },
+  label:        { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8, marginTop: 18 },
   input:        { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
 
   segCard:      { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.white, borderRadius: Radius.md, padding: 14, marginBottom: 8, borderWidth: 1.5, borderColor: Colors.border },
@@ -708,11 +553,11 @@ const s = StyleSheet.create({
   btnInner:     { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 16, backgroundColor: Colors.red },
   btnText:      { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 
-  emptyCard:    { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 48, alignItems: "center", marginTop: 20 },
+  emptyCard:    { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 48, alignItems: "center", marginTop: 20 },
   emptyTitle:   { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:     { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
 
-  tmplCard:     { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16, marginBottom: 10 },
+  tmplCard:     { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, marginBottom: 10 },
   tmplCardTop:  { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
   tmplCardName: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
   tmplCardDate: { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.subtle },
@@ -721,7 +566,7 @@ const s = StyleSheet.create({
   tmplUseBtn:   { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: Colors.purple + "14", borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 7 },
   tmplUseBtnText:{ fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.purple },
 
-  campCard:     { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16, marginBottom: 10 },
+  campCard:     { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, marginBottom: 10 },
   campCardTop:  { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
   campCardName: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, flex: 1, marginRight: 8 },
   campCardMeta: { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.subtle, marginBottom: 8 },
@@ -730,34 +575,6 @@ const s = StyleSheet.create({
   campRecipientsText:{ fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "#25D366" },
   statusBadge:  { borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 4 },
   statusBadgeText:{ fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold" },
-
-  // Bot IA
-  sectionLabel:  { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 14 },
-  botRow:        { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.white, borderRadius: Radius.md, padding: 16 },
-  botRowLabel:   { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
-  botRowSub:     { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
-  toggleTrack:   { width: 46, height: 26, borderRadius: 13, position: "relative" },
-  toggleThumb:   { position: "absolute", top: 4, width: 18, height: 18, borderRadius: 9, backgroundColor: "white", shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 2, elevation: 2 },
-  botFieldLabel: { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 },
-  botInput:      { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
-  savedBanner:   { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.success + "14", borderRadius: Radius.md, padding: 12 },
-  savedBannerText:{ fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.success },
-  bottomBar:     { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
-  sendAllBtn:    { backgroundColor: Colors.red, borderRadius: Radius.full, paddingVertical: 16, alignItems: "center" },
-  sendAllBtnText:{ fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
-
-  // Conversaciones
-  convoCard:     { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 14, marginBottom: 10 },
-  convoTop:      { flexDirection: "row", alignItems: "center", gap: 10 },
-  convoAvatar:   { width: 40, height: 40, borderRadius: 20, backgroundColor: "#25D36618", alignItems: "center", justifyContent: "center" },
-  convoPhone:    { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
-  convoPreview:  { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
-  convoDate:     { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.subtle },
-  msgCount:      { borderRadius: Radius.full, paddingHorizontal: 7, paddingVertical: 2 },
-  msgBubble:     { marginTop: 8, borderRadius: Radius.md, padding: 10 },
-  msgBubbleBot:  { backgroundColor: Colors.ink, alignSelf: "flex-start", borderTopLeftRadius: 4 },
-  msgBubbleUser: { backgroundColor: Colors.cream2, alignSelf: "flex-end", borderTopRightRadius: 4 },
-  msgText:       { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text, lineHeight: 18 },
 
   // Send modal
   modalHeader:  { padding: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: Colors.border },

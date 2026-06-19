@@ -11,6 +11,10 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
+import { fmtMoneyFull, fmtTime, fmtDateFull } from "@/lib/format";
 
 type Tab      = "caja" | "historial";
 type MoveType = "ingreso" | "egreso";
@@ -21,13 +25,10 @@ type Movement = { id: string; session_id: string; type: MoveType; amount: number
 const INGRESO_CATS = ["Servicio", "Producto", "Propina", "Otro"];
 const EGRESO_CATS  = ["Arriendo", "Nómina", "Insumos", "Servicios públicos", "Otro"];
 
-function fmt(n: number) { return `$${Math.round(n).toLocaleString("es-CO")}`; }
-function fmtTime(iso: string) { return new Date(iso).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }); }
-function fmtDate(iso: string) { return new Date(iso).toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" }); }
-
 export default function CajaScreen() {
   const router = useRouter();
-  const [tenantId, setTenantId]     = useState<string | null>(null);
+  const { t } = useTheme();
+  const { tenantId } = useAuth();
   const [tab, setTab]               = useState<Tab>("caja");
 
   // Session state
@@ -57,14 +58,6 @@ export default function CajaScreen() {
   // History
   const [history, setHistory]       = useState<{ session: Session; ingresos: number; egresos: number }[]>([]);
   const [loadingHist, setLoadingHist] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
 
   const loadSession = useCallback(async () => {
     if (!tenantId) return;
@@ -107,8 +100,17 @@ export default function CajaScreen() {
     setLoadingHist(false);
   }, [tenantId]);
 
-  useEffect(() => { loadSession(); }, [loadSession]);
-  useEffect(() => { if (tab === "historial") loadHistory(); }, [tab, loadHistory]);
+  useEffect(() => {
+    let cancelled = false;
+    loadSession().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
+  }, [loadSession]);
+  useEffect(() => {
+    if (tab !== "historial") return;
+    let cancelled = false;
+    loadHistory().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
+  }, [tab, loadHistory]);
 
   const handleOpen = async () => {
     const amt = parseFloat(openAmt.replace(/\./g, "").replace(",", "."));
@@ -165,9 +167,8 @@ export default function CajaScreen() {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
             <Ionicons name="arrow-back" size={20} color="white" />
@@ -183,10 +184,10 @@ export default function CajaScreen() {
       </LinearGradient>
 
       {/* Tabs */}
-      <View style={s.tabBar}>
-        {TABS.map(t => (
-          <TouchableOpacity key={t.key} style={[s.tabBtn, tab === t.key && s.tabBtnActive]} onPress={() => setTab(t.key)} activeOpacity={0.75}>
-            <Text style={[s.tabLabel, tab === t.key && s.tabLabelActive]}>{t.label}</Text>
+      <View style={[s.tabBar, { backgroundColor: t.bgAlt, borderBottomColor: t.border }]}>
+        {TABS.map(tb => (
+          <TouchableOpacity key={tb.key} style={[s.tabBtn, tab === tb.key && s.tabBtnActive]} onPress={() => setTab(tb.key)} activeOpacity={0.75}>
+            <Text style={[s.tabLabel, { color: t.muted }, tab === tb.key && s.tabLabelActive]}>{tb.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -202,25 +203,25 @@ export default function CajaScreen() {
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
               <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
                 <Animated.View entering={FadeInDown.duration(350)}>
-                  <View style={[s.closedCard, Shadow.sm]}>
-                    <View style={s.closedIcon}>
-                      <Ionicons name="lock-closed-outline" size={32} color={Colors.muted} />
+                  <View style={[s.closedCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
+                    <View style={[s.closedIcon, { backgroundColor: t.bg }]}>
+                      <Ionicons name="lock-closed-outline" size={32} color={t.muted} />
                     </View>
-                    <Text style={s.closedTitle}>Caja cerrada</Text>
-                    <Text style={s.closedSub}>Abre la caja para empezar a registrar movimientos</Text>
+                    <Text style={[s.closedTitle, { color: t.text }]}>Caja cerrada</Text>
+                    <Text style={[s.closedSub, { color: t.muted }]}>Abre la caja para empezar a registrar movimientos</Text>
                   </View>
 
-                  <Text style={s.label}>Fondo inicial</Text>
+                  <Text style={[s.label, { color: t.muted }]}>Fondo inicial</Text>
                   <View style={s.amountRow}>
-                    <Text style={s.currencySign}>$</Text>
-                    <TextInput style={[s.input, { flex: 1, borderLeftWidth: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }]}
+                    <Text style={[s.currencySign, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.muted }]}>$</Text>
+                    <TextInput style={[s.input, { flex: 1, borderLeftWidth: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]}
                       value={openAmt} onChangeText={setOpenAmt} placeholder="Ej: 200000"
-                      placeholderTextColor={Colors.subtle} keyboardType="numeric" />
+                      placeholderTextColor={t.subtle} keyboardType="numeric" />
                   </View>
 
-                  <Text style={s.label}>Nota de apertura (opcional)</Text>
-                  <TextInput style={s.input} value={openNote} onChangeText={setOpenNote}
-                    placeholder="Ej: Turno mañana" placeholderTextColor={Colors.subtle} />
+                  <Text style={[s.label, { color: t.muted }]}>Nota de apertura (opcional)</Text>
+                  <TextInput style={[s.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]} value={openNote} onChangeText={setOpenNote}
+                    placeholder="Ej: Turno mañana" placeholderTextColor={t.subtle} />
 
                   <TouchableOpacity style={s.btn} onPress={handleOpen} disabled={opening} activeOpacity={0.85}>
                     <View style={s.btnInner}>
@@ -245,21 +246,21 @@ export default function CajaScreen() {
 
               {/* Metrics */}
               <View style={s.metricsGrid}>
-                <View style={[s.metricCard, Shadow.sm]}>
-                  <Text style={s.metricLabel}>Fondo inicial</Text>
-                  <Text style={s.metricValue}>{fmt(Number(session.opening_amount))}</Text>
+                <View style={[s.metricCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
+                  <Text style={[s.metricLabel, { color: t.muted }]}>Fondo inicial</Text>
+                  <Text style={[s.metricValue, { color: t.text }]}>{fmtMoneyFull(Number(session.opening_amount))}</Text>
                 </View>
-                <View style={[s.metricCard, Shadow.sm]}>
-                  <Text style={s.metricLabel}>Ingresos</Text>
-                  <Text style={[s.metricValue, { color: Colors.success }]}>{fmt(ingresos)}</Text>
+                <View style={[s.metricCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
+                  <Text style={[s.metricLabel, { color: t.muted }]}>Ingresos</Text>
+                  <Text style={[s.metricValue, { color: Colors.success }]}>{fmtMoneyFull(ingresos)}</Text>
                 </View>
-                <View style={[s.metricCard, Shadow.sm]}>
-                  <Text style={s.metricLabel}>Egresos</Text>
-                  <Text style={[s.metricValue, { color: Colors.red }]}>{fmt(egresos)}</Text>
+                <View style={[s.metricCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
+                  <Text style={[s.metricLabel, { color: t.muted }]}>Egresos</Text>
+                  <Text style={[s.metricValue, { color: Colors.red }]}>{fmtMoneyFull(egresos)}</Text>
                 </View>
-                <View style={[s.metricCard, Shadow.sm]}>
-                  <Text style={s.metricLabel}>Balance</Text>
-                  <Text style={[s.metricValue, { color: Colors.purple }]}>{fmt(balance)}</Text>
+                <View style={[s.metricCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
+                  <Text style={[s.metricLabel, { color: t.muted }]}>Balance</Text>
+                  <Text style={[s.metricValue, { color: Colors.purple }]}>{fmtMoneyFull(balance)}</Text>
                 </View>
               </View>
 
@@ -270,44 +271,44 @@ export default function CajaScreen() {
                   <Ionicons name="add-circle-outline" size={16} color="white" />
                   <Text style={s.actionBtnText}>Registrar movimiento</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[s.actionBtn, { flex: 1, backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.red }]}
+                <TouchableOpacity style={[s.actionBtn, { flex: 1, backgroundColor: t.bgAlt, borderWidth: 1.5, borderColor: Colors.red }]}
                   onPress={() => setCloseModal(true)} activeOpacity={0.8}>
                   <Text style={[s.actionBtnText, { color: Colors.red }]}>Cerrar caja</Text>
                 </TouchableOpacity>
               </View>
 
               {/* Movements list */}
-              <View style={[s.movList, Shadow.sm]}>
-                <View style={s.movListHeader}>
-                  <Text style={s.movListTitle}>Movimientos del día</Text>
-                  <Text style={s.movListCount}>{movements.length}</Text>
+              <View style={[s.movList, Shadow.sm, { backgroundColor: t.bgAlt }]}>
+                <View style={[s.movListHeader, { borderBottomColor: t.border }]}>
+                  <Text style={[s.movListTitle, { color: t.text }]}>Movimientos del día</Text>
+                  <Text style={[s.movListCount, { color: t.muted }]}>{movements.length}</Text>
                 </View>
                 {movements.length === 0 ? (
                   <View style={{ padding: 24, alignItems: "center" }}>
-                    <Text style={s.emptyText}>Sin movimientos aún</Text>
+                    <Text style={[s.emptyText, { color: t.subtle }]}>Sin movimientos aún</Text>
                   </View>
                 ) : (
                   movements.map((m, i) => (
-                    <Animated.View key={m.id} entering={FadeInDown.delay(i * 30).duration(250)}>
-                      <View style={[s.movRow, i > 0 && s.movRowBorder]}>
+                    <Animated.View key={m.id} entering={i < 10 ? FadeInDown.delay(i * 30).duration(250) : undefined}>
+                      <View style={[s.movRow, i > 0 && s.movRowBorder, i > 0 && { borderTopColor: t.border }]}>
                         <View style={[s.movBadge, { backgroundColor: m.type === "ingreso" ? Colors.success + "18" : Colors.red + "18" }]}>
                           <Text style={[s.movBadgeText, { color: m.type === "ingreso" ? Colors.success : Colors.red }]}>
                             {m.type === "ingreso" ? "+" : "−"}
                           </Text>
                         </View>
                         <View style={{ flex: 1, gap: 2 }}>
-                          <Text style={s.movDesc}>{m.description}</Text>
+                          <Text style={[s.movDesc, { color: t.text }]}>{m.description}</Text>
                           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                             {m.category && (
-                              <View style={s.movCatBadge}>
-                                <Text style={s.movCatText}>{m.category}</Text>
+                              <View style={[s.movCatBadge, { backgroundColor: t.bg }]}>
+                                <Text style={[s.movCatText, { color: t.muted }]}>{m.category}</Text>
                               </View>
                             )}
-                            <Text style={s.movTime}>{fmtTime(m.created_at)}</Text>
+                            <Text style={[s.movTime, { color: t.subtle }]}>{fmtTime(m.created_at)}</Text>
                           </View>
                         </View>
                         <Text style={[s.movAmt, { color: m.type === "ingreso" ? Colors.success : Colors.red }]}>
-                          {m.type === "ingreso" ? "+" : "−"}{fmt(Number(m.amount))}
+                          {m.type === "ingreso" ? "+" : "−"}{fmtMoneyFull(Number(m.amount))}
                         </Text>
                       </View>
                     </Animated.View>
@@ -323,20 +324,20 @@ export default function CajaScreen() {
               {loadingHist ? (
                 <ActivityIndicator color={Colors.red} style={{ marginTop: 40 }} />
               ) : history.length === 0 ? (
-                <Animated.View entering={FadeInDown.duration(350)} style={[s.emptyCard, Shadow.sm]}>
-                  <Ionicons name="time-outline" size={40} color={Colors.subtle} style={{ marginBottom: 12 }} />
-                  <Text style={s.emptyTitle}>Sin sesiones cerradas aún</Text>
+                <Animated.View entering={FadeInDown.duration(350)} style={[s.emptyCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
+                  <Ionicons name="time-outline" size={40} color={t.subtle} style={{ marginBottom: 12 }} />
+                  <Text style={[s.emptyTitle, { color: t.text }]}>Sin sesiones cerradas aún</Text>
                 </Animated.View>
               ) : (
                 history.map((h, i) => {
                   const bal = Number(h.session.opening_amount) + h.ingresos - h.egresos;
                   return (
-                    <Animated.View key={h.session.id} entering={FadeInDown.delay(i * 40).duration(280)}>
-                      <View style={[s.histCard, Shadow.sm]}>
+                    <Animated.View key={h.session.id} entering={i < 10 ? FadeInDown.delay(i * 40).duration(280) : undefined}>
+                      <View style={[s.histCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
                         <View style={s.histCardTop}>
                           <View>
-                            <Text style={s.histDate}>{fmtDate(h.session.opened_at)}</Text>
-                            <Text style={s.histTime}>
+                            <Text style={[s.histDate, { color: t.text }]}>{fmtDateFull(h.session.opened_at)}</Text>
+                            <Text style={[s.histTime, { color: t.muted }]}>
                               {fmtTime(h.session.opened_at)} → {h.session.closed_at ? fmtTime(h.session.closed_at) : "—"}
                               {h.session.opening_note ? `  ·  ${h.session.opening_note}` : ""}
                             </Text>
@@ -344,20 +345,20 @@ export default function CajaScreen() {
                         </View>
                         <View style={s.histMetrics}>
                           <View style={s.histMetric}>
-                            <Text style={s.histMetricLabel}>Fondo</Text>
-                            <Text style={s.histMetricValue}>{fmt(Number(h.session.opening_amount))}</Text>
+                            <Text style={[s.histMetricLabel, { color: t.muted }]}>Fondo</Text>
+                            <Text style={[s.histMetricValue, { color: t.text }]}>{fmtMoneyFull(Number(h.session.opening_amount))}</Text>
                           </View>
                           <View style={s.histMetric}>
-                            <Text style={s.histMetricLabel}>Ingresos</Text>
-                            <Text style={[s.histMetricValue, { color: Colors.success }]}>{fmt(h.ingresos)}</Text>
+                            <Text style={[s.histMetricLabel, { color: t.muted }]}>Ingresos</Text>
+                            <Text style={[s.histMetricValue, { color: Colors.success }]}>{fmtMoneyFull(h.ingresos)}</Text>
                           </View>
                           <View style={s.histMetric}>
-                            <Text style={s.histMetricLabel}>Egresos</Text>
-                            <Text style={[s.histMetricValue, { color: Colors.red }]}>{fmt(h.egresos)}</Text>
+                            <Text style={[s.histMetricLabel, { color: t.muted }]}>Egresos</Text>
+                            <Text style={[s.histMetricValue, { color: Colors.red }]}>{fmtMoneyFull(h.egresos)}</Text>
                           </View>
                           <View style={s.histMetric}>
-                            <Text style={s.histMetricLabel}>Balance</Text>
-                            <Text style={[s.histMetricValue, { color: Colors.purple }]}>{fmt(bal)}</Text>
+                            <Text style={[s.histMetricLabel, { color: t.muted }]}>Balance</Text>
+                            <Text style={[s.histMetricValue, { color: Colors.purple }]}>{fmtMoneyFull(bal)}</Text>
                           </View>
                         </View>
                       </View>
@@ -372,49 +373,49 @@ export default function CajaScreen() {
 
       {/* ── MOVEMENT MODAL ── */}
       <Modal visible={movModal} animationType="slide" presentationStyle="formSheet" onRequestClose={() => setMovModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
           <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Registrar movimiento</Text>
+            <View style={[s.modalHeader, { borderBottomColor: t.border }]}>
+              <Text style={[s.modalTitle, { color: t.text }]}>Registrar movimiento</Text>
               <TouchableOpacity onPress={() => setMovModal(false)}>
-                <Ionicons name="close" size={22} color={Colors.text} />
+                <Ionicons name="close" size={22} color={t.text} />
               </TouchableOpacity>
             </View>
 
             <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
               {/* Type toggle */}
-              <View style={s.typeToggle}>
-                {(["ingreso", "egreso"] as MoveType[]).map(t => (
-                  <TouchableOpacity key={t} style={[s.typeBtn, movType === t && { backgroundColor: t === "ingreso" ? Colors.success : Colors.red }]}
-                    onPress={() => { setMovType(t); setMovCat(""); }} activeOpacity={0.8}>
-                    <Text style={[s.typeBtnText, movType === t && { color: "white" }]}>
-                      {t === "ingreso" ? "Ingreso" : "Egreso"}
+              <View style={[s.typeToggle, { backgroundColor: t.bg }]}>
+                {(["ingreso", "egreso"] as MoveType[]).map(mt => (
+                  <TouchableOpacity key={mt} style={[s.typeBtn, movType === mt && { backgroundColor: mt === "ingreso" ? Colors.success : Colors.red }]}
+                    onPress={() => { setMovType(mt); setMovCat(""); }} activeOpacity={0.8}>
+                    <Text style={[s.typeBtnText, { color: t.muted }, movType === mt && { color: "white" }]}>
+                      {mt === "ingreso" ? "Ingreso" : "Egreso"}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
 
-              <Text style={s.label}>Monto *</Text>
+              <Text style={[s.label, { color: t.muted }]}>Monto *</Text>
               <View style={s.amountRow}>
-                <Text style={s.currencySign}>$</Text>
-                <TextInput style={[s.input, { flex: 1, borderLeftWidth: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }]}
+                <Text style={[s.currencySign, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.muted }]}>$</Text>
+                <TextInput style={[s.input, { flex: 1, borderLeftWidth: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]}
                   value={movAmt} onChangeText={setMovAmt} placeholder="50000"
-                  placeholderTextColor={Colors.subtle} keyboardType="numeric" />
+                  placeholderTextColor={t.subtle} keyboardType="numeric" />
               </View>
 
-              <Text style={s.label}>Descripción *</Text>
-              <TextInput style={s.input} value={movDesc} onChangeText={setMovDesc}
+              <Text style={[s.label, { color: t.muted }]}>Descripción *</Text>
+              <TextInput style={[s.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]} value={movDesc} onChangeText={setMovDesc}
                 placeholder={movType === "ingreso" ? "Ej: Corte de cabello" : "Ej: Pago de arriendo"}
-                placeholderTextColor={Colors.subtle} />
+                placeholderTextColor={t.subtle} />
 
-              <Text style={s.label}>Categoría (opcional)</Text>
+              <Text style={[s.label, { color: t.muted }]}>Categoría (opcional)</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 4 }}>
                 <View style={{ flexDirection: "row", gap: 8 }}>
                   {(movType === "ingreso" ? INGRESO_CATS : EGRESO_CATS).map(cat => (
                     <TouchableOpacity key={cat}
-                      style={[s.catChip, movCat === cat && { backgroundColor: Colors.purple, borderColor: Colors.purple }]}
+                      style={[s.catChip, { backgroundColor: t.bgAlt, borderColor: t.border }, movCat === cat && { backgroundColor: Colors.purple, borderColor: Colors.purple }]}
                       onPress={() => setMovCat(movCat === cat ? "" : cat)} activeOpacity={0.75}>
-                      <Text style={[s.catChipText, movCat === cat && { color: "white" }]}>{cat}</Text>
+                      <Text style={[s.catChipText, { color: t.muted }, movCat === cat && { color: "white" }]}>{cat}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -434,56 +435,56 @@ export default function CajaScreen() {
 
       {/* ── CLOSE MODAL ── */}
       <Modal visible={closeModal} animationType="slide" presentationStyle="formSheet" onRequestClose={() => setCloseModal(false)}>
-        <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
           <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-            <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>Cerrar caja</Text>
+            <View style={[s.modalHeader, { borderBottomColor: t.border }]}>
+              <Text style={[s.modalTitle, { color: t.text }]}>Cerrar caja</Text>
               <TouchableOpacity onPress={() => setCloseModal(false)}>
-                <Ionicons name="close" size={22} color={Colors.text} />
+                <Ionicons name="close" size={22} color={t.text} />
               </TouchableOpacity>
             </View>
 
             <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
               {/* Summary */}
-              <View style={[s.summaryBox, Shadow.sm]}>
+              <View style={[s.summaryBox, Shadow.sm, { backgroundColor: t.bgAlt }]}>
                 {[
-                  { label: "Fondo inicial",   value: fmt(session ? Number(session.opening_amount) : 0), color: Colors.text },
-                  { label: "Total ingresos",   value: fmt(ingresos), color: Colors.success },
-                  { label: "Total egresos",    value: fmt(egresos),  color: Colors.red },
+                  { label: "Fondo inicial",   value: fmtMoneyFull(session ? Number(session.opening_amount) : 0), color: Colors.text },
+                  { label: "Total ingresos",   value: fmtMoneyFull(ingresos), color: Colors.success },
+                  { label: "Total egresos",    value: fmtMoneyFull(egresos),  color: Colors.red },
                 ].map(r => (
                   <View key={r.label} style={s.summaryRow}>
-                    <Text style={s.summaryLabel}>{r.label}</Text>
+                    <Text style={[s.summaryLabel, { color: t.muted }]}>{r.label}</Text>
                     <Text style={[s.summaryValue, { color: r.color }]}>{r.value}</Text>
                   </View>
                 ))}
-                <View style={s.summaryDivider} />
+                <View style={[s.summaryDivider, { backgroundColor: t.border }]} />
                 <View style={s.summaryRow}>
-                  <Text style={[s.summaryLabel, { fontFamily: "SpaceGrotesk_700Bold" }]}>Balance esperado</Text>
-                  <Text style={[s.summaryValue, { color: Colors.purple, fontFamily: "SpaceGrotesk_700Bold" }]}>{fmt(balance)}</Text>
+                  <Text style={[s.summaryLabel, { fontFamily: "SpaceGrotesk_700Bold", color: t.text }]}>Balance esperado</Text>
+                  <Text style={[s.summaryValue, { color: Colors.purple, fontFamily: "SpaceGrotesk_700Bold" }]}>{fmtMoneyFull(balance)}</Text>
                 </View>
               </View>
 
-              <Text style={s.label}>Efectivo contado *</Text>
+              <Text style={[s.label, { color: t.muted }]}>Efectivo contado *</Text>
               <View style={s.amountRow}>
-                <Text style={s.currencySign}>$</Text>
-                <TextInput style={[s.input, { flex: 1, borderLeftWidth: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }]}
+                <Text style={[s.currencySign, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.muted }]}>$</Text>
+                <TextInput style={[s.input, { flex: 1, borderLeftWidth: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0, backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]}
                   value={closeAmt} onChangeText={setCloseAmt}
                   placeholder="Lo que hay físicamente en caja"
-                  placeholderTextColor={Colors.subtle} keyboardType="numeric" />
+                  placeholderTextColor={t.subtle} keyboardType="numeric" />
               </View>
 
               {closeAmt.length > 0 && (
                 <View style={[s.diffBox, { backgroundColor: diff >= 0 ? Colors.success + "14" : Colors.red + "14" }]}>
-                  <Text style={s.diffLabel}>Diferencia</Text>
+                  <Text style={[s.diffLabel, { color: t.text }]}>Diferencia</Text>
                   <Text style={[s.diffValue, { color: diff >= 0 ? Colors.success : Colors.red }]}>
-                    {diff >= 0 ? "+" : ""}{fmt(diff)}  ({diff >= 0 ? "sobrante" : "faltante"})
+                    {diff >= 0 ? "+" : ""}{fmtMoneyFull(diff)}  ({diff >= 0 ? "sobrante" : "faltante"})
                   </Text>
                 </View>
               )}
 
-              <Text style={s.label}>Nota de cierre (opcional)</Text>
-              <TextInput style={s.input} value={closeNote} onChangeText={setCloseNote}
-                placeholder="Ej: Turno tarde" placeholderTextColor={Colors.subtle} />
+              <Text style={[s.label, { color: t.muted }]}>Nota de cierre (opcional)</Text>
+              <TextInput style={[s.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]} value={closeNote} onChangeText={setCloseNote}
+                placeholder="Ej: Turno tarde" placeholderTextColor={t.subtle} />
 
               <TouchableOpacity
                 style={[s.btn, { marginTop: 24 }, (!closeAmt || closing) && { opacity: 0.4 }]}
@@ -503,7 +504,7 @@ export default function CajaScreen() {
 const s = StyleSheet.create({
   header:       { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
   headerRow:    { flexDirection: "row", alignItems: "center", gap: 12 },
-  backBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  backBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
   headerTitle:  { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.3 },
   headerSub:    { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
 
@@ -513,12 +514,12 @@ const s = StyleSheet.create({
   tabLabel:     { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
   tabLabelActive:{ fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: Colors.red },
 
-  label:        { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8, marginTop: 18 },
+  label:        { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8, marginTop: 18 },
   input:        { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
   amountRow:    { flexDirection: "row", alignItems: "center" },
   currencySign: { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderTopLeftRadius: Radius.md, borderBottomLeftRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, borderRightWidth: 0 },
 
-  closedCard:   { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 32, alignItems: "center", marginBottom: 8 },
+  closedCard:   { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 32, alignItems: "center", marginBottom: 8 },
   closedIcon:   { width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.cream2, alignItems: "center", justifyContent: "center", marginBottom: 12 },
   closedTitle:  { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   closedSub:    { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
@@ -528,7 +529,7 @@ const s = StyleSheet.create({
   statusText:   { flex: 1, fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.success },
 
   metricsGrid:  { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 16 },
-  metricCard:   { width: "47.5%", backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 14 },
+  metricCard:   { width: "47.5%", backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14 },
   metricLabel:  { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted, marginBottom: 6 },
   metricValue:  { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
 
@@ -549,7 +550,7 @@ const s = StyleSheet.create({
   movTime:      { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.subtle },
   movAmt:       { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold" },
 
-  histCard:     { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16, marginBottom: 10 },
+  histCard:     { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, marginBottom: 10 },
   histCardTop:  { marginBottom: 12 },
   histDate:     { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
   histTime:     { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
@@ -558,7 +559,7 @@ const s = StyleSheet.create({
   histMetricLabel:{ fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted, marginBottom: 4 },
   histMetricValue:{ fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
 
-  emptyCard:    { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 48, alignItems: "center", marginTop: 20 },
+  emptyCard:    { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 48, alignItems: "center", marginTop: 20 },
   emptyTitle:   { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
   emptyText:    { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.subtle },
 
@@ -574,7 +575,7 @@ const s = StyleSheet.create({
   typeBtnText:  { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted },
   catChip:      { borderRadius: Radius.full, borderWidth: 1.5, borderColor: Colors.border, paddingHorizontal: 12, paddingVertical: 7, backgroundColor: Colors.white },
   catChipText:  { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
-  summaryBox:   { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16, marginBottom: 4 },
+  summaryBox:   { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, marginBottom: 4 },
   summaryRow:   { flexDirection: "row", justifyContent: "space-between", paddingVertical: 10 },
   summaryLabel: { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
   summaryValue: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },

@@ -9,7 +9,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useAuth } from "@/lib/auth";
+import { Colors, Radius, Shadow } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
+import GradientHeader from "@/components/GradientHeader";
 
 const HOUR_OPTIONS = [
   { value: 1,  label: "1h" },
@@ -40,8 +43,9 @@ function previewText(tmpl: string) {
 
 export default function RemindersScreen() {
   const router = useRouter();
+  const { t } = useTheme();
+  const { tenantId } = useAuth();
   const inputRef = useRef<TextInput>(null);
-  const [tenantId, setTenantId]     = useState<string | null>(null);
   const [settingsId, setSettingsId] = useState<string | null>(null);
   const [hours, setHours]           = useState(24);
   const [template, setTemplate]     = useState(DEFAULT_TEMPLATE);
@@ -51,26 +55,24 @@ export default function RemindersScreen() {
   const [savedOk, setSavedOk]       = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(async ({ data: tenant }) => {
-          if (!tenant) { setLoading(false); return; }
-          setTenantId(tenant.id);
-          const { data: rs } = await supabase.from("reminder_settings")
-            .select("id, hours_before, message_template")
-            .eq("tenant_id", tenant.id).single();
-          if (rs) {
-            setSettingsId(rs.id);
-            setHours(rs.hours_before ?? 24);
-            const t = rs.message_template ?? DEFAULT_TEMPLATE;
-            setTemplate(t);
-            setCursorPos(t.length);
-          }
-          setLoading(false);
-        });
-    });
-  }, []);
+    if (!tenantId) return;
+    let cancelled = false;
+    supabase.from("reminder_settings")
+      .select("id, hours_before, message_template")
+      .eq("tenant_id", tenantId).single()
+      .then(({ data: rs }) => {
+        if (cancelled) return;
+        if (rs) {
+          setSettingsId(rs.id);
+          setHours(rs.hours_before ?? 24);
+          const t = rs.message_template ?? DEFAULT_TEMPLATE;
+          setTemplate(t);
+          setCursorPos(t.length);
+        }
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [tenantId]);
 
   const handleSave = async () => {
     if (!tenantId) return;
@@ -99,23 +101,13 @@ export default function RemindersScreen() {
   const charCount = template.length;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-      {/* Header */}
-      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
-        <View style={s.headerRow}>
-          <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-            <Ionicons name="arrow-back" size={20} color="white" />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={s.headerTitle}>Recordatorios</Text>
-            <Text style={s.headerSub}>Mensajes automáticos por WhatsApp</Text>
-          </View>
-          <View style={[s.iconBadge]}>
-            <Ionicons name="logo-whatsapp" size={20} color="white" />
-          </View>
-        </View>
-      </LinearGradient>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+      <GradientHeader
+        title="Recordatorios"
+        subtitle="Mensajes automáticos por WhatsApp"
+        onBack={() => router.back()}
+        rightAction={{ icon: "logo-whatsapp", onPress: () => {} }}
+      />
 
       {loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -268,16 +260,9 @@ export default function RemindersScreen() {
 }
 
 const s = StyleSheet.create({
-  header:       { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
-  headerRow:    { flexDirection: "row", alignItems: "center", gap: 12 },
-  backBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
-  headerTitle:  { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.4 },
-  headerSub:    { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
-  iconBadge:    { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
+  sectionLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.9, marginBottom: 10 },
 
-  sectionLabel: { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.9, marginBottom: 10 },
-
-  card:         { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16 },
+  card:         { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16 },
   cardTitleRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 16 },
   cardIcon:     { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   cardTitle:    { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
@@ -297,7 +282,7 @@ const s = StyleSheet.create({
   textArea:     { padding: 14, fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text, minHeight: 110 },
   charCount:    { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.subtle, textAlign: "right", paddingHorizontal: 14, paddingBottom: 10 },
 
-  previewCard:  { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, overflow: "hidden" },
+  previewCard:  { backgroundColor: Colors.white, borderRadius: Radius.lg, overflow: "hidden" },
   chatHeader:   { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, backgroundColor: "#075e54", borderTopLeftRadius: Radius.lg, borderTopRightRadius: Radius.lg },
   chatAvatar:   { width: 36, height: 36, borderRadius: 18, backgroundColor: "#25d366", alignItems: "center", justifyContent: "center" },
   chatName:     { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "white" },

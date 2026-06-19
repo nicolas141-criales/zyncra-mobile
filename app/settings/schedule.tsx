@@ -3,13 +3,17 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   ActivityIndicator, Switch, Modal, FlatList,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useAuth } from "@/lib/auth";
+import { Colors, Radius, Shadow } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
+import { fmt12Hour } from "@/lib/format";
+import GradientHeader from "@/components/GradientHeader";
+import BottomSaveBar from "@/components/BottomSaveBar";
 
 const DAYS = [
   { key: "1", label: "Lunes",     short: "Lun" },
@@ -26,13 +30,6 @@ const TIME_OPTIONS = [
   "13:00","14:00","15:00","16:00","17:00","18:00","19:00",
   "20:00","21:00","22:00","23:00",
 ];
-
-function fmt12(t: string): string {
-  const h = parseInt(t.slice(0, 2), 10);
-  const period = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 || 12;
-  return `${h12}:00 ${period}`;
-}
 
 type DayConfig = { open: boolean; start: string; end: string };
 type Schedule  = Record<string, DayConfig>;
@@ -53,7 +50,7 @@ function TimePicker({ value, onChange, label }: { value: string; onChange: (v: s
     <>
       <TouchableOpacity style={tp.btn} onPress={() => setOpen(true)} activeOpacity={0.7}>
         <Text style={tp.labelTxt}>{label}</Text>
-        <Text style={tp.valueTxt}>{fmt12(value)}</Text>
+        <Text style={tp.valueTxt}>{fmt12Hour(value)}</Text>
         <Ionicons name="chevron-down" size={13} color={Colors.subtle} />
       </TouchableOpacity>
 
@@ -70,7 +67,7 @@ function TimePicker({ value, onChange, label }: { value: string; onChange: (v: s
                   onPress={() => { onChange(item); setOpen(false); }}
                   activeOpacity={0.75}
                 >
-                  <Text style={[tp.optionText, item === value && tp.optionTextActive]}>{fmt12(item)}</Text>
+                  <Text style={[tp.optionText, item === value && tp.optionTextActive]}>{fmt12Hour(item)}</Text>
                   {item === value && <Ionicons name="checkmark" size={16} color={Colors.red} />}
                 </TouchableOpacity>
               )}
@@ -86,7 +83,7 @@ function TimePicker({ value, onChange, label }: { value: string; onChange: (v: s
 
 const tp = StyleSheet.create({
   btn:           { flex: 1, backgroundColor: Colors.cream2, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 12, paddingVertical: 10, alignItems: "center", gap: 2 },
-  labelTxt:      { fontSize: 9, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.8 },
+  labelTxt:      { fontSize: 9, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.8 },
   valueTxt:      { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
   overlay:       { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
   sheet:         { backgroundColor: Colors.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40 },
@@ -99,26 +96,27 @@ const tp = StyleSheet.create({
 
 export default function ScheduleScreen() {
   const router = useRouter();
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const { tenantId } = useAuth();
+  const { t } = useTheme();
   const [schedule, setSchedule] = useState<Schedule>(buildDefault());
   const [loading, setLoading]   = useState(true);
   const [saving, setSaving]     = useState(false);
   const [saved, setSaved]       = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id, settings").eq("owner_id", user.id).single()
-        .then(({ data }) => {
-          if (data) {
-            setTenantId(data.id);
-            const stored = (data.settings as any)?.schedule;
-            if (stored) setSchedule({ ...buildDefault(), ...stored });
-          }
-          setLoading(false);
-        });
-    });
-  }, []);
+    if (!tenantId) return;
+    let cancelled = false;
+    supabase.from("tenants").select("settings").eq("id", tenantId).single()
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (data) {
+          const stored = (data.settings as any)?.schedule;
+          if (stored) setSchedule({ ...buildDefault(), ...stored });
+        }
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [tenantId]);
 
   const update = (dayKey: string, patch: Partial<DayConfig>) => {
     setSchedule(prev => ({ ...prev, [dayKey]: { ...(prev[dayKey] ?? DEFAULT_DAY), ...patch } }));
@@ -138,19 +136,12 @@ export default function ScheduleScreen() {
   const openCount = DAYS.filter(d => schedule[d.key]?.open).length;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={sc.header}>
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
-        <View style={sc.headerRow}>
-          <TouchableOpacity onPress={() => router.back()} style={sc.backBtn}>
-            <Ionicons name="arrow-back" size={20} color="white" />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={sc.headerTitle}>Horario de atencion</Text>
-            <Text style={sc.headerSub}>{openCount} dia{openCount !== 1 ? "s" : ""} activo{openCount !== 1 ? "s" : ""}</Text>
-          </View>
-        </View>
-      </LinearGradient>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+      <GradientHeader
+        title="Horario de atencion"
+        subtitle={`${openCount} dia${openCount !== 1 ? "s" : ""} activo${openCount !== 1 ? "s" : ""}`}
+        onBack={() => router.back()}
+      />
 
       {loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -212,13 +203,7 @@ export default function ScheduleScreen() {
             </Animated.View>
           )}
 
-          <View style={sc.bottomBar}>
-            <TouchableOpacity style={sc.btn} onPress={handleSave} disabled={saving} activeOpacity={0.85}>
-              <View style={sc.btnInner}>
-                {saving ? <ActivityIndicator color="white" /> : <Text style={sc.btnText}>Guardar horario</Text>}
-              </View>
-            </TouchableOpacity>
-          </View>
+          <BottomSaveBar label="Guardar horario" saving={saving} onPress={handleSave} />
         </>
       )}
     </SafeAreaView>
@@ -226,19 +211,13 @@ export default function ScheduleScreen() {
 }
 
 const sc = StyleSheet.create({
-  header:        { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
-  headerRow:     { flexDirection: "row", alignItems: "center", gap: 12 },
-  backBtn:       { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
-  headerTitle:   { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.4 },
-  headerSub:     { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
-
   dayCard:       { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14, borderWidth: 1.5, borderColor: "transparent" },
   dayCardClosed: { backgroundColor: Colors.cream2, borderColor: Colors.border },
   dayTop:        { flexDirection: "row", alignItems: "center", gap: 10 },
   dayPill:       { width: 36, height: 36, borderRadius: Radius.md, alignItems: "center", justifyContent: "center" },
   dayPillOpen:   { backgroundColor: Colors.success + "18" },
   dayPillClosed: { backgroundColor: Colors.border },
-  dayShort:      { fontSize: 10, fontFamily: "JetBrainsMono_500Medium", textTransform: "uppercase", letterSpacing: 0.5 },
+  dayShort:      { fontSize: 10, fontFamily: "SpaceGrotesk_700Bold", textTransform: "uppercase", letterSpacing: 0.5 },
   dayShortOpen:  { color: Colors.success },
   dayShortClosed:{ color: Colors.subtle },
   dayName:       { flex: 1, fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
@@ -253,9 +232,4 @@ const sc = StyleSheet.create({
 
   savedToast:    { position: "absolute", bottom: 110, left: 20, right: 20, flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14, zIndex: 10 },
   savedText:     { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.success },
-
-  bottomBar:     { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
-  btn:           { borderRadius: Radius.full, overflow: "hidden" },
-  btnInner:      { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
-  btnText:       { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 });

@@ -6,7 +6,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
+import { fmtMoneyFull } from "@/lib/format";
 
 type StaffInfo = {
   id: string; name: string; role: string; email: string | null;
@@ -19,10 +22,6 @@ type CommissionData = {
   commission_amount: number;
   rule: { type: "percentage" | "fixed"; value: number } | null;
 };
-
-function fmt(n: number) {
-  return "$" + Math.round(n).toLocaleString("es-CO");
-}
 
 function getMonthRange() {
   const now   = new Date();
@@ -42,21 +41,23 @@ function getWeekRange() {
 
 export default function StaffProfileScreen() {
   const router = useRouter();
+  const { user } = useAuth();
+  const { t } = useTheme();
   const [info, setInfo]   = useState<StaffInfo | null>(null);
   const [commMonth, setCommMonth] = useState<CommissionData | null>(null);
   const [commWeek, setCommWeek]   = useState<CommissionData | null>(null);
   const [loadingComm, setLoadingComm] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
       const { data: pro } = await supabase
         .from("professionals")
         .select("id, name, role, email, color, tenants(id, name)")
         .eq("user_id", user.id)
         .single();
-      if (!pro) return;
+      if (cancelled || !pro) return;
       const staffInfo: StaffInfo = {
         id:         pro.id,
         name:       pro.name,
@@ -69,7 +70,8 @@ export default function StaffProfileScreen() {
       setInfo(staffInfo);
       loadCommissions(pro.id, (pro.tenants as any)?.id ?? "");
     })();
-  }, []);
+    return () => { cancelled = true; };
+  }, [user]);
 
   const loadCommissions = async (proId: string, tenantId: string) => {
     setLoadingComm(true);
@@ -133,7 +135,7 @@ export default function StaffProfileScreen() {
   const monthName = now.toLocaleDateString("es-CO", { month: "long" });
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
       <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
@@ -158,15 +160,15 @@ export default function StaffProfileScreen() {
         {/* Comisiones this month */}
         <Animated.View entering={FadeInDown.delay(80).duration(400)}>
           <Text style={s.sectionLabel}>Mis comisiones · {monthName}</Text>
-          <View style={[s.commCard, Shadow.sm]}>
+          <View style={[s.commCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
             {loadingComm ? (
               <ActivityIndicator color={Colors.red} style={{ paddingVertical: 24 }} />
             ) : commMonth ? (
               <>
                 <View style={s.commMain}>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.commLabel}>Comisión del mes</Text>
-                    <Text style={s.commAmount}>{fmt(commMonth.commission_amount)}</Text>
+                    <Text style={[s.commLabel, { color: t.muted }]}>Comisión del mes</Text>
+                    <Text style={[s.commAmount, { color: t.text }]}>{fmtMoneyFull(commMonth.commission_amount)}</Text>
                     {commMonth.rule ? (
                       <Text style={s.commRule}>
                         {commMonth.rule.type === "percentage"
@@ -189,7 +191,7 @@ export default function StaffProfileScreen() {
                   </View>
                   <View style={[s.commStatDivider]} />
                   <View style={s.commStat}>
-                    <Text style={s.commStatVal}>{fmt(commMonth.revenue_total)}</Text>
+                    <Text style={s.commStatVal}>{fmtMoneyFull(commMonth.revenue_total)}</Text>
                     <Text style={s.commStatLabel}>Ingresos generados</Text>
                   </View>
                 </View>
@@ -201,15 +203,15 @@ export default function StaffProfileScreen() {
         {/* Esta semana */}
         {!loadingComm && commWeek && (
           <Animated.View entering={FadeInDown.delay(140).duration(400)} style={{ marginTop: 12 }}>
-            <View style={[s.weekCard, Shadow.sm]}>
+            <View style={[s.weekCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
               <View style={[s.weekIconBox, { backgroundColor: Colors.blue + "14" }]}>
                 <Ionicons name="calendar-outline" size={16} color={Colors.blue} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={s.weekLabel}>Esta semana</Text>
-                <Text style={s.weekSub}>{commWeek.appointments_count} citas · {fmt(commWeek.revenue_total)} en ingresos</Text>
+                <Text style={[s.weekLabel, { color: t.text }]}>Esta semana</Text>
+                <Text style={[s.weekSub, { color: t.muted }]}>{commWeek.appointments_count} citas · {fmtMoneyFull(commWeek.revenue_total)} en ingresos</Text>
               </View>
-              <Text style={s.weekAmount}>{fmt(commWeek.commission_amount)}</Text>
+              <Text style={s.weekAmount}>{fmtMoneyFull(commWeek.commission_amount)}</Text>
             </View>
           </Animated.View>
         )}
@@ -217,20 +219,20 @@ export default function StaffProfileScreen() {
         {/* Info de cuenta */}
         <Animated.View entering={FadeInDown.delay(200).duration(400)} style={{ marginTop: 20 }}>
           <Text style={s.sectionLabel}>Cuenta</Text>
-          <View style={[s.card, Shadow.sm]}>
+          <View style={[s.card, Shadow.sm, { backgroundColor: t.bgAlt }]}>
             <View style={s.infoRow}>
-              <View style={s.infoIcon}><Ionicons name="mail-outline" size={16} color={Colors.muted} /></View>
+              <View style={[s.infoIcon, { backgroundColor: t.bg }]}><Ionicons name="mail-outline" size={16} color={t.muted} /></View>
               <View style={{ flex: 1 }}>
-                <Text style={s.infoLabel}>Correo electrónico</Text>
-                <Text style={s.infoValue}>{info?.email ?? "—"}</Text>
+                <Text style={[s.infoLabel, { color: t.muted }]}>Correo electrónico</Text>
+                <Text style={[s.infoValue, { color: t.text }]}>{info?.email ?? "—"}</Text>
               </View>
             </View>
-            <View style={s.divider} />
+            <View style={[s.divider, { backgroundColor: t.border }]} />
             <View style={s.infoRow}>
-              <View style={s.infoIcon}><Ionicons name="briefcase-outline" size={16} color={Colors.muted} /></View>
+              <View style={[s.infoIcon, { backgroundColor: t.bg }]}><Ionicons name="briefcase-outline" size={16} color={t.muted} /></View>
               <View style={{ flex: 1 }}>
-                <Text style={s.infoLabel}>Cargo</Text>
-                <Text style={s.infoValue}>{info?.role ?? "—"}</Text>
+                <Text style={[s.infoLabel, { color: t.muted }]}>Cargo</Text>
+                <Text style={[s.infoValue, { color: t.text }]}>{info?.role ?? "—"}</Text>
               </View>
             </View>
           </View>
@@ -238,7 +240,7 @@ export default function StaffProfileScreen() {
 
         {/* Logout */}
         <Animated.View entering={FadeInDown.delay(260).duration(400)} style={{ marginTop: 16 }}>
-          <TouchableOpacity style={[s.logoutBtn, Shadow.sm]} onPress={handleLogout} activeOpacity={0.8}>
+          <TouchableOpacity style={[s.logoutBtn, Shadow.sm, { backgroundColor: t.bgAlt }]} onPress={handleLogout} activeOpacity={0.8}>
             <Ionicons name="log-out-outline" size={18} color={Colors.red} />
             <Text style={s.logoutText}>Cerrar sesión</Text>
           </TouchableOpacity>

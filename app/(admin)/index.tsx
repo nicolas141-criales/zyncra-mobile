@@ -1,12 +1,16 @@
 ﻿import { useEffect, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl } from "react-native";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, { FadeInDown, FadeInRight, FadeInUp } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeInRight, FadeInUp, FadeIn } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import { Colors, Fonts, Gradients, MonoLabel, Radius, Shadow } from "@/constants/theme";
+import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
+import { fmtMoney } from "@/lib/format";
+import { STATUS_META } from "@/constants/status";
 import { refreshAllReminders } from "@/lib/notifications";
 import NewApptModal from "@/components/NewApptModal";
 
@@ -19,11 +23,6 @@ function greeting() {
   return "Buenas noches";
 }
 
-const fmtMoney = (n: number) =>
-  n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1)}M`
-  : n >= 1000    ? `$${(n / 1000).toFixed(0)}k`
-  : `$${n}`;
-
 type Appt = {
   id: string;
   appointment_date: string;
@@ -33,56 +32,44 @@ type Appt = {
   services: { name: string } | null;
 };
 
-const STATUS_COLOR: Record<string, string> = {
-  confirmed: Colors.success,
-  pending:   "#f59e0b",
-  cancelled: Colors.red,
-  completed: Colors.blue,
-};
-const STATUS_LABEL: Record<string, string> = {
-  confirmed: "Confirmada",
-  pending:   "Pendiente",
-  cancelled: "Cancelada",
-  completed: "Completada",
-};
-
 // ─── Stat chip ────────────────────────────────────────────────────────────────
 
 function StatChip({ icon, value, label, color, delay }: {
   icon: IoniconName; value: string; label: string; color: string; delay: number;
 }) {
+  const { t } = useTheme();
   return (
-    <Animated.View entering={FadeInUp.delay(delay).duration(350).springify()} style={[sc.chip, Shadow.sm]}>
-      <View style={sc.topRow}>
-        <Text style={sc.label} numberOfLines={1}>{label}</Text>
-        <Ionicons name={icon} size={13} color={color} />
+    <Animated.View entering={FadeInUp.delay(delay).duration(350).springify()} style={[sc.chip, Shadow.sm, { backgroundColor: t.card, borderColor: t.cardBorder }]}>
+      <View style={[sc.iconBox, { backgroundColor: color + "15" }]}>
+        <Ionicons name={icon} size={15} color={color} />
       </View>
-      <Text style={sc.value}>{value}</Text>
+      <Text style={[sc.value, { color }]}>{value}</Text>
+      <Text style={[sc.label, { color: t.muted }]}>{label}</Text>
     </Animated.View>
   );
 }
 
 const sc = StyleSheet.create({
-  chip:    { flex: 1, backgroundColor: Colors.white, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, paddingVertical: 14, paddingHorizontal: 14, gap: 8 },
-  topRow:  { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 4 },
-  label:   { ...MonoLabel, fontSize: 9, flexShrink: 1 },
-  value:   { fontSize: 24, fontFamily: Fonts.bold, color: Colors.text, letterSpacing: -1, fontVariant: ["tabular-nums"] },
+  chip:    { flex: 1, ...Glass.card, borderRadius: Radius.lg, padding: 14, alignItems: "center", gap: 6 },
+  iconBox: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  value:   { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", letterSpacing: -0.5 },
+  label:   { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted, textAlign: "center" },
 });
 
 // ─── Appointment row ──────────────────────────────────────────────────────────
 
 function ApptRow({ a, i, onPress }: { a: Appt; i: number; onPress: () => void }) {
+  const { t } = useTheme();
   const time  = a.appointment_time.substring(0, 5);
-  const color = STATUS_COLOR[a.status] ?? Colors.subtle;
-  const label = STATUS_LABEL[a.status] ?? a.status;
-  const now   = new Date();
+  const color = STATUS_META[a.status]?.color ?? Colors.subtle;
+  const label = STATUS_META[a.status]?.label ?? a.status;
+  const nowD  = new Date();
   const apptDt = new Date(`${a.appointment_date}T${a.appointment_time}`);
-  const isNext = apptDt > now && (a.status === "confirmed" || a.status === "pending");
+  const isNext = apptDt > nowD && (a.status === "confirmed" || a.status === "pending");
 
   return (
-    <Animated.View entering={FadeInRight.delay(i * 60).duration(320)}>
-      <TouchableOpacity style={[ar.row, Shadow.sm]} onPress={onPress} activeOpacity={0.8}>
-        {/* status left accent */}
+    <Animated.View entering={i < 10 ? FadeInRight.delay(i * 60).duration(320) : undefined}>
+      <TouchableOpacity style={[ar.row, Shadow.sm, { backgroundColor: t.card, borderColor: t.cardBorder }]} onPress={onPress} activeOpacity={0.8}>
         <View style={[ar.accent, { backgroundColor: color }]} />
 
         <View style={[ar.timePill, { backgroundColor: color + "12" }]}>
@@ -90,8 +77,8 @@ function ApptRow({ a, i, onPress }: { a: Appt; i: number; onPress: () => void })
         </View>
 
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={ar.client} numberOfLines={1}>{a.clients?.name ?? "Sin cliente"}</Text>
-          <Text style={ar.service} numberOfLines={1}>{a.services?.name ?? "Sin servicio"}</Text>
+          <Text style={[ar.client, { color: t.text }]} numberOfLines={1}>{a.clients?.name ?? "Sin cliente"}</Text>
+          <Text style={[ar.service, { color: t.muted }]} numberOfLines={1}>{a.services?.name ?? "Sin servicio"}</Text>
         </View>
 
         <View style={{ alignItems: "flex-end", gap: 4 }}>
@@ -110,7 +97,7 @@ function ApptRow({ a, i, onPress }: { a: Appt; i: number; onPress: () => void })
 }
 
 const ar = StyleSheet.create({
-  row:       { backgroundColor: Colors.white, borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.border, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10, overflow: "hidden" },
+  row:       { ...Glass.cardStrong, borderRadius: Radius.md, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10, overflow: "hidden" },
   accent:    { width: 4, alignSelf: "stretch" },
   timePill:  { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, minWidth: 48, alignItems: "center" },
   time:      { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold" },
@@ -126,96 +113,142 @@ const ar = StyleSheet.create({
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { t } = useTheme();
+  const { tenantId } = useAuth();
   const [tenantName, setTenantName] = useState("Tu negocio");
-  const [tenantId, setTenantId]     = useState<string | null>(null);
   const [appts, setAppts]           = useState<Appt[]>([]);
   const [metrics, setMetrics]       = useState({ total: 0, confirmed: 0, clients: 0, revenueDay: 0, revenueMonth: 0 });
   const [refreshing, setRefreshing] = useState(false);
   const [showNew, setShowNew]       = useState(false);
 
   const load = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!tenantId) return;
 
     const { data: tenant } = await supabase
-      .from("tenants").select("id, name").eq("owner_id", user.id).single();
-    if (!tenant) return;
-    setTenantName(tenant.name);
-    setTenantId(tenant.id);
+      .from("tenants").select("name").eq("id", tenantId).single();
+    if (tenant) setTenantName(tenant.name);
 
     const now        = new Date();
     const dateStr    = now.toISOString().split("T")[0];
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 
-    const [{ data: todayAppts }, { count: clientCount }, { data: sales }, { data: monthAppts }] = await Promise.all([
+    const [{ data: todayAppts }, { count: clientCount }, { data: sales }] = await Promise.all([
       supabase.from("appointments")
         .select("id, appointment_date, appointment_time, status, clients(name), services(name, price)")
-        .eq("tenant_id", tenant.id)
+        .eq("tenant_id", tenantId)
         .eq("appointment_date", dateStr)
         .order("appointment_time"),
-      supabase.from("clients").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id),
-      supabase.from("pos_sales").select("total, created_at").eq("tenant_id", tenant.id).gte("created_at", monthStart),
-      supabase.from("appointments")
-        .select("appointment_date, services(price)")
-        .eq("tenant_id", tenant.id)
-        .in("status", ["completed", "confirmed"])
-        .gte("appointment_date", monthStart)
-        .lte("appointment_date", dateStr)
-        .limit(2000),
+      supabase.from("clients").select("*", { count: "exact", head: true }).eq("tenant_id", tenantId),
+      supabase.from("pos_sales").select("total, created_at").eq("tenant_id", tenantId).gte("created_at", monthStart),
     ]);
 
     const all      = (todayAppts as Appt[]) ?? [];
     const allSales = sales ?? [];
-
-    const getApptPrice = (a: any) => Number((Array.isArray(a.services) ? a.services[0] : a.services)?.price ?? 0);
-    const posDay   = allSales.filter(s => s.created_at?.slice(0, 10) === dateStr).reduce((acc, s) => acc + Number(s.total ?? 0), 0);
-    const posMonth = allSales.reduce((acc, s) => acc + Number(s.total ?? 0), 0);
-    const apptDay  = all.filter(a => ["completed", "confirmed"].includes(a.status)).reduce((acc, a) => acc + getApptPrice(a), 0);
-    const apptMonthTotal = (monthAppts ?? []).reduce((acc, a) => acc + getApptPrice(a), 0);
+    const revenueDay   = allSales.filter(s => s.created_at?.slice(0, 10) === dateStr).reduce((acc, s) => acc + Number(s.total ?? 0), 0);
+    const revenueMonth = allSales.reduce((acc, s) => acc + Number(s.total ?? 0), 0);
 
     setAppts(all);
-    setMetrics({
-      total: all.length,
-      confirmed: all.filter(a => a.status === "confirmed").length,
-      clients: clientCount ?? 0,
-      revenueDay:   posDay + apptDay,
-      revenueMonth: posMonth + apptMonthTotal,
-    });
+    setMetrics({ total: all.length, confirmed: all.filter(a => a.status === "confirmed").length, clients: clientCount ?? 0, revenueDay, revenueMonth });
   };
 
-  useEffect(() => { load(); refreshAllReminders(); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      await load();
+      if (!cancelled) refreshAllReminders();
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [tenantId]);
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
-  const todayLabel = new Date().toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
+  const now = new Date();
+  const todayLabel = now.toLocaleDateString("es-CO", { weekday: "short", day: "numeric", month: "short" });
   const pendingCount = appts.filter(a => a.status === "pending" || a.status === "confirmed").length;
 
+  const nextAppt = appts.find(a => {
+    const dt = new Date(`${a.appointment_date}T${a.appointment_time}`);
+    return dt > now && (a.status === "confirmed" || a.status === "pending");
+  });
+  const nextTime = nextAppt ? nextAppt.appointment_time.substring(0, 5) : null;
+  const nextHour = nextTime ? (() => { const h = parseInt(nextTime.slice(0, 2), 10); return `${h % 12 || 12}:${nextTime.slice(3)} ${h >= 12 ? "PM" : "AM"}`; })() : null;
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.red} />}
       >
-        {/* ── Header: tinta sobre lienzo, crumb mono ── */}
-        <Animated.View entering={FadeInDown.duration(400)} style={s.header}>
-          <View style={{ flex: 1 }}>
-            <Text style={s.crumb}>{todayLabel}</Text>
-            <Text style={s.bizName} numberOfLines={1}>{tenantName}</Text>
-            <Text style={s.greeting}>{greeting()} 👋</Text>
-          </View>
-          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.avatarRing}>
-            <View style={s.avatar}>
-              <Text style={s.avatarText}>{tenantName.slice(0, 2).toUpperCase()}</Text>
+        {/* ── Header ── */}
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.headerGrad}>
+          <View style={s.headerBlob1} />
+          <View style={s.headerBlob2} />
+          <View style={s.headerBlob3} />
+
+          {/* Top bar: logo + bell */}
+          <Animated.View entering={FadeIn.duration(350)} style={s.topBar}>
+            <View style={s.logoRow}>
+              <Image source={require("@/assets/zyncra-logo.png")} style={s.logoImg} />
+              <Text style={s.logoText}>Zyncra</Text>
             </View>
-          </LinearGradient>
-        </Animated.View>
+            <TouchableOpacity style={s.bellBtn} activeOpacity={0.7}>
+              <Ionicons name="notifications-outline" size={18} color="white" />
+            </TouchableOpacity>
+          </Animated.View>
 
-        <View style={{ paddingHorizontal: 20, paddingTop: 4, gap: 12 }}>
+          {/* Hero content */}
+          <Animated.View entering={FadeInDown.duration(400)} style={s.heroContent}>
+            <View style={s.heroLeft}>
+              <Text style={s.greeting}>{greeting()} 👋</Text>
+              <Text style={s.bizName} numberOfLines={2}>{tenantName}</Text>
+              <Text style={s.date}>{todayLabel}</Text>
+            </View>
 
-          {/* ── Revenue hero card: superficie ink + firma de gradiente ── */}
+            {nextAppt && (
+              <Animated.View entering={FadeIn.delay(300).duration(400)} style={s.nextCard}>
+                <Ionicons name="time-outline" size={14} color="white" />
+                <Text style={s.nextTime}>{nextHour}</Text>
+                <Text style={s.nextLabel}>próxima</Text>
+              </Animated.View>
+            )}
+          </Animated.View>
+
+          {/* Glass summary strip */}
+          <Animated.View entering={FadeInDown.delay(150).duration(400)} style={s.summaryStrip}>
+            <View style={s.summaryItem}>
+              <Ionicons name="calendar" size={13} color="rgba(255,255,255,.9)" />
+              <Text style={s.summaryText}>
+                {metrics.total} cita{metrics.total !== 1 ? "s" : ""} hoy
+              </Text>
+            </View>
+            {metrics.revenueDay > 0 && (
+              <>
+                <View style={s.summaryDivider} />
+                <View style={s.summaryItem}>
+                  <Ionicons name="cash" size={13} color="rgba(255,255,255,.9)" />
+                  <Text style={s.summaryText}>{fmtMoney(metrics.revenueDay)} cobrado</Text>
+                </View>
+              </>
+            )}
+            {metrics.confirmed > 0 && (
+              <>
+                <View style={s.summaryDivider} />
+                <View style={s.summaryItem}>
+                  <Ionicons name="checkmark-circle" size={13} color="rgba(255,255,255,.9)" />
+                  <Text style={s.summaryText}>{metrics.confirmed} confirm.</Text>
+                </View>
+              </>
+            )}
+          </Animated.View>
+        </LinearGradient>
+
+        <View style={{ paddingHorizontal: 20, paddingTop: 20, gap: 12 }}>
+
+          {/* ── Revenue hero card ── */}
           <Animated.View entering={FadeInDown.delay(120).duration(400)}>
             <View style={[s.revenueCard, Shadow.md]}>
-              <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.revenueGrad}>
-                <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.revenueAccent} />
+              <LinearGradient colors={["#1a1a2e", "#16213e"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.revenueGrad}>
+                <View style={s.revenueBlob} />
                 <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
                   <View>
                     <Text style={s.revenueLabel}>Ingresos del mes</Text>
@@ -253,7 +286,7 @@ export default function DashboardScreen() {
           {/* ── Quick access ── */}
           <Animated.View entering={FadeInDown.delay(300).duration(380)}>
             <TouchableOpacity
-              style={s.reportsBtn}
+              style={[s.reportsBtn, { backgroundColor: t.card, borderColor: t.cardBorder }]}
               onPress={() => router.navigate("/(admin)/reports" as any)}
               activeOpacity={0.85}
             >
@@ -261,17 +294,17 @@ export default function DashboardScreen() {
                 <Ionicons name="bar-chart-outline" size={16} color={Colors.red} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={s.reportsBtnTitle}>Ver Reportes</Text>
-                <Text style={s.reportsBtnSub}>Ingresos, servicios, equipo</Text>
+                <Text style={[s.reportsBtnTitle, { color: t.text }]}>Ver Reportes</Text>
+                <Text style={[s.reportsBtnSub, { color: t.muted }]}>Ingresos, servicios, equipo</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={Colors.subtle} />
+              <Ionicons name="chevron-forward" size={16} color={t.subtle} />
             </TouchableOpacity>
           </Animated.View>
 
           {/* ── Today's agenda ── */}
           <Animated.View entering={FadeInDown.delay(360).duration(380)} style={{ marginTop: 8 }}>
             <View style={s.sectionHeader}>
-              <Text style={s.sectionTitle}>Agenda de hoy</Text>
+              <Text style={[s.sectionTitle, { color: t.text }]}>Agenda de hoy</Text>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <TouchableOpacity style={s.newCitaBtn} onPress={() => setShowNew(true)} activeOpacity={0.8}>
                   <Ionicons name="add" size={14} color="white" />
@@ -327,40 +360,58 @@ export default function DashboardScreen() {
 }
 
 const s = StyleSheet.create({
-  header:        { flexDirection: "row", alignItems: "center", gap: 14, paddingTop: 18, paddingHorizontal: 24, paddingBottom: 18 },
-  crumb:         { ...MonoLabel, fontSize: 9, marginBottom: 5 },
-  bizName:       { fontSize: 26, fontFamily: Fonts.bold, color: Colors.text, letterSpacing: -0.8 },
-  greeting:      { fontSize: 13, fontFamily: Fonts.regular, color: Colors.muted, marginTop: 2 },
-  avatarRing:    { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
-  avatar:        { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.ink, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "white" },
-  avatarText:    { fontSize: 12, fontFamily: Fonts.bold, color: "white", letterSpacing: 0.5 },
+  headerGrad:    { paddingTop: 14, paddingBottom: 20, overflow: "hidden" },
+  headerBlob1:   { position: "absolute", width: 260, height: 260, borderRadius: 130, backgroundColor: "rgba(255,255,255,.07)", top: -90, right: -70 },
+  headerBlob2:   { position: "absolute", width: 140, height: 140, borderRadius: 70, backgroundColor: "rgba(0,0,0,.06)", bottom: -40, left: -30 },
+  headerBlob3:   { position: "absolute", width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(255,255,255,.05)", top: 60, left: "40%" as any },
+
+  topBar:        { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, marginBottom: 20, position: "relative", zIndex: 1 },
+  logoRow:       { flexDirection: "row", alignItems: "center", gap: 8 },
+  logoImg:       { width: 28, height: 28, borderRadius: 8 },
+  logoText:      { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.3 },
+  bellBtn:       { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,.15)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
+
+  heroContent:   { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingHorizontal: 24, marginBottom: 18, position: "relative", zIndex: 1 },
+  heroLeft:      { flex: 1, marginRight: 16 },
+  greeting:      { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.75)", marginBottom: 6 },
+  bizName:       { fontSize: 30, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -1, lineHeight: 34 },
+  date:          { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.6)", marginTop: 6, textTransform: "capitalize" },
+
+  nextCard:      { backgroundColor: "rgba(255,255,255,.18)", borderRadius: Radius.lg, paddingVertical: 12, paddingHorizontal: 14, alignItems: "center", gap: 4, borderWidth: 1, borderColor: "rgba(255,255,255,0.25)", minWidth: 76 },
+  nextTime:      { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
+  nextLabel:     { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.7)", textTransform: "uppercase", letterSpacing: 0.5 },
+
+  summaryStrip:  { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 0, marginHorizontal: 20, backgroundColor: "rgba(255,255,255,.14)", borderRadius: Radius.full, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.2)", position: "relative", zIndex: 1 },
+  summaryItem:   { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 6 },
+  summaryDivider:{ width: 1, height: 14, backgroundColor: "rgba(255,255,255,.25)", marginHorizontal: 4 },
+  summaryText:   { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.9)" },
 
   revenueCard:   { borderRadius: Radius.xl, overflow: "hidden" },
-  revenueGrad:   { padding: 20, paddingTop: 23, overflow: "hidden" },
-  revenueAccent: { position: "absolute", top: 0, left: 0, right: 0, height: 3 },
-  revenueLabel:  { ...MonoLabel, fontSize: 9.5, color: "rgba(255,255,255,.55)", marginBottom: 8 },
-  revenueValue:  { fontSize: 36, fontFamily: Fonts.bold, color: "white", letterSpacing: -1.5, fontVariant: ["tabular-nums"] },
+  revenueGrad:   { padding: 20, overflow: "hidden" },
+  revenueBlob:   { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(255,255,255,.04)", top: -50, right: -40 },
+  revenueLabel:  { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.55)", marginBottom: 6 },
+  revenueValue:  { fontSize: 36, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -1.5 },
   revenueSub:    { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 },
   revenueDot:    { width: 7, height: 7, borderRadius: 4 },
   revenueSubText:{ fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.6)" },
-  revenueBadge:  { width: 44, height: 44, borderRadius: 14, backgroundColor: "rgba(255,255,255,.1)", alignItems: "center", justifyContent: "center" },
+  revenueBadge:  { width: 44, height: 44, borderRadius: 14, backgroundColor: "rgba(255,255,255,.12)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)" },
   projectedRow:  { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,.08)" },
   projectedText: { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.45)" },
 
   sectionHeader:    { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
-  sectionTitle:     { fontSize: 16, fontFamily: Fonts.bold, color: Colors.text, letterSpacing: -0.3 },
-  sectionLink:      { fontSize: 13, fontFamily: Fonts.semibold, color: Colors.red },
-  newCitaBtn:       { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: Radius.full, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: Colors.ink },
-  newCitaBtnText:   { fontSize: 12, fontFamily: Fonts.bold, color: "white" },
+  sectionTitle:     { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, letterSpacing: -0.3 },
+  sectionLink:      { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.red },
+  newCitaBtn:       { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: Radius.full, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: Colors.red },
+  newCitaBtnText:   { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 
-  reportsBtn:       { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.white, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, padding: 14, ...Shadow.sm },
+  reportsBtn:       { flexDirection: "row", alignItems: "center", gap: 12, ...Glass.cardStrong, borderRadius: Radius.lg, padding: 14, ...Shadow.sm },
   reportsBtnIcon:   { width: 36, height: 36, borderRadius: 11, backgroundColor: Colors.red + "14", alignItems: "center", justifyContent: "center" },
   reportsBtnTitle:  { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   reportsBtnSub:    { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 1 },
 
   empty:         { borderRadius: Radius.xl, overflow: "hidden" },
   emptyInner:    { padding: 36, alignItems: "center" },
-  emptyIcon:     { width: 60, height: 60, borderRadius: 20, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, alignItems: "center", justifyContent: "center", marginBottom: 14, ...Shadow.sm },
+  emptyIcon:     { width: 60, height: 60, borderRadius: 20, backgroundColor: Colors.white, alignItems: "center", justifyContent: "center", marginBottom: 14, ...Shadow.sm },
   emptyTitle:    { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:      { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center", lineHeight: 19, marginBottom: 20 },
   emptyBtn:      { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: Radius.full, paddingVertical: 11, paddingHorizontal: 20, backgroundColor: Colors.red },

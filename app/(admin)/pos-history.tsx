@@ -10,6 +10,10 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
+import { fmtMoneyFull } from "@/lib/format";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -31,28 +35,17 @@ const METHODS: { key: string; label: string; icon: IoniconName; color: string }[
   { key: "nequi",         label: "Nequi",          icon: "logo-whatsapp",          color: "#00b5a5" },
 ];
 
-function fmt(n: number) {
-  return `$${Math.round(n).toLocaleString("es-CO")}`;
-}
-
 function addMonths(d: Date, n: number) {
   return new Date(d.getFullYear(), d.getMonth() + n, 1);
 }
 
 export default function PosHistoryScreen() {
   const router = useRouter();
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const { t } = useTheme();
+  const { tenantId } = useAuth();
   const [month, setMonth]       = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [sales, setSales]       = useState<HistorySale[]>([]);
   const [loading, setLoading]   = useState(true);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
 
   const load = useCallback(async (m: Date) => {
     if (!tenantId) return;
@@ -71,7 +64,12 @@ export default function PosHistoryScreen() {
     setLoading(false);
   }, [tenantId]);
 
-  useEffect(() => { if (tenantId) load(month); }, [tenantId, month]);
+  useEffect(() => {
+    if (!tenantId) return;
+    let cancelled = false;
+    load(month).then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
+  }, [tenantId, month]);
 
   const now = new Date();
   const isCurrentMonth = month.getFullYear() === now.getFullYear() && month.getMonth() === now.getMonth();
@@ -97,7 +95,7 @@ export default function PosHistoryScreen() {
   }, [sales]);
 
   const voidSale = (sale: HistorySale) => {
-    Alert.alert("Anular cobro", `¿Anular ${fmt(Number(sale.total))}?`, [
+    Alert.alert("Anular cobro", `¿Anular ${fmtMoneyFull(Number(sale.total))}?`, [
       { text: "No", style: "cancel" },
       { text: "Anular", style: "destructive", onPress: async () => {
         if (sale.appointment_id) {
@@ -111,7 +109,7 @@ export default function PosHistoryScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
       <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
@@ -145,7 +143,7 @@ export default function PosHistoryScreen() {
               <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.summaryGrad}>
                 <View>
                   <Text style={s.summaryLabel}>Total del mes</Text>
-                  <Text style={s.summaryValue}>{totalRevenue > 0 ? fmt(totalRevenue) : "—"}</Text>
+                  <Text style={s.summaryValue}>{totalRevenue > 0 ? fmtMoneyFull(totalRevenue) : "—"}</Text>
                   <Text style={s.summarySub}>{sales.length} cobro{sales.length !== 1 ? "s" : ""} registrado{sales.length !== 1 ? "s" : ""}</Text>
                 </View>
               </LinearGradient>
@@ -162,7 +160,7 @@ export default function PosHistoryScreen() {
                     </View>
                     <Text style={s.methodName}>{m.label}</Text>
                     <Text style={s.methodCount}>{m.count} cobros</Text>
-                    <Text style={[s.methodTotal, { color: m.color }]}>{fmt(m.total)}</Text>
+                    <Text style={[s.methodTotal, { color: m.color }]}>{fmtMoneyFull(m.total)}</Text>
                   </View>
                 ))}
               </View>
@@ -186,7 +184,7 @@ export default function PosHistoryScreen() {
                 <Animated.View key={group.date} entering={FadeInDown.delay(gi * 60 + 120).duration(350)}>
                   <View style={s.dayHeader}>
                     <Text style={s.dayLabel}>{dayLabel}</Text>
-                    <Text style={s.dayTotal}>{fmt(dayTotal)}</Text>
+                    <Text style={s.dayTotal}>{fmtMoneyFull(dayTotal)}</Text>
                   </View>
 
                   {group.sales.map(sale => {
@@ -198,7 +196,7 @@ export default function PosHistoryScreen() {
                         <View style={{ flex: 1, padding: 12 }}>
                           <View style={s.saleTopRow}>
                             <Text style={s.saleTime}>{timeStr}</Text>
-                            <Text style={[s.saleAmount, { color: Colors.success }]}>{fmt(Number(sale.total))}</Text>
+                            <Text style={[s.saleAmount, { color: Colors.success }]}>{fmtMoneyFull(Number(sale.total))}</Text>
                           </View>
                           <Text style={s.saleClient} numberOfLines={1}>
                             {sale.clients?.name ?? "Venta directa"}

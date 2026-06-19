@@ -8,8 +8,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { supabase } from "@/lib/supabase";
-import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
 import { scheduleAppointmentReminder } from "@/lib/notifications";
+import { timeToMins, generateSlotsForDay, buildWeek, chunk } from "@/lib/scheduling";
+import { fmt12Hour } from "@/lib/format";
 
 type Service      = { id: string; name: string; duration_minutes: number; price: number };
 type Client       = { id: string; name: string; phone: string };
@@ -17,43 +19,6 @@ type Professional = { id: string; name: string; role: string };
 type ExistingBlock = { appointment_time: string; duration: number };
 
 const DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-
-function buildWeek(base: Date) {
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(base);
-    d.setDate(base.getDate() - base.getDay() + i);
-    return d;
-  });
-}
-
-function timeToMins(t: string): number {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-}
-
-function fmt12(t: string): string {
-  const h = parseInt(t.slice(0, 2), 10);
-  const period = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 || 12;
-  return `${h12}:00 ${period}`;
-}
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
-}
-
-// Generate hourly slots between business open/close that can fit newDuration
-function generateSlotsForDay(start: string, end: string, newDuration: number): string[] {
-  const startMins = timeToMins(start);
-  const endMins   = timeToMins(end);
-  const slots: string[] = [];
-  for (let m = startMins; m + newDuration <= endMins; m += 60) {
-    slots.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:00`);
-  }
-  return slots;
-}
 
 function computeAvailable(slots: string[], existing: ExistingBlock[], newDuration: number): string[] {
   return slots.filter(slot => {
@@ -275,8 +240,7 @@ export default function NewApptModal({ visible, onClose, tenantId, initialDate, 
       <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
 
         {/* Header */}
-        <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
-          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
           <View style={s.headerRow}>
             <TouchableOpacity onPress={step === 0 ? onClose : () => setStep(p => p - 1)} style={s.backBtn}>
               <Text style={s.backBtnText}>{step === 0 ? "✕" : "←"}</Text>
@@ -527,7 +491,7 @@ export default function NewApptModal({ visible, onClose, tenantId, initialDate, 
                               {selectedTime === t && (
                                 <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
                               )}
-                              <Text style={[s.timeSlotText, selectedTime === t && { color: "white" }]}>{fmt12(t)}</Text>
+                              <Text style={[s.timeSlotText, selectedTime === t && { color: "white" }]}>{fmt12Hour(t)}</Text>
                             </TouchableOpacity>
                           ))}
                           {/* Fill empty cells in last row so flex alignment holds */}
@@ -547,7 +511,7 @@ export default function NewApptModal({ visible, onClose, tenantId, initialDate, 
                       <SummaryRow label="Servicio"    value={selectedService.name} />
                       <SummaryRow label="Duración"    value={`${selectedService.duration_minutes} min`} />
                       <SummaryRow label="Fecha"       value={selectedDate.toLocaleDateString("es-CO", { weekday: "short", day: "numeric", month: "short" })} />
-                      <SummaryRow label="Hora"        value={fmt12(selectedTime!)} />
+                      <SummaryRow label="Hora"        value={fmt12Hour(selectedTime!)} />
                       <SummaryRow label="Valor"       value={`$${Number(selectedService.price).toLocaleString("es-CO")}`} highlight />
                     </Animated.View>
                   )}
@@ -603,38 +567,38 @@ function SummaryRow({ label, value, highlight }: { label: string; value: string;
 const s = StyleSheet.create({
   header:        { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 18 },
   headerRow:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
-  backBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  backBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.2)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
   backBtnText:   { color: "white", fontSize: 18, fontFamily: "SpaceGrotesk_600SemiBold" },
   headerTitle:   { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   headerSub:     { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
   progressRow:   { flexDirection: "row", gap: 6 },
-  progressDot:   { height: 4, flex: 1, borderRadius: 2, backgroundColor: "rgba(255,255,255,.3)" },
+  progressDot:   { height: 4, flex: 1, borderRadius: 2, backgroundColor: "rgba(255,255,255,.25)" },
   progressActive:{ backgroundColor: "rgba(255,255,255,.95)" },
 
   // Professional picker
-  proCard:       { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14, marginBottom: 10, borderWidth: 1.5, borderColor: "transparent", gap: 14 },
-  proCardActive: { borderColor: Colors.red, backgroundColor: Colors.red + "08" },
+  proCard:       { flexDirection: "row", alignItems: "center", ...Glass.cardStrong, borderRadius: Radius.lg, padding: 14, marginBottom: 10, gap: 14 },
+  proCardActive: { borderColor: Colors.red, backgroundColor: "rgba(251,15,5,0.08)" },
   proAvatar:     { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   proAvatarText: { color: "white", fontSize: 16, fontFamily: "SpaceGrotesk_700Bold" },
   proName:       { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text, marginBottom: 2 },
   proRole:       { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
 
   // Client picker
-  toggleRow:       { flexDirection: "row", backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 4, marginBottom: 16 },
+  toggleRow:       { flexDirection: "row", ...Glass.card, borderRadius: Radius.lg, padding: 4, marginBottom: 16 },
   toggleBtn:       { flex: 1, paddingVertical: 10, borderRadius: Radius.md, alignItems: "center" },
   toggleActive:    { backgroundColor: Colors.red },
   toggleText:      { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
   toggleTextActive:{ color: "white" },
 
-  card:       { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16, marginBottom: 12 },
-  fieldLabel: { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.6 },
+  card:       { ...Glass.cardStrong, borderRadius: Radius.lg, padding: 16, marginBottom: 12 },
+  fieldLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.6 },
   input:      { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, padding: 12 },
 
-  searchBar:   { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, borderRadius: Radius.lg, paddingHorizontal: 14, paddingVertical: 11, marginBottom: 12, gap: 8 },
+  searchBar:   { flexDirection: "row", alignItems: "center", ...Glass.card, borderRadius: Radius.lg, paddingHorizontal: 14, paddingVertical: 11, marginBottom: 12, gap: 8 },
   searchInput: { flex: 1, fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
 
-  clientRow:       { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 12, marginBottom: 8, gap: 12, borderWidth: 1.5, borderColor: "transparent" },
-  clientRowActive: { borderColor: Colors.red, backgroundColor: Colors.red + "08" },
+  clientRow:       { flexDirection: "row", alignItems: "center", ...Glass.cardStrong, borderRadius: Radius.lg, padding: 12, marginBottom: 8, gap: 12 },
+  clientRowActive: { borderColor: Colors.red, backgroundColor: "rgba(251,15,5,0.08)" },
   avatarGrad:      { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
   avatarText:      { color: "white", fontSize: 15, fontFamily: "SpaceGrotesk_700Bold" },
   clientName:      { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
@@ -642,8 +606,8 @@ const s = StyleSheet.create({
   check:           { width: 22, height: 22, borderRadius: 11, backgroundColor: Colors.red, alignItems: "center", justifyContent: "center" },
 
   // Service picker
-  svcCard:       { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, marginBottom: 10, borderWidth: 1.5, borderColor: "transparent" },
-  svcCardActive: { borderColor: Colors.red, backgroundColor: Colors.red + "08" },
+  svcCard:       { flexDirection: "row", alignItems: "center", ...Glass.cardStrong, borderRadius: Radius.lg, padding: 16, marginBottom: 10 },
+  svcCardActive: { borderColor: Colors.red, backgroundColor: "rgba(251,15,5,0.08)" },
   svcName:       { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text, marginBottom: 4 },
   svcMeta:       { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
   svcPrice:      { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
@@ -652,30 +616,30 @@ const s = StyleSheet.create({
   durationNote:     { backgroundColor: Colors.red + "10", borderRadius: Radius.md, padding: 12 },
   durationNoteText: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.red },
 
-  weekStrip: { backgroundColor: Colors.white, flexDirection: "row", alignItems: "center", paddingVertical: 13, paddingHorizontal: 2 },
+  weekStrip: { ...Glass.cardStrong, flexDirection: "row", alignItems: "center", paddingVertical: 13, paddingHorizontal: 2 },
   arrow:     { width: 34, alignItems: "center" },
   arrowText: { fontSize: 26, color: Colors.muted, lineHeight: 30 },
   dayCol:    { flex: 1, alignItems: "center", gap: 6 },
-  dayName:   { fontSize: 10, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase" },
+  dayName:   { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle, textTransform: "uppercase" },
   dayCircle: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   dayNum:    { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   closedBar: { width: 16, height: 2, borderRadius: 1, backgroundColor: Colors.muted },
 
-  sectionLabel: { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 },
+  sectionLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 },
   timeGrid:     { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  timeSlot:     { paddingVertical: 13, borderRadius: Radius.md, overflow: "hidden", backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, alignItems: "center" },
+  timeSlot:     { paddingVertical: 13, borderRadius: Radius.md, overflow: "hidden", ...Glass.card, alignItems: "center" },
   timeSlotActive:{ borderWidth: 0 },
   timeSlotText: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
 
   // Summary
-  summary:      { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 20, marginTop: 22 },
+  summary:      { ...Glass.cardStrong, borderRadius: Radius.xl, padding: 20, marginTop: 22 },
   summaryTitle: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 14 },
   summaryRow:   { flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
   summaryLabel: { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
   summaryValue: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
 
   // Bottom
-  bottomBar: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 34, backgroundColor: Colors.cream2, borderTopWidth: 1, borderTopColor: Colors.border },
+  bottomBar: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 34, backgroundColor: "rgba(244,244,249,0.85)", borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.6)" },
   btn:       { borderRadius: Radius.full, overflow: "hidden" },
   btnGrad: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
   btnText:   { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: 0.3 },

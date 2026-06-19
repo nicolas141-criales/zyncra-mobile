@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+﻿import { useState, useEffect } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ScrollView, Pressable,
@@ -10,9 +10,9 @@ import Animated, {
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
 import { supabase } from "@/lib/supabase";
-import { Colors, Fonts, Gradients, Radius } from "@/constants/theme";
+import { useAuth } from "@/lib/auth";
+import { Colors, Radius } from "@/constants/theme";
 
 const { height } = Dimensions.get("window");
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -26,18 +26,14 @@ function SolidButton({ label, onPress, loading }: { label: string; onPress: () =
       onPressIn={() => { scale.value = withSpring(0.97, { stiffness: 400 }); }}
       onPressOut={() => { scale.value = withSpring(1,    { stiffness: 400 }); }}
       onPress={onPress}>
-      <LinearGradient
-        colors={Gradients.brand}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={btn.grad}>
-        <Text style={btn.label}>{loading ? "Entrando…" : label}</Text>
-      </LinearGradient>
+      <Text style={btn.label}>{loading ? "Entrando…" : label}</Text>
     </AnimatedPressable>
   );
 }
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { role } = useAuth();
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const [error,    setError]    = useState<string | null>(null);
@@ -49,20 +45,15 @@ export default function LoginScreen() {
     if (!email || !password) { setError("Completa todos los campos."); return; }
     setLoading(true);
     setError(null);
-    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
     if (err) { setLoading(false); setError(err.message); return; }
-
-    const userId = data.user?.id;
-    const { data: tenant } = await supabase.from("tenants").select("id").eq("owner_id", userId).maybeSingle();
-    if (tenant) { router.replace("/(admin)"); return; }
-
-    const { data: pro } = await supabase.from("professionals").select("id").eq("user_id", userId).maybeSingle();
-    if (pro) { router.replace("/(staff)"); return; }
-
-    await supabase.auth.signOut();
-    setLoading(false);
-    setError("Esta cuenta no tiene acceso a ningún negocio.");
+    // AuthProvider's onAuthStateChange handles role resolution and redirect
   };
+
+  useEffect(() => {
+    if (role === "admin") router.replace("/(admin)");
+    else if (role === "staff") router.replace("/(staff)/agenda");
+  }, [role]);
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -190,21 +181,14 @@ export default function LoginScreen() {
 const btn = StyleSheet.create({
   solid: {
     borderRadius: 14,
-    overflow: "hidden",
-    shadowColor: "#0027fe",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.28,
-    shadowRadius: 16,
-    elevation: 6,
-  },
-  grad: {
     paddingVertical: 16,
     alignItems: "center",
+    backgroundColor: Colors.red,
   },
   label: {
     color: "white",
     fontSize: 15,
-    fontFamily: Fonts.bold,
+    fontFamily: "SpaceGrotesk_700Bold",
     letterSpacing: 0.3,
   },
 });
@@ -213,7 +197,7 @@ const btn = StyleSheet.create({
 const s = StyleSheet.create({
   bg: {
     flex: 1,
-    backgroundColor: Colors.ink,
+    backgroundColor: "#07071a",
   },
   blob: {
     position: "absolute",
@@ -276,7 +260,7 @@ const s = StyleSheet.create({
   },
   tagline: {
     fontSize: 9.5,
-    fontFamily: Fonts.mono,
+    fontFamily: "SpaceGrotesk_600SemiBold",
     color: "rgba(255,255,255,0.32)",
     letterSpacing: 2.2,
     textTransform: "uppercase",
@@ -305,12 +289,11 @@ const s = StyleSheet.create({
     marginBottom: 26,
   },
   label: {
-    fontSize: 9.5,
-    fontFamily: Fonts.mono,
-    color: "rgba(255,255,255,0.45)",
+    fontSize: 12,
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    color: "rgba(255,255,255,0.5)",
     marginBottom: 8,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
+    letterSpacing: 0.3,
   },
   inputRow: {
     flexDirection: "row",

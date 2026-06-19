@@ -11,9 +11,13 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
-
-const BOOKING_BASE = "https://zyncra.app/book/";
+import { useTheme } from "@/lib/theme";
+import { Config } from "@/lib/config";
+import GradientHeader from "@/components/GradientHeader";
+import BottomSaveBar from "@/components/BottomSaveBar";
+import FormField from "@/components/FormField";
 
 const COLOR_PRESETS = [
   "#fb0f05","#ef4444","#f97316","#f59e0b",
@@ -58,41 +62,13 @@ function ColorPicker({ label, value, onChange }: { label: string; value: string;
 }
 
 const cp = StyleSheet.create({
-  label:       { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 },
+  label:       { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 },
   swatches:    { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
   swatch:      { width: 30, height: 30, borderRadius: 8, borderWidth: 1.5, borderColor: "transparent" },
   swatchActive:{ borderColor: Colors.text, transform: [{ scale: 1.15 }] },
   hexRow:      { flexDirection: "row", alignItems: "center", gap: 10 },
   preview:     { width: 36, height: 36, borderRadius: 10, borderWidth: 1, borderColor: Colors.border },
   hexInput:    { flex: 1, backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
-});
-
-// ── Field ─────────────────────────────────────────────────────────────────────
-function Field({ label, value, onChangeText, placeholder, keyboardType, multiline }: {
-  label: string; value: string; onChangeText: (t: string) => void;
-  placeholder: string; keyboardType?: "phone-pad" | "email-address" | "default"; multiline?: boolean;
-}) {
-  return (
-    <View style={f.wrap}>
-      <Text style={f.label}>{label}</Text>
-      <TextInput
-        style={[f.input, multiline && { height: 72, textAlignVertical: "top" }]}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={Colors.subtle}
-        keyboardType={keyboardType ?? "default"}
-        multiline={multiline}
-        autoCapitalize={keyboardType === "phone-pad" ? "none" : "sentences"}
-      />
-    </View>
-  );
-}
-
-const f = StyleSheet.create({
-  wrap:  { marginBottom: 16 },
-  label: { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 },
-  input: { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
 });
 
 // ── Section card ──────────────────────────────────────────────────────────────
@@ -121,8 +97,9 @@ const sc = StyleSheet.create({
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function StoreScreen() {
   const router = useRouter();
+  const { tenantId } = useAuth();
+  const { t } = useTheme();
 
-  const [tenantId,   setTenantId]   = useState<string | null>(null);
   const [slug,       setSlug]       = useState<string>("");
   const [loading,    setLoading]    = useState(true);
   const [saving,     setSaving]     = useState(false);
@@ -141,21 +118,19 @@ export default function StoreScreen() {
   const [primaryColor, setPrimaryColor] = useState(Colors.red);
   const [secondColor,  setSecondColor]  = useState(Colors.blue);
 
-  const bookingLink = slug ? `${BOOKING_BASE}${slug}` : "";
+  const bookingLink = slug ? `${Config.urls.booking}${slug}` : "";
 
   const load = useCallback(async () => {
+    if (!tenantId) return;
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setLoading(false); return; }
 
     const { data: tenant } = await supabase
       .from("tenants")
-      .select("id, name, phone, address, slug")
-      .eq("owner_id", user.id)
+      .select("name, phone, address, slug")
+      .eq("id", tenantId)
       .single();
 
     if (tenant) {
-      setTenantId(tenant.id);
       setSlug(tenant.slug ?? "");
       setBizName(tenant.name ?? "");
       setPhone(tenant.phone ?? "");
@@ -164,7 +139,7 @@ export default function StoreScreen() {
       const { data: brand } = await supabase
         .from("branding")
         .select("logo_url, welcome_message, primary_color, secondary_color")
-        .eq("tenant_id", tenant.id)
+        .eq("tenant_id", tenantId)
         .maybeSingle();
 
       if (brand) {
@@ -175,7 +150,7 @@ export default function StoreScreen() {
       }
     }
     setLoading(false);
-  }, []);
+  }, [tenantId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -245,20 +220,8 @@ export default function StoreScreen() {
   const logoDisplay = logoUri ?? (logoUrl ? `${logoUrl}` : null);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-      {/* Header */}
-      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
-        <View style={s.headerRow}>
-          <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-            <Ionicons name="arrow-back" size={20} color="white" />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={s.headerTitle}>Mi Tienda</Text>
-            <Text style={s.headerSub}>Personaliza y comparte tu negocio</Text>
-          </View>
-        </View>
-      </LinearGradient>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+      <GradientHeader title="Mi Tienda" subtitle="Personaliza y comparte tu negocio" onBack={() => router.back()} />
 
       {loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -309,9 +272,9 @@ export default function StoreScreen() {
 
             {/* ── Información del negocio ────────────────────────────── */}
             <Section title="Información del negocio" icon="storefront-outline" color={Colors.red}>
-              <Field label="Nombre del negocio" value={bizName} onChangeText={setBizName} placeholder="Ej: Salón Bella" />
-              <Field label="Teléfono / WhatsApp" value={phone}   onChangeText={setPhone}   placeholder="Ej: 3001234567" keyboardType="phone-pad" />
-              <Field label="Dirección"           value={address} onChangeText={setAddress} placeholder="Ej: Cra 15 #45-20, Bogotá" />
+              <FormField label="Nombre del negocio" value={bizName} onChangeText={setBizName} placeholder="Ej: Salón Bella" />
+              <FormField label="Teléfono / WhatsApp" value={phone}   onChangeText={setPhone}   placeholder="Ej: 3001234567" keyboardType="phone-pad" />
+              <FormField label="Dirección"           value={address} onChangeText={setAddress} placeholder="Ej: Cra 15 #45-20, Bogotá" />
             </Section>
 
             {/* ── Personalización visual ─────────────────────────────── */}
@@ -339,7 +302,7 @@ export default function StoreScreen() {
 
               <View style={{ height: 1, backgroundColor: Colors.border, marginBottom: 18 }} />
 
-              <Field
+              <FormField
                 label="Mensaje de bienvenida"
                 value={welcome}
                 onChangeText={setWelcome}
@@ -376,20 +339,7 @@ export default function StoreScreen() {
             <View style={{ height: 120 }} />
           </ScrollView>
 
-          {/* Save bar */}
-          <View style={s.bottomBar}>
-            <TouchableOpacity
-              style={[s.saveBtn, saving && { opacity: 0.6 }]}
-              onPress={handleSave}
-              disabled={saving}
-              activeOpacity={0.85}>
-              <View style={s.saveBtnGrad}>
-                {saving
-                  ? <ActivityIndicator color="white" />
-                  : <Text style={s.saveBtnText}>Guardar cambios</Text>}
-              </View>
-            </TouchableOpacity>
-          </View>
+          <BottomSaveBar label="Guardar cambios" saving={saving} onPress={handleSave} />
         </KeyboardAvoidingView>
       )}
     </SafeAreaView>
@@ -397,12 +347,6 @@ export default function StoreScreen() {
 }
 
 const s = StyleSheet.create({
-  header:      { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
-  headerRow:   { flexDirection: "row", alignItems: "center", gap: 12 },
-  backBtn:     { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.4 },
-  headerSub:   { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
-
   scroll: { padding: 16, paddingTop: 20 },
 
   // Link card
@@ -432,7 +376,7 @@ const s = StyleSheet.create({
 
   // Preview
   previewStrip:    { backgroundColor: Colors.cream2, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: Colors.border },
-  previewLabel:    { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 },
+  previewLabel:    { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 },
   previewBtn:      { paddingVertical: 10, paddingHorizontal: 20 },
   previewBtnText:  { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 
@@ -440,9 +384,4 @@ const s = StyleSheet.create({
   savedBanner: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.success + "12", borderRadius: Radius.md, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: Colors.success + "30" },
   savedText:   { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.success },
 
-  // Bottom bar
-  bottomBar:   { padding: 16, paddingBottom: 28, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
-  saveBtn:     { borderRadius: Radius.full, overflow: "hidden" },
-  saveBtnGrad: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
-  saveBtnText: { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 });

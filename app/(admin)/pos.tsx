@@ -9,7 +9,10 @@ import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import { Colors, Fonts, Gradients, MonoLabel, Radius, Shadow } from "@/constants/theme";
+import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
+import { fmtMoneyFull, fmt12 } from "@/lib/format";
 import ManualSaleModal from "@/components/ManualSaleModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -42,15 +45,6 @@ const METHODS = [
   { key: "nequi",         label: "Nequi",           icon: "logo-whatsapp" as const,          color: "#00b5a5" },
 ];
 
-function fmt(n: number) {
-  return `$${Math.round(n).toLocaleString("es-CO")}`;
-}
-
-function fmt12(t: string) {
-  const h = parseInt(t.slice(0, 2), 10);
-  return `${h % 12 || 12}:${t.slice(3, 5)} ${h >= 12 ? "PM" : "AM"}`;
-}
-
 function addDays(d: Date, n: number) {
   const r = new Date(d); r.setDate(r.getDate() + n); return r;
 }
@@ -62,6 +56,7 @@ function PaymentModal({ appt, onConfirm, onClose }: {
   onConfirm: (method: string) => Promise<void>;
   onClose: () => void;
 }) {
+  const { t } = useTheme();
   const [method, setMethod] = useState("efectivo");
   const [saving, setSaving] = useState(false);
   const price = Number((appt?.services as any)?.price ?? 0);
@@ -72,8 +67,7 @@ function PaymentModal({ appt, onConfirm, onClose }: {
   return (
     <Modal visible={!!appt} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-        <View style={pm.header}>
-          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={pm.headerAccent} />
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={pm.header}>
           <View style={pm.headerRow}>
             <TouchableOpacity onPress={onClose} style={pm.closeBtn}>
               <Ionicons name="close" size={20} color="white" />
@@ -101,10 +95,10 @@ function PaymentModal({ appt, onConfirm, onClose }: {
             <View style={[pm.divider, { backgroundColor: "rgba(255,255,255,.3)" }]} />
             <View style={pm.receiptRow}>
               <Text style={[pm.receiptLabel, { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold" }]}>Total</Text>
-              <Text style={pm.totalVal}>{price > 0 ? fmt(price) : "—"}</Text>
+              <Text style={pm.totalVal}>{price > 0 ? fmtMoneyFull(price) : "—"}</Text>
             </View>
           </View>
-        </View>
+        </LinearGradient>
 
         <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 120 }}>
           <Text style={pm.sectionLabel}>¿Cómo pagó el cliente?</Text>
@@ -135,15 +129,15 @@ function PaymentModal({ appt, onConfirm, onClose }: {
             disabled={saving}
             activeOpacity={0.85}
           >
-            <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={pm.btnGrad}>
+            <View style={pm.btnGrad}>
               {saving
                 ? <ActivityIndicator color="white" />
                 : <>
                     <Ionicons name="checkmark-circle" size={18} color="white" />
-                    <Text style={pm.btnText}>{price > 0 ? `Confirmar cobro · ${fmt(price)}` : "Completar cita"}</Text>
+                    <Text style={pm.btnText}>{price > 0 ? `Confirmar cobro · ${fmtMoneyFull(price)}` : "Completar cita"}</Text>
                   </>
               }
-            </LinearGradient>
+            </View>
           </TouchableOpacity>
         </View>
       </View>
@@ -152,26 +146,25 @@ function PaymentModal({ appt, onConfirm, onClose }: {
 }
 
 const pm = StyleSheet.create({
-  header:       { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 24, backgroundColor: Colors.ink, overflow: "hidden" },
-  headerAccent: { position: "absolute", top: 0, left: 0, right: 0, height: 3 },
+  header:       { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 24 },
   headerRow:    { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
-  closeBtn:     { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
-  title:        { fontSize: 18, fontFamily: Fonts.bold, color: "white" },
-  receipt:      { backgroundColor: "rgba(255,255,255,.07)", borderWidth: 1, borderColor: "rgba(255,255,255,.10)", borderRadius: Radius.lg, paddingHorizontal: 16, paddingVertical: 8 },
+  closeBtn:     { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.2)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
+  title:        { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
+  receipt:      { backgroundColor: "rgba(255,255,255,.18)", borderRadius: Radius.lg, paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
   receiptRow:   { flexDirection: "row", justifyContent: "space-between", paddingVertical: 11 },
-  receiptLabel: { fontSize: 13, fontFamily: Fonts.regular, color: "rgba(255,255,255,.6)" },
-  receiptVal:   { fontSize: 13, fontFamily: Fonts.semibold, color: "white" },
-  totalVal:     { fontSize: 20, fontFamily: Fonts.bold, color: "white", fontVariant: ["tabular-nums"] },
-  divider:      { height: 1, backgroundColor: "rgba(255,255,255,.10)" },
-  sectionLabel: { ...MonoLabel, marginBottom: 12 },
-  methodRow:       { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: Colors.white, borderRadius: Radius.md, padding: 14, marginBottom: 10, borderWidth: 1.5, borderColor: Colors.border, overflow: "hidden" },
+  receiptLabel: { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.75)" },
+  receiptVal:   { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "white" },
+  totalVal:     { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
+  divider:      { height: 1, backgroundColor: "rgba(255,255,255,.15)" },
+  sectionLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 12 },
+  methodRow:       { flexDirection: "row", alignItems: "center", gap: 14, ...Glass.cardStrong, borderRadius: Radius.md, padding: 14, marginBottom: 10, overflow: "hidden" },
   methodRowActive: { borderWidth: 0 },
   methodIcon:      { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  methodLabel:     { fontSize: 15, fontFamily: Fonts.semibold, color: Colors.text },
-  bottomBar:    { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
+  methodLabel:     { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
+  bottomBar:    { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.6)", backgroundColor: "rgba(244,244,249,0.85)" },
   btn:          { borderRadius: Radius.full, overflow: "hidden" },
-  btnGrad: { paddingVertical: 16, alignItems: "center" },
-  btnText:      { fontSize: 15, fontFamily: Fonts.bold, color: "white" },
+  btnGrad: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
+  btnText:      { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 });
 
 // ─── Appointment card ─────────────────────────────────────────────────────────
@@ -206,7 +199,7 @@ function ApptCard({ appt, linkedSale, onCobrar, onCancel, index }: {
               <Text style={[ac.timeText, { color: accentColor }]}>{time}</Text>
             </View>
             {price > 0 && (
-              <Text style={[ac.price, isPaid && { color: Colors.success }]}>{fmt(price)}</Text>
+              <Text style={[ac.price, isPaid && { color: Colors.success }]}>{fmtMoneyFull(price)}</Text>
             )}
           </View>
 
@@ -227,7 +220,7 @@ function ApptCard({ appt, linkedSale, onCobrar, onCancel, index }: {
               </TouchableOpacity>
               <TouchableOpacity style={ac.cobraBtn} onPress={onCobrar} activeOpacity={0.85}>
                 <Ionicons name="card-outline" size={15} color="white" />
-                <Text style={ac.cobraText}>Cobrar{price > 0 ? ` ${fmt(price)}` : ""}</Text>
+                <Text style={ac.cobraText}>Cobrar{price > 0 ? ` ${fmtMoneyFull(price)}` : ""}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -259,7 +252,7 @@ function ApptCard({ appt, linkedSale, onCobrar, onCancel, index }: {
 }
 
 const ac = StyleSheet.create({
-  card:        { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, flexDirection: "row", marginBottom: 10, overflow: "hidden" },
+  card:        { ...Glass.cardStrong, borderRadius: Radius.lg, flexDirection: "row", marginBottom: 10, overflow: "hidden" },
   accent:      { width: 5 },
   topRow:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
   timePill:    { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 5 },
@@ -283,7 +276,8 @@ const ac = StyleSheet.create({
 
 export default function PosScreen() {
   const router = useRouter();
-  const [tenantId, setTenantId]     = useState<string | null>(null);
+  const { t } = useTheme();
+  const { tenantId } = useAuth();
   const [date, setDate]             = useState(new Date());
   const [appts, setAppts]           = useState<Appt[]>([]);
   const [sales, setSales]           = useState<PosSale[]>([]);
@@ -292,14 +286,6 @@ export default function PosScreen() {
   const [activeTab, setActiveTab]   = useState<"citas" | "cobros">("citas");
   const [payAppt, setPayAppt]       = useState<Appt | null>(null);
   const [showManual, setShowManual] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
 
   const load = useCallback(async (d: Date) => {
     if (!tenantId) return;
@@ -323,7 +309,11 @@ export default function PosScreen() {
   }, [tenantId]);
 
   useEffect(() => {
-    if (tenantId) { setLoading(true); load(date); }
+    if (!tenantId) return;
+    let cancelled = false;
+    setLoading(true);
+    load(date).then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [tenantId, date]);
 
   const onRefresh = async () => { setRefreshing(true); await load(date); setRefreshing(false); };
@@ -357,7 +347,7 @@ export default function PosScreen() {
   };
 
   const voidSale = (sale: PosSale) => {
-    Alert.alert("Anular cobro", `¿Anular ${fmt(sale.total)}?`, [
+    Alert.alert("Anular cobro", `¿Anular ${fmtMoneyFull(sale.total)}?`, [
       { text: "No", style: "cancel" },
       { text: "Anular", style: "destructive",
         onPress: async () => {
@@ -393,33 +383,47 @@ export default function PosScreen() {
   });
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
-      <View style={s.header}>
-        <View style={s.headerRow}>
-          <View>
-            <Text style={s.headerCrumb}>Pagos del día</Text>
-            <Text style={s.headerTitle}>Cobros</Text>
+      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+        <View style={s.headerBlob1} />
+        <View style={s.headerBlob2} />
+
+        <View style={s.headerTopRow}>
+          <View style={s.headerIconBox}>
+            <Ionicons name="card" size={16} color="white" />
           </View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <Text style={s.headerLabel}>Cobros</Text>
+          <View style={{ flex: 1 }} />
+          <TouchableOpacity style={s.headerActionBtn} onPress={() => router.push("/(admin)/pos-history" as any)} activeOpacity={0.8}>
+            <Ionicons name="time-outline" size={17} color="white" />
+          </TouchableOpacity>
+          <TouchableOpacity style={s.headerActionBtn} onPress={() => setShowManual(true)} activeOpacity={0.8}>
+            <Ionicons name="add" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={s.headerHeroRow}>
+          <View>
+            <Text style={s.headerTitle}>Gestión de pagos</Text>
             <View style={s.dateNav}>
               <TouchableOpacity onPress={() => setDate(d => addDays(d, -1))} style={s.navBtn}>
-                <Ionicons name="chevron-back" size={16} color={Colors.text} />
+                <Ionicons name="chevron-back" size={14} color="white" />
               </TouchableOpacity>
               <Text style={s.dateLabel}>{dateLabel}</Text>
               <TouchableOpacity onPress={() => setDate(d => addDays(d, 1))} style={s.navBtn} disabled={isToday}>
-                <Ionicons name="chevron-forward" size={16} color={isToday ? Colors.subtle : Colors.text} />
+                <Ionicons name="chevron-forward" size={14} color={isToday ? "rgba(255,255,255,.3)" : "white"} />
               </TouchableOpacity>
             </View>
-            <TouchableOpacity style={s.addBtn} onPress={() => router.push("/(admin)/pos-history" as any)} activeOpacity={0.8}>
-              <Ionicons name="time-outline" size={19} color="white" />
-            </TouchableOpacity>
-            <TouchableOpacity style={s.addBtn} onPress={() => setShowManual(true)} activeOpacity={0.8}>
-              <Ionicons name="add" size={22} color="white" />
-            </TouchableOpacity>
           </View>
+          {cobrado > 0 && (
+            <View style={s.headerAmountBox}>
+              <Text style={s.headerAmountLabel}>Cobrado</Text>
+              <Text style={s.headerAmountValue}>{fmtMoneyFull(cobrado)}</Text>
+            </View>
+          )}
         </View>
-      </View>
+      </LinearGradient>
 
       {loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -433,17 +437,16 @@ export default function PosScreen() {
           {/* ── Revenue hero ── */}
           <Animated.View entering={FadeInDown.duration(350)} style={{ padding: 20, paddingBottom: 0, gap: 12 }}>
             <View style={[s.heroCard, Shadow.md]}>
-              <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroGrad}>
-                <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.heroAccent} />
+              <LinearGradient colors={["#1a1a2e", "#16213e"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroGrad}>
                 <View style={{ flex: 1 }}>
                   <Text style={s.heroLabel}>Total cobrado</Text>
-                  <Text style={s.heroValue}>{cobrado > 0 ? fmt(cobrado) : "—"}</Text>
+                  <Text style={s.heroValue}>{cobrado > 0 ? fmtMoneyFull(cobrado) : "—"}</Text>
                   <Text style={s.heroSub}>{sales.length} cobro{sales.length !== 1 ? "s" : ""} registrado{sales.length !== 1 ? "s" : ""}</Text>
                 </View>
                 {projected > 0 && (
                   <View style={s.projectedBox}>
                     <Text style={s.projectedLabel}>Por cobrar</Text>
-                    <Text style={s.projectedValue}>{fmt(projected)}</Text>
+                    <Text style={s.projectedValue}>{fmtMoneyFull(projected)}</Text>
                     <Text style={s.projectedSub}>{pendingAppts.length} cita{pendingAppts.length !== 1 ? "s" : ""}</Text>
                   </View>
                 )}
@@ -460,7 +463,7 @@ export default function PosScreen() {
                       <Ionicons name={m.icon} size={14} color={m.color} />
                       <View>
                         <Text style={[s.methodChipLabel, { color: m.color }]}>{m.label}</Text>
-                        <Text style={[s.methodChipValue, { color: m.color }]}>{fmt(m.total)}</Text>
+                        <Text style={[s.methodChipValue, { color: m.color }]}>{fmtMoneyFull(m.total)}</Text>
                       </View>
                     </View>
                   ))}
@@ -538,7 +541,7 @@ export default function PosScreen() {
                   const linkedAppt = appts.find(a => a.id === sale.appointment_id);
 
                   return (
-                    <Animated.View key={sale.id} entering={FadeInRight.delay(i * 55).duration(320)}>
+                    <Animated.View key={sale.id} entering={i < 10 ? FadeInRight.delay(i * 55).duration(320) : undefined}>
                       <View style={[s.saleCard, Shadow.sm]}>
                         <View style={[s.saleAccent, { backgroundColor: methodCfg?.color ?? Colors.success }]} />
                         <View style={{ flex: 1, padding: 14 }}>
@@ -547,7 +550,7 @@ export default function PosScreen() {
                               <Ionicons name={methodCfg?.icon ?? "cash-outline"} size={11} color={methodCfg?.color ?? Colors.success} />
                               <Text style={[s.saleTime, { color: methodCfg?.color ?? Colors.success }]}>{timeStr}</Text>
                             </View>
-                            <Text style={[s.saleTotal, { color: Colors.success }]}>{fmt(sale.total)}</Text>
+                            <Text style={[s.saleTotal, { color: Colors.success }]}>{fmtMoneyFull(sale.total)}</Text>
                           </View>
                           <Text style={s.saleClient} numberOfLines={1}>
                             {linkedAppt ? (linkedAppt.clients?.name ?? "Sin cliente") : (sale.clients?.name ?? "Venta directa")}
@@ -597,43 +600,49 @@ export default function PosScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  header:         { paddingTop: 18, paddingHorizontal: 24, paddingBottom: 16 },
-  headerRow:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  headerCrumb:    { ...MonoLabel, fontSize: 9, marginBottom: 5 },
-  headerTitle:    { fontSize: 24, fontFamily: Fonts.bold, color: Colors.text, letterSpacing: -0.6 },
-  dateNav:        { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.full, paddingVertical: 6, paddingHorizontal: 8 },
-  navBtn:         { padding: 2 },
-  dateLabel:      { fontSize: 12, fontFamily: Fonts.bold, color: Colors.text, minWidth: 40, textAlign: "center" },
-  addBtn:         { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.ink, alignItems: "center", justifyContent: "center" },
+  header:          { paddingTop: 14, paddingHorizontal: 20, paddingBottom: 18, overflow: "hidden" },
+  headerBlob1:     { position: "absolute", width: 200, height: 200, borderRadius: 100, backgroundColor: "rgba(255,255,255,.06)", top: -80, right: -40 },
+  headerBlob2:     { position: "absolute", width: 100, height: 100, borderRadius: 50, backgroundColor: "rgba(0,0,0,.05)", bottom: -30, left: -20 },
+  headerTopRow:    { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14, position: "relative", zIndex: 1 },
+  headerIconBox:   { width: 32, height: 32, borderRadius: 10, backgroundColor: "rgba(255,255,255,.15)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" },
+  headerLabel:     { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.8)" },
+  headerActionBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.15)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)", marginLeft: 6 },
+  headerHeroRow:   { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", position: "relative", zIndex: 1 },
+  headerTitle:     { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.4, marginBottom: 10 },
+  dateNav:         { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(255,255,255,.14)", borderRadius: Radius.full, paddingVertical: 6, paddingHorizontal: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" },
+  navBtn:          { padding: 2 },
+  dateLabel:       { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: "white", minWidth: 36, textAlign: "center" },
+  headerAmountBox: { backgroundColor: "rgba(255,255,255,.15)", borderRadius: Radius.lg, paddingVertical: 10, paddingHorizontal: 14, alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" },
+  headerAmountLabel:{ fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.65)", textTransform: "uppercase", letterSpacing: 0.5 },
+  headerAmountValue:{ fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white", marginTop: 2 },
 
   heroCard:       { borderRadius: Radius.xl, overflow: "hidden" },
-  heroGrad:       { flexDirection: "row", alignItems: "center", padding: 22, paddingTop: 25, gap: 16 },
-  heroAccent:     { position: "absolute", top: 0, left: 0, right: 0, height: 3 },
-  heroLabel:      { ...MonoLabel, fontSize: 9.5, color: "rgba(255,255,255,.55)", marginBottom: 6 },
-  heroValue:      { fontSize: 34, fontFamily: Fonts.bold, color: "white", letterSpacing: -1, fontVariant: ["tabular-nums"] },
-  heroSub:        { fontSize: 11, fontFamily: Fonts.regular, color: "rgba(255,255,255,.5)", marginTop: 4 },
-  projectedBox:   { backgroundColor: "rgba(255,255,255,.07)", borderWidth: 1, borderColor: "rgba(255,255,255,.10)", borderRadius: Radius.lg, padding: 14, alignItems: "center", minWidth: 110 },
-  projectedLabel: { ...MonoLabel, fontSize: 8.5, color: "rgba(255,255,255,.55)" },
-  projectedValue: { fontSize: 18, fontFamily: Fonts.bold, color: "white", marginTop: 4, fontVariant: ["tabular-nums"] },
-  projectedSub:   { fontSize: 10, fontFamily: Fonts.regular, color: "rgba(255,255,255,.5)", marginTop: 2 },
+  heroGrad:       { flexDirection: "row", alignItems: "center", padding: 22, gap: 16 },
+  heroLabel:      { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.6)", marginBottom: 4 },
+  heroValue:      { fontSize: 34, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -1 },
+  heroSub:        { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.5)", marginTop: 4 },
+  projectedBox:   { backgroundColor: "rgba(255,255,255,.1)", borderRadius: Radius.lg, padding: 14, alignItems: "center", minWidth: 110, borderWidth: 1, borderColor: "rgba(255,255,255,0.15)" },
+  projectedLabel: { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.6)", textTransform: "uppercase", letterSpacing: 0.5 },
+  projectedValue: { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white", marginTop: 4 },
+  projectedSub:   { fontSize: 10, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.5)", marginTop: 2 },
 
-  methodsCard:    { backgroundColor: Colors.white, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, padding: 16 },
-  methodsTitle:   { ...MonoLabel, marginBottom: 12 },
+  methodsCard:    { ...Glass.cardStrong, borderRadius: Radius.lg, padding: 16 },
+  methodsTitle:   { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 12 },
   methodsRow:     { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   methodChip:     { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 8 },
   methodChipLabel:{ fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold" },
   methodChipValue:{ fontSize: 13, fontFamily: "SpaceGrotesk_700Bold" },
 
   tabs:           { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingVertical: 16 },
-  tab:            { flex: 1, borderRadius: Radius.full, overflow: "hidden", borderWidth: 1.5, borderColor: Colors.border, backgroundColor: Colors.white, alignItems: "center" },
+  tab:            { flex: 1, borderRadius: Radius.full, overflow: "hidden", ...Glass.card, alignItems: "center" },
   tabActive:      { borderWidth: 0 },
   tabLabel:       { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted, paddingVertical: 11, textAlign: "center" },
 
   sectionHeader:  { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
   sectionDot:     { width: 8, height: 8, borderRadius: 4 },
-  sectionTitle:   { ...MonoLabel },
+  sectionTitle:   { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.5 },
 
-  saleCard:       { backgroundColor: Colors.white, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, flexDirection: "row", marginBottom: 10, overflow: "hidden" },
+  saleCard:       { ...Glass.cardStrong, borderRadius: Radius.lg, flexDirection: "row", marginBottom: 10, overflow: "hidden" },
   saleAccent:     { width: 5 },
   saleTopRow:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
   saleTimePill:   { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 5 },
@@ -646,7 +655,7 @@ const s = StyleSheet.create({
   methodTagText:  { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold" },
   voidBtn:        { width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.red + "12", alignItems: "center", justifyContent: "center" },
 
-  empty:          { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 44, alignItems: "center", marginTop: 4 },
+  empty:          { ...Glass.cardStrong, borderRadius: Radius.xl, padding: 44, alignItems: "center", marginTop: 4 },
   emptyTitle:     { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:       { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
 });

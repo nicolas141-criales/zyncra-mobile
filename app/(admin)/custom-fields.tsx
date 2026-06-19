@@ -10,6 +10,9 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 type FieldType  = "text" | "number" | "date" | "select" | "boolean";
@@ -48,8 +51,9 @@ function slugify(name: string) {
 
 export default function CustomFieldsScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const [tab, setTab]         = useState(0);
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const { tenantId } = useAuth();
 
   // Fields tab
   const [fields, setFields]   = useState<CustomField[]>([]);
@@ -77,17 +81,10 @@ export default function CustomFieldsScreen() {
   const [clientPicker, setClientPicker] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
-
-  useEffect(() => {
     if (!tenantId) return;
-    loadFields();
-    loadClients();
+    let cancelled = false;
+    Promise.all([loadFields(), loadClients()]).then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [tenantId]);
 
   const loadFields = useCallback(async () => {
@@ -236,7 +233,7 @@ export default function CustomFieldsScreen() {
           renderItem={({ item: f, index: i }) => {
             const meta = TYPE_META[f.field_type];
             return (
-              <Animated.View entering={FadeInDown.delay(i * 60).duration(350)}>
+              <Animated.View entering={i < 10 ? FadeInDown.delay(i * 60).duration(350) : undefined}>
                 <View style={[s.fieldCard, Shadow.sm, !f.active && { opacity: 0.55 }]}>
                   <View style={[s.fieldIcon, { backgroundColor: meta.color + "18" }]}>
                     <Ionicons name={meta.icon} size={18} color={meta.color} />
@@ -352,7 +349,7 @@ export default function CustomFieldsScreen() {
                         onChangeText={v => setClientValues(prev => ({ ...prev, [f.id]: v }))}
                         keyboardType={f.field_type === "number" ? "numeric" : "default"}
                         placeholder={f.field_type === "date" ? "YYYY-MM-DD" : "—"}
-                        placeholderTextColor={Colors.subtle}
+                        placeholderTextColor={t.subtle}
                       />
                     )}
                   </View>
@@ -374,7 +371,7 @@ export default function CustomFieldsScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
       <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
@@ -390,10 +387,10 @@ export default function CustomFieldsScreen() {
       </LinearGradient>
 
       {/* Tab bar */}
-      <View style={s.tabBar}>
+      <View style={[s.tabBar, { backgroundColor: t.bgAlt, borderBottomColor: t.border }]}>
         {["Campos", "Valores por cliente"].map((label, i) => (
           <TouchableOpacity key={i} style={s.tabItem} onPress={() => setTab(i)}>
-            <Text style={[s.tabTxt, tab === i && s.tabTxtActive]}>{label}</Text>
+            <Text style={[s.tabTxt, { color: t.muted }, tab === i && s.tabTxtActive]}>{label}</Text>
             {tab === i && <View style={s.tabUnderline} />}
           </TouchableOpacity>
         ))}
@@ -415,7 +412,7 @@ export default function CustomFieldsScreen() {
                 value={formName}
                 onChangeText={setFormName}
                 placeholder="Ej: Tipo de cabello, Alergia..."
-                placeholderTextColor={Colors.subtle}
+                placeholderTextColor={t.subtle}
               />
               {formName.length > 0 && (
                 <Text style={m.keyHint}>Clave: {slugify(formName)}</Text>
@@ -461,7 +458,7 @@ export default function CustomFieldsScreen() {
                     onChangeText={setFormOptions}
                     multiline
                     placeholder={"Liso\nRizado\nOndulado\nAfro"}
-                    placeholderTextColor={Colors.subtle}
+                    placeholderTextColor={t.subtle}
                   />
                 </>
               )}

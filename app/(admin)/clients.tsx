@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import {
-  View, Text, ScrollView, StyleSheet, TextInput,
+  View, Text, ScrollView, FlatList, StyleSheet, TextInput,
   TouchableOpacity, RefreshControl, Modal, KeyboardAvoidingView,
   Platform, ActivityIndicator, Alert, Linking,
 } from "react-native";
@@ -9,14 +9,14 @@ import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import { Colors, Fonts, Gradients, MonoLabel, Radius, Shadow } from "@/constants/theme";
+import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
+import { fmtDateShort } from "@/lib/format";
+import { STATUS_META } from "@/constants/status";
+import Avatar from "@/components/Avatar";
 
-type Client = {
-  id: string; name: string; phone?: string; email?: string;
-  no_shows?: number; created_at?: string;
-  visitCount?: number;
-  lastVisit?: string;
-};
+type Client = { id: string; name: string; phone?: string; email?: string; no_shows?: number; created_at?: string };
 type Appt = {
   id: string; appointment_date: string; appointment_time: string; status: string; notes?: string;
   services: { name: string; price: number } | null;
@@ -24,35 +24,13 @@ type Appt = {
 type CustomField = { id: string; name: string; field_type: string };
 type FieldValue  = { field_id: string; value: string | null };
 
-const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
-  pending:   { label: "Pendiente",  color: "#f59e0b", bg: "#fef9eb" },
-  confirmed: { label: "Confirmada", color: Colors.blue, bg: "#eff2ff" },
-  completed: { label: "Completada", color: Colors.success, bg: "#f0fdf4" },
-  cancelled: { label: "Cancelada",  color: Colors.subtle, bg: Colors.cream2 },
-  no_show:   { label: "No asistió", color: Colors.red, bg: "#fff0f0" },
-};
-
-const MONTHS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-function fmtDate(d: string) {
-  const dt = new Date(d + "T00:00:00");
-  return `${dt.getDate()} ${MONTHS[dt.getMonth()]} ${dt.getFullYear()}`;
-}
-
-function Avatar({ name, size = 44 }: { name: string; size?: number }) {
-  const initials = name.split(" ").map(w => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase() || "?";
-  return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: Colors.blue + "14", borderWidth: 1.5, borderColor: Colors.blue + "30", alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ color: Colors.blue, fontSize: size * 0.33, fontFamily: "SpaceGrotesk_700Bold" }}>{initials}</Text>
-    </View>
-  );
-}
-
 // ─── Edit form modal (pageSheet) ──────────────────────────────────────────────
 
 function EditModal({ visible, client, tenantId, onClose, onSaved }: {
   visible: boolean; client: Client | null; tenantId: string;
   onClose: () => void; onSaved: (c?: Client) => void;
 }) {
+  const { t } = useTheme();
   const isNew = client === null;
   const [name, setName]   = useState("");
   const [phone, setPhone] = useState("");
@@ -96,20 +74,20 @@ function EditModal({ visible, client, tenantId, onClose, onSaved }: {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-        <View style={em.header}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={em.header}>
           <View style={em.headerRow}>
             <TouchableOpacity onPress={onClose} style={em.iconBtn}>
-              <Ionicons name="close" size={20} color={Colors.text} />
+              <Ionicons name="close" size={20} color="white" />
             </TouchableOpacity>
             <Text style={em.headerTitle}>{isNew ? "Nuevo cliente" : "Editar cliente"}</Text>
             {!isNew ? (
               <TouchableOpacity onPress={handleDelete} style={em.iconBtn}>
-                <Ionicons name="trash-outline" size={18} color={Colors.red} />
+                <Ionicons name="trash-outline" size={18} color="white" />
               </TouchableOpacity>
             ) : <View style={{ width: 40 }} />}
           </View>
-        </View>
+        </LinearGradient>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
             {[
@@ -128,9 +106,9 @@ function EditModal({ visible, client, tenantId, onClose, onSaved }: {
           <View style={em.bottomBar}>
             <TouchableOpacity style={[em.btn, !canSave && { opacity: 0.4 }]}
               onPress={handleSave} disabled={!canSave || saving} activeOpacity={0.85}>
-              <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={em.btnGrad}>
+              <View style={em.btnGrad}>
                 {saving ? <ActivityIndicator color="white" /> : <Text style={em.btnText}>{isNew ? "Crear cliente" : "Guardar cambios"}</Text>}
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -144,6 +122,7 @@ function EditModal({ visible, client, tenantId, onClose, onSaved }: {
 function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefresh }: {
   client: Client; tenantId: string; onClose: () => void; onRefresh: () => void;
 }) {
+  const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const [client, setClient]   = useState<Client>(initialClient);
   const [appts, setAppts]     = useState<Appt[]>([]);
@@ -151,9 +130,6 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
   const [editOpen, setEditOpen] = useState(false);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [fieldValues, setFieldValues]   = useState<Record<string, string>>({});
-  const [editingFields, setEditingFields] = useState(false);
-  const [draftValues, setDraftValues]     = useState<Record<string, string>>({});
-  const [savingFields, setSavingFields]   = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -178,7 +154,6 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
     const map: Record<string, string> = {};
     (fvRes.data ?? []).forEach((r: any) => { map[r.field_id] = r.value ?? ""; });
     setFieldValues(map);
-    setDraftValues(map);
     setLoading(false);
   }, [initialClient.id, tenantId]);
 
@@ -187,7 +162,7 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
   const completed  = appts.filter(a => a.status === "completed");
   const noShows    = appts.filter(a => a.status === "no_show").length;
   const totalSpent = completed.reduce((s, a) => s + Number(a.services?.price ?? 0), 0);
-  const since      = client.created_at ? fmtDate(client.created_at.slice(0, 10)) : "—";
+  const since      = client.created_at ? fmtDateShort(client.created_at.slice(0, 10)) : "—";
   const fmtMoney   = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(0)}k` : `$${n}`;
 
   const handleEditSaved = (updated?: Client) => {
@@ -200,8 +175,8 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
     <Modal visible animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: Colors.cream2 }}>
         {/* Header */}
-        <View style={[p.header, { paddingTop: insets.top + 12 }]}>
-          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={p.headerAccent} />
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={[p.header, { paddingTop: insets.top + 12 }]}>
           <View style={p.headerRow}>
             <TouchableOpacity onPress={onClose} style={p.iconBtn}>
               <Ionicons name="arrow-back" size={20} color="white" />
@@ -238,7 +213,7 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
               )}
             </View>
           </View>
-        </View>
+        </LinearGradient>
 
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }}>
           {/* Stats */}
@@ -290,68 +265,17 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
           {/* Custom fields */}
           {customFields.length > 0 && (
             <Animated.View entering={FadeInDown.delay(90).duration(300)}>
-              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                <Text style={p.sectionLabel}>Datos adicionales</Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    if (editingFields) setDraftValues(fieldValues);
-                    setEditingFields(v => !v);
-                  }}
-                  style={{ padding: 4 }}
-                >
-                  <Ionicons
-                    name={editingFields ? "close-outline" : "pencil-outline"}
-                    size={16} color={Colors.blue}
-                  />
-                </TouchableOpacity>
-              </View>
+              <Text style={p.sectionLabel}>Datos adicionales</Text>
               <View style={[p.card, Shadow.sm]}>
                 {customFields.map((f, i) => (
                   <View key={f.id}>
                     {i > 0 && <View style={p.infoDivider} />}
-                    {editingFields ? (
-                      <View style={p.infoRow}>
-                        <Text style={[p.infoLabel, { flex: 1 }]}>{f.name}</Text>
-                        <TextInput
-                          style={p.cfInput}
-                          value={draftValues[f.id] ?? ""}
-                          onChangeText={v => setDraftValues(prev => ({ ...prev, [f.id]: v }))}
-                          placeholder="—"
-                          placeholderTextColor={Colors.subtle}
-                        />
-                      </View>
-                    ) : (
-                      <View style={p.infoRow}>
-                        <Text style={p.infoLabel}>{f.name}</Text>
-                        <Text style={p.infoValue}>{fieldValues[f.id] || "—"}</Text>
-                      </View>
-                    )}
+                    <View style={p.infoRow}>
+                      <Text style={p.infoLabel}>{f.name}</Text>
+                      <Text style={p.infoValue}>{fieldValues[f.id] || "—"}</Text>
+                    </View>
                   </View>
                 ))}
-                {editingFields && (
-                  <TouchableOpacity
-                    style={[p.saveCfBtn, savingFields && { opacity: 0.5 }]}
-                    disabled={savingFields}
-                    onPress={async () => {
-                      setSavingFields(true);
-                      await Promise.all(
-                        customFields.map(f =>
-                          supabase.from("client_field_values").upsert(
-                            { client_id: initialClient.id, field_id: f.id, value: draftValues[f.id] ?? "" },
-                            { onConflict: "client_id,field_id" }
-                          )
-                        )
-                      );
-                      setFieldValues({ ...draftValues });
-                      setSavingFields(false);
-                      setEditingFields(false);
-                    }}
-                  >
-                    {savingFields
-                      ? <ActivityIndicator size="small" color="white" />
-                      : <Text style={p.saveCfBtnTxt}>Guardar campos</Text>}
-                  </TouchableOpacity>
-                )}
               </View>
             </Animated.View>
           )}
@@ -375,11 +299,11 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
                 const meta = STATUS_META[a.status] ?? STATUS_META.pending;
                 const dt   = new Date(a.appointment_date + "T00:00:00");
                 return (
-                  <Animated.View key={a.id} entering={FadeInRight.delay(i * 35).duration(260)}>
+                  <Animated.View key={a.id} entering={i < 10 ? FadeInRight.delay(i * 35).duration(260) : undefined}>
                     <View style={[p.apptRow, Shadow.sm]}>
                       <View style={p.dateBlock}>
                         <Text style={p.dateDay}>{dt.getDate()}</Text>
-                        <Text style={p.dateMon}>{MONTHS[dt.getMonth()]}</Text>
+                        <Text style={p.dateMon}>{dt.toLocaleDateString("es-CO", { month: "short" })}</Text>
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={p.apptService} numberOfLines={1}>{a.services?.name ?? "Servicio"}</Text>
@@ -416,50 +340,30 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function ClientsScreen() {
+  const { t } = useTheme();
   const [clients, setClients]       = useState<Client[]>([]);
   const [filtered, setFiltered]     = useState<Client[]>([]);
   const [search, setSearch]         = useState("");
-  const [tenantId, setTenantId]     = useState<string | null>(null);
+  const { tenantId } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [profileClient, setProfileClient] = useState<Client | null>(null);
   const [newModal, setNewModal]     = useState(false);
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
-
   const loadClients = async () => {
     if (!tenantId) return;
-    const [{ data }, { data: appts }] = await Promise.all([
-      supabase.from("clients")
-        .select("id, name, phone, email, no_shows, created_at")
-        .eq("tenant_id", tenantId).order("name"),
-      supabase.from("appointments")
-        .select("client_id, appointment_date")
-        .eq("tenant_id", tenantId)
-        .neq("status", "cancelled")
-        .neq("status", "no_show")
-        .limit(3000),
-    ]);
-    const statsMap = new Map<string, { count: number; last: string }>();
-    (appts ?? []).forEach((a: any) => {
-      const s = statsMap.get(a.client_id);
-      if (!s) statsMap.set(a.client_id, { count: 1, last: a.appointment_date });
-      else { s.count++; if (a.appointment_date > s.last) s.last = a.appointment_date; }
-    });
-    const enriched = (data ?? []).map((c: any) => {
-      const st = statsMap.get(c.id);
-      return { ...c, visitCount: st?.count ?? 0, lastVisit: st?.last ?? undefined };
-    });
-    setClients(enriched);
-    setFiltered(enriched);
+    const { data } = await supabase.from("clients")
+      .select("id, name, phone, email, no_shows, created_at")
+      .eq("tenant_id", tenantId).order("name");
+    const c = data ?? [];
+    setClients(c);
+    setFiltered(c);
   };
 
-  useEffect(() => { loadClients(); }, [tenantId]);
+  useEffect(() => {
+    let cancelled = false;
+    loadClients().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
+  }, [tenantId]);
 
   useEffect(() => {
     const q = search.toLowerCase();
@@ -471,19 +375,31 @@ export default function ClientsScreen() {
   const onRefresh = async () => { setRefreshing(true); await loadClients(); setRefreshing(false); };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-      <View style={s.header}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-          <View>
-            <Text style={s.headerCrumb}>Base de datos</Text>
-            <Text style={s.headerTitle}>Clientes</Text>
-            <Text style={s.headerSub}>{clients.length} registrado{clients.length !== 1 ? "s" : ""}</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+        <View style={s.headerBlob1} />
+        <View style={s.headerBlob2} />
+
+        <View style={s.headerTopRow}>
+          <View style={s.headerIconBox}>
+            <Ionicons name="people" size={16} color="white" />
           </View>
+          <Text style={s.headerLabel}>Clientes</Text>
+          <View style={{ flex: 1 }} />
           <TouchableOpacity style={s.addBtn} onPress={() => setNewModal(true)} activeOpacity={0.8}>
-            <Ionicons name="person-add-outline" size={19} color="white" />
+            <Ionicons name="person-add-outline" size={18} color="white" />
           </TouchableOpacity>
         </View>
-      </View>
+
+        <Text style={s.headerTitle}>Tu base de clientes</Text>
+
+        <View style={s.headerStatsRow}>
+          <View style={s.headerStatPill}>
+            <Ionicons name="people" size={12} color="rgba(255,255,255,.9)" />
+            <Text style={s.headerStatText}>{clients.length} cliente{clients.length !== 1 ? "s" : ""}</Text>
+          </View>
+        </View>
+      </LinearGradient>
 
       <View style={s.searchWrap}>
         <Ionicons name="search-outline" size={16} color={Colors.subtle} style={{ marginRight: 8 }} />
@@ -498,12 +414,13 @@ export default function ClientsScreen() {
         )}
       </View>
 
-      <ScrollView
+      <FlatList
+        data={filtered}
+        keyExtractor={(item) => item.id}
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 110 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.red} />}
-      >
-        {filtered.length === 0 ? (
+        ListEmptyComponent={
           <Animated.View entering={FadeInDown.duration(400)} style={s.empty}>
             <Ionicons name="people-outline" size={44} color={Colors.subtle} style={{ marginBottom: 12 }} />
             <Text style={s.emptyTitle}>{search ? "Sin resultados" : "Sin clientes aún"}</Text>
@@ -511,36 +428,29 @@ export default function ClientsScreen() {
               {search ? "Prueba otro nombre o teléfono" : "Toca + para agregar tu primer cliente"}
             </Text>
           </Animated.View>
-        ) : (
-          filtered.map((c, i) => (
-            <Animated.View key={c.id} entering={FadeInRight.delay(i * 50).duration(320)}>
-              <TouchableOpacity
-                style={[s.row, Shadow.sm]}
-                onPress={() => setProfileClient(c)}
-                activeOpacity={0.75}
-              >
-                <Avatar name={c.name} />
-                <View style={{ flex: 1 }}>
-                  <Text style={s.name} numberOfLines={1}>{c.name}</Text>
-                  <Text style={s.info} numberOfLines={1}>{c.phone ?? c.email ?? "Sin contacto"}</Text>
-                  {(c.visitCount ?? 0) > 0 && (
-                    <Text style={s.visitStats} numberOfLines={1}>
-                      {c.visitCount} visita{c.visitCount !== 1 ? "s" : ""}
-                      {c.lastVisit ? ` · última: ${fmtDate(c.lastVisit)}` : ""}
-                    </Text>
-                  )}
-                </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  {(c.no_shows ?? 0) > 0 ? (
-                    <Text style={s.noShows}>{c.no_shows} falta{(c.no_shows ?? 0) > 1 ? "s" : ""}</Text>
-                  ) : null}
-                  <Ionicons name="chevron-forward" size={16} color={Colors.subtle} style={{ marginTop: 4 }} />
-                </View>
-              </TouchableOpacity>
-            </Animated.View>
-          ))
+        }
+        renderItem={({ item: c, index: i }) => (
+          <Animated.View entering={i < 10 ? FadeInRight.delay(i * 50).duration(320) : undefined}>
+            <TouchableOpacity
+              style={[s.row, Shadow.sm]}
+              onPress={() => setProfileClient(c)}
+              activeOpacity={0.75}
+            >
+              <Avatar name={c.name} />
+              <View style={{ flex: 1 }}>
+                <Text style={s.name} numberOfLines={1}>{c.name}</Text>
+                <Text style={s.info} numberOfLines={1}>{c.phone ?? c.email ?? "Sin contacto"}</Text>
+              </View>
+              <View style={{ alignItems: "flex-end" }}>
+                {(c.no_shows ?? 0) > 0 ? (
+                  <Text style={s.noShows}>{c.no_shows} falta{(c.no_shows ?? 0) > 1 ? "s" : ""}</Text>
+                ) : null}
+                <Ionicons name="chevron-forward" size={16} color={Colors.subtle} style={{ marginTop: 4 }} />
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
         )}
-      </ScrollView>
+      />
 
       {/* Profile modal */}
       {profileClient && tenantId && (
@@ -569,43 +479,47 @@ export default function ClientsScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  header:      { paddingTop: 18, paddingHorizontal: 24, paddingBottom: 16 },
-  headerCrumb: { ...MonoLabel, fontSize: 9, marginBottom: 5 },
-  headerTitle: { fontSize: 24, fontFamily: Fonts.bold, color: Colors.text, letterSpacing: -0.6 },
-  headerSub:   { fontSize: 13, color: Colors.muted, fontFamily: Fonts.regular, marginTop: 2 },
-  addBtn:      { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.ink, alignItems: "center", justifyContent: "center" },
-  searchWrap:  { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: Colors.border, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  search:      { flex: 1, fontSize: 14, fontFamily: Fonts.regular, color: Colors.text },
-  row:         { backgroundColor: Colors.white, borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.border, padding: 14, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 },
+  header:          { paddingTop: 14, paddingHorizontal: 20, paddingBottom: 16, overflow: "hidden" },
+  headerBlob1:     { position: "absolute", width: 200, height: 200, borderRadius: 100, backgroundColor: "rgba(255,255,255,.06)", top: -80, right: -40 },
+  headerBlob2:     { position: "absolute", width: 100, height: 100, borderRadius: 50, backgroundColor: "rgba(0,0,0,.05)", bottom: -30, left: -20 },
+  headerTopRow:    { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14, position: "relative", zIndex: 1 },
+  headerIconBox:   { width: 32, height: 32, borderRadius: 10, backgroundColor: "rgba(255,255,255,.15)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" },
+  headerLabel:     { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.8)" },
+  headerTitle:     { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.5, marginBottom: 12, position: "relative", zIndex: 1 },
+  headerStatsRow:  { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,.14)", borderRadius: Radius.full, paddingVertical: 8, paddingHorizontal: 14, alignSelf: "flex-start", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)", position: "relative", zIndex: 1 },
+  headerStatPill:  { flexDirection: "row", alignItems: "center", gap: 6 },
+  headerStatText:  { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.9)" },
+  addBtn:          { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,.15)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.25)" },
+  searchWrap:  { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.65)", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.5)" },
+  search:      { flex: 1, fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
+  row:         { ...Glass.cardStrong, borderRadius: Radius.md, padding: 14, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 },
   name:        { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   info:        { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
   noShows:     { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.red },
-  visitStats:  { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 1 },
-  empty:       { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 48, alignItems: "center", marginTop: 20, ...Shadow.sm },
+  empty:       { ...Glass.cardStrong, borderRadius: Radius.xl, padding: 48, alignItems: "center", marginTop: 20, ...Shadow.sm },
   emptyTitle:  { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:    { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
 });
 
 // Profile styles
 const p = StyleSheet.create({
-  header:      { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 28, backgroundColor: Colors.ink, overflow: "hidden" },
-  headerAccent:{ position: "absolute", top: 0, left: 0, right: 0, height: 3 },
+  header:      { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 28 },
   headerRow:   { flexDirection: "row", justifyContent: "space-between", marginBottom: 20 },
-  iconBtn:     { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  iconBtn:     { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.2)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
   identity:    { alignItems: "center", gap: 6 },
-  clientName:  { fontSize: 22, fontFamily: Fonts.bold, color: "white", letterSpacing: -0.4, marginTop: 6, textAlign: "center" },
-  clientSince: { fontSize: 12, fontFamily: Fonts.regular, color: "rgba(255,255,255,.6)" },
+  clientName:  { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.4, marginTop: 6, textAlign: "center" },
+  clientSince: { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.75)" },
   actions:     { flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap", justifyContent: "center" },
-  actionBtn:   { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.10)", borderWidth: 1, borderColor: "rgba(255,255,255,.12)", borderRadius: Radius.full, paddingHorizontal: 14, paddingVertical: 8 },
-  actionLabel: { fontSize: 12, fontFamily: Fonts.semibold, color: "white" },
+  actionBtn:   { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.2)", borderRadius: Radius.full, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
+  actionLabel: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "white" },
 
-  sectionLabel:{ ...MonoLabel, marginBottom: 10, marginTop: 20 },
-  card:        { backgroundColor: Colors.white, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, padding: 16 },
+  sectionLabel:{ fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.9, marginBottom: 10, marginTop: 20 },
+  card:        { ...Glass.cardStrong, borderRadius: Radius.lg, padding: 16 },
 
-  statsCard:   { backgroundColor: Colors.white, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, flexDirection: "row", padding: 16 },
+  statsCard:   { ...Glass.cardStrong, borderRadius: Radius.lg, flexDirection: "row", padding: 16 },
   statBox:     { flex: 1, alignItems: "center", gap: 4 },
-  statVal:     { fontSize: 20, fontFamily: Fonts.bold, fontVariant: ["tabular-nums"] },
-  statLabel:   { ...MonoLabel, fontSize: 8.5, textAlign: "center" },
+  statVal:     { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold" },
+  statLabel:   { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle, textAlign: "center" },
   statDiv:     { width: 1, backgroundColor: Colors.border, marginVertical: 4 },
 
   infoRow:     { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 4 },
@@ -614,18 +528,15 @@ const p = StyleSheet.create({
   infoDivider: { height: 1, backgroundColor: Colors.border, marginVertical: 8 },
   infoLabel:   { flex: 1, fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   infoValue:   { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
-  cfInput:     { flex: 1, fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text, textAlign: "right", paddingVertical: 2 },
-  saveCfBtn:   { marginTop: 12, backgroundColor: Colors.blue, borderRadius: Radius.md, paddingVertical: 10, alignItems: "center" },
-  saveCfBtnTxt:{ fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 
-  emptyCard:   { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 40, alignItems: "center" },
+  emptyCard:   { ...Glass.cardStrong, borderRadius: Radius.xl, padding: 40, alignItems: "center" },
   emptyTitle:  { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:    { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
 
-  apptRow:     { backgroundColor: Colors.white, borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.border, flexDirection: "row", alignItems: "center", gap: 14, padding: 14, marginBottom: 8 },
+  apptRow:     { ...Glass.cardStrong, borderRadius: Radius.md, flexDirection: "row", alignItems: "center", gap: 14, padding: 14, marginBottom: 8 },
   dateBlock:   { width: 40, alignItems: "center", backgroundColor: Colors.cream2, borderRadius: Radius.sm, paddingVertical: 8 },
   dateDay:     { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, lineHeight: 20 },
-  dateMon:     { fontSize: 10, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase" },
+  dateMon:     { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle, textTransform: "uppercase" },
   apptService: { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   apptTime:    { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
   apptPrice:   { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
@@ -635,15 +546,15 @@ const p = StyleSheet.create({
 
 // Edit modal styles
 const em = StyleSheet.create({
-  header:     { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white },
+  header:     { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 20 },
   headerRow:  { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  iconBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.cream2, borderWidth: 1, borderColor: Colors.border, alignItems: "center", justifyContent: "center" },
-  headerTitle:{ fontSize: 17, fontFamily: Fonts.bold, color: Colors.text, letterSpacing: -0.3 },
+  iconBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.2)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
+  headerTitle:{ fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   field:      { marginBottom: 16 },
-  fieldLabel: { ...MonoLabel, fontSize: 9.5, marginBottom: 8 },
-  input:      { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: Fonts.regular, color: Colors.text },
-  bottomBar:  { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
+  fieldLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 },
+  input:      { ...Glass.cardStrong, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
+  bottomBar:  { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.6)", backgroundColor: "rgba(244,244,249,0.85)" },
   btn:        { borderRadius: Radius.full, overflow: "hidden" },
-  btnGrad: { paddingVertical: 16, alignItems: "center" },
-  btnText:    { fontSize: 15, fontFamily: Fonts.bold, color: "white" },
+  btnGrad: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
+  btnText:    { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 });

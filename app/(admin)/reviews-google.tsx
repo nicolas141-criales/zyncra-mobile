@@ -11,6 +11,10 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
+import { fmtPhone, fmtDateFull } from "@/lib/format";
 
 type Tab = "config" | "solicitar" | "historial";
 type Client = { id: string; name: string; phone: string | null };
@@ -19,18 +23,10 @@ type Request = { id: string; client_name: string; client_phone: string | null; s
 const DEFAULT_TEMPLATE =
   "Hola {{nombre}} 👋\n\nGracias por visitarnos. Tu opinión nos ayuda a mejorar y a que más personas nos encuentren.\n\n⭐ ¿Nos dejas una reseña en Google? Solo toma 1 minuto:\n{{link}}\n\n¡Gracias de corazón!";
 
-function fmt(phone: string) {
-  const d = phone.replace(/\D/g, "");
-  return d.startsWith("57") ? d : `57${d}`;
-}
-
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" });
-}
-
 export default function GoogleReviewsScreen() {
   const router = useRouter();
-  const [tenantId, setTenantId]       = useState<string | null>(null);
+  const { t } = useTheme();
+  const { tenantId } = useAuth();
   const [settingsId, setSettingsId]   = useState<string | null>(null);
   const [tab, setTab]                 = useState<Tab>("config");
 
@@ -54,22 +50,20 @@ export default function GoogleReviewsScreen() {
   const [loadingHist, setLoadingHist] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(async ({ data: tenant }) => {
-          if (!tenant) return;
-          setTenantId(tenant.id);
-          const { data: cfg } = await supabase.from("google_review_settings")
-            .select("id, google_maps_url, message_template").eq("tenant_id", tenant.id).single();
-          if (cfg) {
-            setSettingsId(cfg.id);
-            setGoogleUrl(cfg.google_maps_url ?? "");
-            setTemplate(cfg.message_template ?? DEFAULT_TEMPLATE);
-          }
-        });
-    });
-  }, []);
+    if (!tenantId) return;
+    let cancelled = false;
+    supabase.from("google_review_settings")
+      .select("id, google_maps_url, message_template").eq("tenant_id", tenantId).single()
+      .then(({ data: cfg }) => {
+        if (cancelled) return;
+        if (cfg) {
+          setSettingsId(cfg.id);
+          setGoogleUrl(cfg.google_maps_url ?? "");
+          setTemplate(cfg.message_template ?? DEFAULT_TEMPLATE);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [tenantId]);
 
   const loadClients = useCallback(async () => {
     if (!tenantId) return;
@@ -91,8 +85,13 @@ export default function GoogleReviewsScreen() {
   }, [tenantId]);
 
   useEffect(() => {
-    if (tab === "solicitar") loadClients();
-    if (tab === "historial") loadHistory();
+    let cancelled = false;
+    const run = async () => {
+      if (tab === "solicitar") await loadClients();
+      if (tab === "historial") await loadHistory();
+    };
+    run().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [tab, loadClients, loadHistory]);
 
   const handleSave = async () => {
@@ -136,7 +135,7 @@ export default function GoogleReviewsScreen() {
   const handleWhatsApp = async (client: Client) => {
     if (!googleUrl) { Alert.alert("Falta el link", "Configura primero el link de Google en la pestaña Configuración."); return; }
     if (!client.phone) { Alert.alert("Sin teléfono", "Este cliente no tiene número registrado."); return; }
-    const url = `https://wa.me/${fmt(client.phone)}?text=${encodeURIComponent(buildMessage(client))}`;
+    const url = `https://wa.me/${fmtPhone(client.phone)}?text=${encodeURIComponent(buildMessage(client))}`;
     Linking.openURL(url);
     await logRequest(client, "whatsapp");
   };
@@ -153,9 +152,8 @@ export default function GoogleReviewsScreen() {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
             <Ionicons name="arrow-back" size={20} color="white" />
@@ -171,10 +169,10 @@ export default function GoogleReviewsScreen() {
       </LinearGradient>
 
       {/* Tabs */}
-      <View style={s.tabBar}>
-        {TABS.map(t => (
-          <TouchableOpacity key={t.key} style={[s.tabBtn, tab === t.key && s.tabBtnActive]} onPress={() => setTab(t.key)} activeOpacity={0.75}>
-            <Text style={[s.tabLabel, tab === t.key && s.tabLabelActive]}>{t.label}</Text>
+      <View style={[s.tabBar, { backgroundColor: t.bgAlt, borderBottomColor: t.border }]}>
+        {TABS.map(tb => (
+          <TouchableOpacity key={tb.key} style={[s.tabBtn, tab === tb.key && s.tabBtnActive]} onPress={() => setTab(tb.key)} activeOpacity={0.75}>
+            <Text style={[s.tabLabel, tab === tb.key && s.tabLabelActive]}>{tb.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -197,7 +195,7 @@ export default function GoogleReviewsScreen() {
               <Text style={s.label}>Link directo de Google</Text>
               <View style={s.inputRow}>
                 <TextInput style={[s.input, { flex: 1 }]} value={googleUrl} onChangeText={setGoogleUrl}
-                  placeholder="https://g.page/r/..." placeholderTextColor={Colors.subtle}
+                  placeholder="https://g.page/r/..." placeholderTextColor={t.subtle}
                   autoCapitalize="none" autoCorrect={false} keyboardType="url" />
                 <TouchableOpacity style={s.copyBtn} onPress={() => { Clipboard.setString(googleUrl); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>
                   <Ionicons name={copied ? "checkmark" : "copy-outline"} size={16} color={copied ? Colors.success : Colors.muted} />
@@ -219,7 +217,7 @@ export default function GoogleReviewsScreen() {
               </View>
               <View style={[s.textAreaWrap, Shadow.sm]}>
                 <TextInput style={s.textArea} value={template} onChangeText={setTemplate}
-                  multiline textAlignVertical="top" placeholderTextColor={Colors.subtle} />
+                  multiline textAlignVertical="top" placeholderTextColor={t.subtle} />
               </View>
 
               <TouchableOpacity style={s.btn} onPress={handleSave} disabled={saving} activeOpacity={0.85}>
@@ -249,7 +247,7 @@ export default function GoogleReviewsScreen() {
 
             <Text style={s.label}>Buscar cliente</Text>
             <TextInput style={s.input} value={search} onChangeText={t => { setSearch(t); setSelected(null); setSentOk(false); }}
-              placeholder="Nombre o teléfono..." placeholderTextColor={Colors.subtle} />
+              placeholder="Nombre o teléfono..." placeholderTextColor={t.subtle} />
 
             {loadingClients && <ActivityIndicator color={Colors.red} style={{ marginTop: 20 }} />}
 
@@ -313,14 +311,14 @@ export default function GoogleReviewsScreen() {
                 <Text style={s.summaryLabel}>Total solicitudes enviadas</Text>
               </View>
               {requests.map((r, i) => (
-                <Animated.View key={r.id} entering={FadeInDown.delay(i * 40).duration(280)}>
+                <Animated.View key={r.id} entering={i < 10 ? FadeInDown.delay(i * 40).duration(280) : undefined}>
                   <View style={[s.histRow, Shadow.sm]}>
                     <View style={{ flex: 1 }}>
                       <Text style={s.histName}>{r.client_name}</Text>
                       <Text style={s.histPhone}>{r.client_phone ?? "—"}</Text>
                     </View>
                     <View style={{ alignItems: "flex-end", gap: 6 }}>
-                      <Text style={s.histDate}>{fmtDate(r.created_at)}</Text>
+                      <Text style={s.histDate}>{fmtDateFull(r.created_at)}</Text>
                       <View style={[s.viaBadge, { backgroundColor: r.sent_via === "whatsapp" ? "#25d36615" : Colors.border }]}>
                         <Ionicons name={r.sent_via === "whatsapp" ? "logo-whatsapp" : "copy-outline"} size={10} color={r.sent_via === "whatsapp" ? "#25d366" : Colors.muted} />
                         <Text style={[s.viaBadgeText, { color: r.sent_via === "whatsapp" ? "#25d366" : Colors.muted }]}>
@@ -342,7 +340,7 @@ export default function GoogleReviewsScreen() {
 const s = StyleSheet.create({
   header:       { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
   headerRow:    { flexDirection: "row", alignItems: "center", gap: 12 },
-  backBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  backBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
   headerTitle:  { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.3 },
   headerSub:    { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
 
@@ -352,7 +350,7 @@ const s = StyleSheet.create({
   tabLabel:     { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
   tabLabelActive:{ fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: Colors.red },
 
-  label:        { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8, marginTop: 18 },
+  label:        { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8, marginTop: 18 },
   input:        { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
   inputRow:     { flexDirection: "row", alignItems: "center", gap: 8 },
   copyBtn:      { width: 48, height: 48, borderRadius: Radius.md, backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, alignItems: "center", justifyContent: "center" },
@@ -389,11 +387,11 @@ const s = StyleSheet.create({
   actionBtn:    { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: Radius.md, paddingVertical: 14 },
   actionBtnText:{ fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 
-  emptyCard:    { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 48, alignItems: "center", marginTop: 20 },
+  emptyCard:    { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 48, alignItems: "center", marginTop: 20 },
   emptyTitle:   { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:     { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
 
-  summaryCard:  { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 20, alignItems: "center", marginBottom: 16 },
+  summaryCard:  { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 20, alignItems: "center", marginBottom: 16 },
   summaryCount: { fontSize: 36, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
   summaryLabel: { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 4 },
 

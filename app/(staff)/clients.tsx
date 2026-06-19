@@ -9,7 +9,13 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
+import { STATUS_META } from "@/constants/status";
+import { fmtDateShort, fmtMoneyFull } from "@/lib/format";
+import Avatar from "@/components/Avatar";
+import ErrorState from "@/components/ErrorState";
 
 type ClientEntry = {
   id: string;
@@ -31,30 +37,6 @@ type ApptHistoryItem = {
   price: number;
 };
 
-const MONTHS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-
-const STATUS_META: Record<string, { label: string; color: string }> = {
-  pending:   { label: "Pendiente",  color: "#f59e0b" },
-  confirmed: { label: "Confirmada", color: Colors.blue },
-  completed: { label: "Completada", color: Colors.success },
-  cancelled: { label: "Cancelada",  color: Colors.subtle },
-  no_show:   { label: "No asistió", color: Colors.red },
-};
-
-function fmtDate(d: string) {
-  const dt = new Date(d + "T00:00:00");
-  return `${dt.getDate()} ${MONTHS[dt.getMonth()]} ${dt.getFullYear()}`;
-}
-
-function Avatar({ name, size = 46 }: { name: string; size?: number }) {
-  const initials = name.split(" ").map(w => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase() || "?";
-  return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: Colors.blue + "14", borderWidth: 1.5, borderColor: Colors.blue + "30", alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ fontSize: size * 0.33, fontFamily: "SpaceGrotesk_700Bold", color: Colors.blue }}>{initials}</Text>
-    </View>
-  );
-}
-
 // ─── Client detail modal ──────────────────────────────────────────────────────
 
 function ClientModal({ client, proId, onClose }: {
@@ -65,6 +47,7 @@ function ClientModal({ client, proId, onClose }: {
 
   useEffect(() => {
     if (!client || !proId) return;
+    let cancelled = false;
     setLoading(true);
     supabase.from("appointments")
       .select("id, appointment_date, appointment_time, status, services(name, price)")
@@ -73,6 +56,7 @@ function ClientModal({ client, proId, onClose }: {
       .order("appointment_date", { ascending: false })
       .limit(20)
       .then(({ data }) => {
+        if (cancelled) return;
         setHistory((data ?? []).map((a: any) => ({
           id: a.id,
           date: a.appointment_date,
@@ -83,18 +67,18 @@ function ClientModal({ client, proId, onClose }: {
         })));
         setLoading(false);
       });
+    return () => { cancelled = true; };
   }, [client, proId]);
 
+  const { t } = useTheme();
   if (!client) return null;
 
   const totalSpent = history.filter(a => a.status === "completed").reduce((s, a) => s + a.price, 0);
-  const fmtMoney = (n: number) => `$${Math.round(n).toLocaleString("es-CO")}`;
 
   return (
     <Modal visible={!!client} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-        <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={cm.header}>
-          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={cm.header}>
           <View style={cm.headerRow}>
             <TouchableOpacity onPress={onClose} style={cm.iconBtn}>
               <Ionicons name="close" size={20} color="white" />
@@ -142,7 +126,7 @@ function ClientModal({ client, proId, onClose }: {
             </View>
             <View style={cm.statDivider} />
             <View style={cm.statBox}>
-              <Text style={[cm.statVal, { color: Colors.purple }]}>{fmtMoney(totalSpent)}</Text>
+              <Text style={[cm.statVal, { color: Colors.purple }]}>{fmtMoneyFull(totalSpent)}</Text>
               <Text style={cm.statLabel}>Total gastado</Text>
             </View>
           </View>
@@ -162,14 +146,14 @@ function ClientModal({ client, proId, onClose }: {
                 <View key={a.id} style={[cm.apptRow, Shadow.sm]}>
                   <View style={cm.dateBlock}>
                     <Text style={cm.dateDay}>{new Date(a.date + "T00:00:00").getDate()}</Text>
-                    <Text style={cm.dateMon}>{MONTHS[new Date(a.date + "T00:00:00").getMonth()]}</Text>
+                    <Text style={cm.dateMon}>{new Date(a.date + "T00:00:00").toLocaleDateString("es-CO", { month: "short" })}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={cm.apptService} numberOfLines={1}>{a.serviceName}</Text>
                     <Text style={cm.apptTime}>{a.time}</Text>
                   </View>
                   <View style={{ alignItems: "flex-end", gap: 4 }}>
-                    {a.price > 0 && <Text style={cm.apptPrice}>{fmtMoney(a.price)}</Text>}
+                    {a.price > 0 && <Text style={cm.apptPrice}>{fmtMoneyFull(a.price)}</Text>}
                     <View style={[cm.statusPill, { backgroundColor: meta.color + "15" }]}>
                       <Text style={[cm.statusText, { color: meta.color }]}>{meta.label}</Text>
                     </View>
@@ -187,7 +171,7 @@ function ClientModal({ client, proId, onClose }: {
 const cm = StyleSheet.create({
   header:      { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 24 },
   headerRow:   { flexDirection: "row", marginBottom: 12 },
-  iconBtn:     { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  iconBtn:     { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
   clientName:  { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", color: "white", marginTop: 10, letterSpacing: -0.3 },
   clientPhone: { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.75)", marginTop: 4 },
   quickActions:{ flexDirection: "row", justifyContent: "center", gap: 10, marginTop: 16 },
@@ -198,13 +182,13 @@ const cm = StyleSheet.create({
   statVal:     { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
   statLabel:   { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle, textAlign: "center" },
   statDivider: { width: 1, backgroundColor: Colors.border },
-  sectionLabel:{ fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginTop: 20, marginBottom: 10 },
-  emptyCard:   { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 24, alignItems: "center" },
+  sectionLabel:{ fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginTop: 20, marginBottom: 10 },
+  emptyCard:   { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 24, alignItems: "center" },
   emptyTitle:  { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
   apptRow:     { backgroundColor: Colors.white, borderRadius: Radius.md, flexDirection: "row", alignItems: "center", gap: 12, padding: 12, marginBottom: 8 },
   dateBlock:   { width: 38, alignItems: "center", backgroundColor: Colors.cream2, borderRadius: 8, paddingVertical: 6 },
   dateDay:     { fontSize: 17, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, lineHeight: 19 },
-  dateMon:     { fontSize: 9, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase" },
+  dateMon:     { fontSize: 9, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle, textTransform: "uppercase" },
   apptService: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   apptTime:    { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
   apptPrice:   { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
@@ -215,6 +199,8 @@ const cm = StyleSheet.create({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 
 export default function StaffClientsScreen() {
+  const { user } = useAuth();
+  const { t } = useTheme();
   const [proId, setProId]           = useState<string | null>(null);
   const [clients, setClients]       = useState<ClientEntry[]>([]);
   const [filtered, setFiltered]     = useState<ClientEntry[]>([]);
@@ -222,19 +208,22 @@ export default function StaffClientsScreen() {
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selected, setSelected]     = useState<ClientEntry | null>(null);
+  const [error, setError]           = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("professionals").select("id").eq("user_id", user.id).single()
-        .then(({ data }) => { if (data) setProId(data.id); });
-    });
-  }, []);
+    if (!user) return;
+    let cancelled = false;
+    supabase.from("professionals").select("id").eq("user_id", user.id).single()
+      .then(({ data }) => { if (!cancelled && data) setProId(data.id); });
+    return () => { cancelled = true; };
+  }, [user]);
 
   const load = useCallback(async () => {
     if (!proId) return;
     setLoading(true);
-    const { data: appts } = await supabase
+    setError(false);
+    try {
+    const { data: appts, error: err } = await supabase
       .from("appointments")
       .select("appointment_date, client_id, status, clients(id,name,phone,email), services(name,price)")
       .eq("professional_id", proId)
@@ -264,6 +253,10 @@ export default function StaffClientsScreen() {
     setClients(list);
     setFiltered(list);
     setLoading(false);
+    } catch {
+      setError(true);
+      setLoading(false);
+    }
   }, [proId]);
 
   useEffect(() => { if (proId) load(); }, [proId]);
@@ -286,7 +279,7 @@ export default function StaffClientsScreen() {
         <View style={{ flex: 1 }}>
           <Text style={s.name} numberOfLines={1}>{item.name}</Text>
           <Text style={s.sub} numberOfLines={1}>
-            {item.apptCount} cita{item.apptCount !== 1 ? "s" : ""} · último {fmtDate(item.lastDate)}
+            {item.apptCount} cita{item.apptCount !== 1 ? "s" : ""} · último {fmtDateShort(item.lastDate)}
           </Text>
           {item.lastService !== "—" && (
             <Text style={s.service} numberOfLines={1}>{item.lastService}</Text>
@@ -309,10 +302,9 @@ export default function StaffClientsScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
-      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
+      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <Text style={s.headerTitle}>Mis Clientes</Text>
         <Text style={s.headerSub}>
           {clients.length} cliente{clients.length !== 1 ? "s" : ""} atendido{clients.length !== 1 ? "s" : ""}
@@ -321,24 +313,26 @@ export default function StaffClientsScreen() {
 
       {/* Search */}
       <View style={s.searchWrap}>
-        <View style={[s.searchBox, Shadow.sm]}>
-          <Ionicons name="search-outline" size={16} color={Colors.subtle} />
+        <View style={[s.searchBox, Shadow.sm, { backgroundColor: t.bgAlt }]}>
+          <Ionicons name="search-outline" size={16} color={t.subtle} />
           <TextInput
-            style={s.searchInput}
+            style={[s.searchInput, { color: t.text }]}
             value={query}
             onChangeText={handleSearch}
             placeholder="Buscar por nombre o teléfono..."
-            placeholderTextColor={Colors.subtle}
+            placeholderTextColor={t.subtle}
           />
           {query.length > 0 && (
             <TouchableOpacity onPress={() => handleSearch("")}>
-              <Ionicons name="close-circle" size={16} color={Colors.subtle} />
+              <Ionicons name="close-circle" size={16} color={t.subtle} />
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      {loading ? (
+      {error ? (
+        <ErrorState onRetry={load} />
+      ) : loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator color={Colors.red} size="large" />
         </View>
@@ -372,17 +366,17 @@ const s = StyleSheet.create({
   headerSub:   { fontSize: 13, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
 
   searchWrap:  { padding: 16, paddingBottom: 8 },
-  searchBox:   { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.full, paddingHorizontal: 16, paddingVertical: 12 },
+  searchBox:   { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Colors.white, borderRadius: Radius.full, paddingHorizontal: 16, paddingVertical: 12 },
   searchInput: { flex: 1, fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
 
-  card:        { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, flexDirection: "row", alignItems: "center", gap: 12, padding: 14, marginBottom: 10 },
+  card:        { backgroundColor: Colors.white, borderRadius: Radius.lg, flexDirection: "row", alignItems: "center", gap: 12, padding: 14, marginBottom: 10 },
   name:        { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   sub:         { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
   service:     { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle, marginTop: 2 },
   actionBtns:  { flexDirection: "row", alignItems: "center", gap: 10 },
   iconBtn:     { width: 34, height: 34, borderRadius: 17, backgroundColor: "#25D36615", alignItems: "center", justifyContent: "center" },
 
-  empty:       { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 44, alignItems: "center", marginTop: 8 },
+  empty:       { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 44, alignItems: "center", marginTop: 8 },
   emptyTitle:  { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:    { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
 });

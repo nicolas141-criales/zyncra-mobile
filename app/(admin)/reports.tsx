@@ -10,18 +10,13 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
+import { fmtMoney, pct } from "@/lib/format";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 type Period = "week" | "month" | "year";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmt(n: number) {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000)     return `$${(n / 1_000).toFixed(0)}k`;
-  return `$${Math.round(n).toLocaleString("es-CO")}`;
-}
-function pct(n: number) { return `${Math.round(n)}%`; }
 
 function getRange(period: Period): { start: string; end: string } {
   const now = new Date();
@@ -112,13 +107,14 @@ function KpiCard({ label, value, sub, icon, color, trend, delay }: {
   label: string; value: string; sub?: string; icon: IoniconName;
   color: string; trend?: "up" | "down" | "neutral"; delay: number;
 }) {
+  const { t } = useTheme();
   return (
-    <Animated.View entering={FadeInDown.delay(delay).duration(350)} style={[kpi.card, Shadow.sm]}>
+    <Animated.View entering={FadeInDown.delay(delay).duration(350)} style={[kpi.card, Shadow.sm, { backgroundColor: t.bgAlt }]}>
       <View style={[kpi.iconBox, { backgroundColor: color + "18" }]}>
         <Ionicons name={icon} size={18} color={color} />
       </View>
       <Text style={[kpi.value, { color }]}>{value}</Text>
-      <Text style={kpi.label}>{label}</Text>
+      <Text style={[kpi.label, { color: t.muted }]}>{label}</Text>
       {(sub || trend) && (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
           {trend && trend !== "neutral" && (
@@ -136,7 +132,7 @@ function KpiCard({ label, value, sub, icon, color, trend, delay }: {
 }
 
 const kpi = StyleSheet.create({
-  card:    { flex: 1, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 14, alignItems: "center", gap: 4 },
+  card:    { flex: 1, backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14, alignItems: "center", gap: 4 },
   iconBox: { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center", marginBottom: 4 },
   value:   { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", letterSpacing: -0.5 },
   label:   { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted, textAlign: "center" },
@@ -216,8 +212,9 @@ const rk = StyleSheet.create({
 
 export default function ReportsScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const [period, setPeriod] = useState<Period>("month");
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const { tenantId } = useAuth();
   const [loading, setLoading]   = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -234,26 +231,16 @@ export default function ReportsScreen() {
   const [revenueSlots, setRevenueSlots] = useState<number[]>([]);
   const [slotLabels, setSlotLabels]     = useState<string[]>([]);
 
-  // POS
-  const [posRevenue, setPosRevenue]         = useState(0);
-  const [prevPosRevenue, setPrevPosRevenue] = useState(0);
-  const [paymentMethods, setPaymentMethods] = useState<{ method: string; amount: number; count: number }[]>([]);
-
   // Rankings
   const [topServices, setTopServices] = useState<{ name: string; count: number }[]>([]);
   const [staffPerf, setStaffPerf]     = useState<{ name: string; count: number; revenue: number }[]>([]);
   const [hourly, setHourly]           = useState<{ hour: number; count: number }[]>([]);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
-
-  useEffect(() => {
-    if (tenantId) load();
+    if (!tenantId) return;
+    let cancelled = false;
+    load().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [tenantId, period]);
 
   const load = useCallback(async () => {
@@ -262,7 +249,7 @@ export default function ReportsScreen() {
     const { start, end }         = getRange(period);
     const { start: ps, end: pe } = getPrevRange(period);
 
-    const [curRes, prevRes, posRes, prevPosRes] = await Promise.all([
+    const [curRes, prevRes] = await Promise.all([
       supabase.from("appointments")
         .select("id, appointment_date, appointment_time, status, services(name, price), professionals(name), clients(id, created_at)")
         .eq("tenant_id", tenantId)
@@ -273,44 +260,10 @@ export default function ReportsScreen() {
         .eq("tenant_id", tenantId)
         .gte("appointment_date", ps)
         .lte("appointment_date", pe),
-      supabase.from("pos_sales")
-        .select("total, payment_method, created_at")
-        .eq("tenant_id", tenantId)
-        .gte("created_at", start + "T00:00:00")
-        .lte("created_at", end + "T23:59:59"),
-      supabase.from("pos_sales")
-        .select("total, payment_method")
-        .eq("tenant_id", tenantId)
-        .gte("created_at", ps + "T00:00:00")
-        .lte("created_at", pe + "T23:59:59"),
     ]);
 
     const cur: any[]  = curRes.data  ?? [];
     const prev: any[] = prevRes.data ?? [];
-
-    const posSales: any[]     = posRes.data     ?? [];
-    const prevPosSales: any[] = prevPosRes.data ?? [];
-    const posRev     = posSales.reduce((s: number, p: any) => s + (p.total ?? 0), 0);
-    const prevPosRev = prevPosSales.reduce((s: number, p: any) => s + (p.total ?? 0), 0);
-
-    setPosRevenue(posRev);
-    setPrevPosRevenue(prevPosRev);
-
-    const pmMap = new Map<string, { amount: number; count: number }>();
-    const PM_LABELS: Record<string, string> = {
-      cash: "Efectivo", card: "Tarjeta", transfer: "Transferencia",
-      nequi: "Nequi", daviplata: "Daviplata", other: "Otro",
-    };
-    posSales.forEach((p: any) => {
-      const m = p.payment_method ?? "other";
-      const cur2 = pmMap.get(m) ?? { amount: 0, count: 0 };
-      pmMap.set(m, { amount: cur2.amount + (p.total ?? 0), count: cur2.count + 1 });
-    });
-    setPaymentMethods(
-      Array.from(pmMap.entries())
-        .map(([method, v]) => ({ method: PM_LABELS[method] ?? method, amount: v.amount, count: v.count }))
-        .sort((a, b) => b.amount - a.amount)
-    );
 
     // KPIs
     const done  = cur.filter(a => a.status === "completed" || a.status === "confirmed");
@@ -386,9 +339,7 @@ export default function ReportsScreen() {
 
   const onRefresh = () => { setRefreshing(true); load(); };
 
-  const totalRevenue     = revenue + posRevenue;
-  const totalPrevRevenue = prevRevenue + prevPosRevenue;
-  const revTrend   = totalPrevRevenue > 0 ? ((totalRevenue - totalPrevRevenue) / totalPrevRevenue) * 100 : 0;
+  const revTrend   = prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : 0;
   const countTrend = prevCount   > 0 ? ((apptCount - prevCount) / prevCount) * 100   : 0;
 
   const topSvcTotal = topServices.reduce((s, x) => s + x.count, 0);
@@ -400,10 +351,9 @@ export default function ReportsScreen() {
   const periodLabel = period === "week" ? "esta semana" : period === "month" ? "este mes" : "este año";
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
-      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
+      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
             <Ionicons name="arrow-back" size={22} color="white" />
@@ -440,12 +390,12 @@ export default function ReportsScreen() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.red} />}
         >
           {/* KPI row 1 */}
-          <Text style={s.sectionTitle}>Resumen {periodLabel}</Text>
+          <Text style={[s.sectionTitle, { color: t.subtle }]}>Resumen {periodLabel}</Text>
           <View style={s.kpiRow}>
             <KpiCard
-              label="Ingresos totales" value={fmt(totalRevenue)} icon="cash-outline" color={Colors.red}
+              label="Ingresos" value={fmtMoney(revenue)} icon="cash-outline" color={Colors.red}
               trend={revTrend > 0 ? "up" : revTrend < 0 ? "down" : "neutral"}
-              sub={totalPrevRevenue > 0 ? `${revTrend > 0 ? "+" : ""}${pct(revTrend)} vs anterior` : undefined}
+              sub={prevRevenue > 0 ? `${revTrend > 0 ? "+" : ""}${pct(revTrend)} vs anterior` : undefined}
               delay={0}
             />
             <KpiCard
@@ -457,36 +407,36 @@ export default function ReportsScreen() {
           </View>
 
           <View style={s.kpiRow}>
-            <KpiCard label="Ticket promedio" value={fmt(avgTicket)} icon="pricetag-outline" color="#f59e0b" delay={120} />
+            <KpiCard label="Ticket promedio" value={fmtMoney(avgTicket)} icon="pricetag-outline" color="#f59e0b" delay={120} />
             <KpiCard label="No asistió" value={pct(noShowRate)} icon="person-remove-outline" color={noShowRate > 15 ? Colors.red : Colors.muted} delay={180} />
             <KpiCard label="Clientes nuevos" value={String(newClients)} icon="person-add-outline" color={Colors.success} delay={240} />
           </View>
 
           {/* Revenue chart */}
           {revenueSlots.some(v => v > 0) && (
-            <Animated.View entering={FadeInDown.delay(300).duration(400)} style={[s.card, Shadow.sm]}>
+            <Animated.View entering={FadeInDown.delay(300).duration(400)} style={[s.card, Shadow.sm, { backgroundColor: t.bgAlt }]}>
               <View style={s.cardHeader}>
                 <View style={[s.cardIconBox, { backgroundColor: Colors.red + "14" }]}>
                   <Ionicons name="bar-chart-outline" size={16} color={Colors.red} />
                 </View>
-                <Text style={s.cardTitle}>Ingresos por {period === "week" ? "día" : period === "month" ? "día" : "mes"}</Text>
+                <Text style={[s.cardTitle, { color: t.text }]}>Ingresos por {period === "week" ? "día" : period === "month" ? "día" : "mes"}</Text>
               </View>
               <BarChart data={revenueSlots} labels={slotLabels} color={Colors.red} />
-              <View style={s.chartFooter}>
-                <Text style={s.chartFooterTxt}>Total: {fmt(revenue)}</Text>
-                <Text style={s.chartFooterTxt}>Prom/día: {fmt(revenueSlots.filter(v => v > 0).reduce((a, b) => a + b, 0) / Math.max(revenueSlots.filter(v => v > 0).length, 1))}</Text>
+              <View style={[s.chartFooter, { borderTopColor: t.border }]}>
+                <Text style={[s.chartFooterTxt, { color: t.muted }]}>Total: {fmtMoney(revenue)}</Text>
+                <Text style={[s.chartFooterTxt, { color: t.muted }]}>Prom/día: {fmtMoney(revenueSlots.filter(v => v > 0).reduce((a, b) => a + b, 0) / Math.max(revenueSlots.filter(v => v > 0).length, 1))}</Text>
               </View>
             </Animated.View>
           )}
 
           {/* Top services */}
           {topServices.length > 0 && (
-            <Animated.View entering={FadeInDown.delay(360).duration(400)} style={[s.card, Shadow.sm]}>
+            <Animated.View entering={FadeInDown.delay(360).duration(400)} style={[s.card, Shadow.sm, { backgroundColor: t.bgAlt }]}>
               <View style={s.cardHeader}>
                 <View style={[s.cardIconBox, { backgroundColor: "#8b5cf614" }]}>
                   <Ionicons name="cut-outline" size={16} color="#8b5cf6" />
                 </View>
-                <Text style={s.cardTitle}>Top servicios</Text>
+                <Text style={[s.cardTitle, { color: t.text }]}>Top servicios</Text>
               </View>
               {topServices.map((svc, i) => (
                 <RankRow
@@ -500,25 +450,25 @@ export default function ReportsScreen() {
 
           {/* Staff performance */}
           {staffPerf.length > 0 && (
-            <Animated.View entering={FadeInDown.delay(420).duration(400)} style={[s.card, Shadow.sm]}>
+            <Animated.View entering={FadeInDown.delay(420).duration(400)} style={[s.card, Shadow.sm, { backgroundColor: t.bgAlt }]}>
               <View style={s.cardHeader}>
                 <View style={[s.cardIconBox, { backgroundColor: Colors.blue + "14" }]}>
                   <Ionicons name="people-outline" size={16} color={Colors.blue} />
                 </View>
-                <Text style={s.cardTitle}>Rendimiento del equipo</Text>
+                <Text style={[s.cardTitle, { color: t.text }]}>Rendimiento del equipo</Text>
               </View>
               {staffPerf.map((p, i) => (
-                <Animated.View key={p.name} entering={FadeInRight.delay(i * 60).duration(320)} style={s.staffRow}>
+                <Animated.View key={p.name} entering={i < 10 ? FadeInRight.delay(i * 60).duration(320) : undefined} style={s.staffRow}>
                   <View style={[s.staffAvatar, { backgroundColor: [Colors.red, Colors.blue, Colors.success, "#f59e0b", "#8b5cf6"][i] }]}>
                     <Text style={s.staffAvatarTxt}>{p.name[0]}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.staffName}>{p.name}</Text>
-                    <Text style={s.staffSub}>{p.count} citas</Text>
+                    <Text style={[s.staffName, { color: t.text }]}>{p.name}</Text>
+                    <Text style={[s.staffSub, { color: t.muted }]}>{p.count} citas</Text>
                   </View>
                   <View style={{ alignItems: "flex-end" }}>
-                    <Text style={s.staffRevenue}>{fmt(p.revenue)}</Text>
-                    <View style={s.staffTrack}>
+                    <Text style={[s.staffRevenue, { color: t.text }]}>{fmtMoney(p.revenue)}</Text>
+                    <View style={[s.staffTrack, { backgroundColor: t.border }]}>
                       <View style={[s.staffFill, { width: `${(p.revenue / topStaffRev) * 100}%`, backgroundColor: [Colors.red, Colors.blue, Colors.success, "#f59e0b", "#8b5cf6"][i] }]} />
                     </View>
                   </View>
@@ -527,47 +477,15 @@ export default function ReportsScreen() {
             </Animated.View>
           )}
 
-          {/* Payment methods */}
-          {paymentMethods.length > 0 && (
-            <Animated.View entering={FadeInDown.delay(420).duration(400)} style={[s.card, Shadow.sm]}>
-              <View style={s.cardHeader}>
-                <View style={[s.cardIconBox, { backgroundColor: "#f59e0b14" }]}>
-                  <Ionicons name="card-outline" size={16} color="#f59e0b" />
-                </View>
-                <Text style={s.cardTitle}>Métodos de pago (POS)</Text>
-              </View>
-              {paymentMethods.map((pm, i) => {
-                const pmTotal = paymentMethods.reduce((s2, x) => s2 + x.amount, 0);
-                const pct2 = pmTotal > 0 ? (pm.amount / pmTotal) * 100 : 0;
-                const colors2 = ["#f59e0b", Colors.blue, Colors.success, "#8b5cf6", Colors.red];
-                const c2 = colors2[i % colors2.length];
-                return (
-                  <View key={pm.method} style={{ marginBottom: 12 }}>
-                    <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
-                      <Text style={{ fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text }}>{pm.method}</Text>
-                      <View style={{ alignItems: "flex-end" }}>
-                        <Text style={{ fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: c2 }}>{fmt(pm.amount)}</Text>
-                        <Text style={{ fontSize: 10, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted }}>{pm.count} venta{pm.count !== 1 ? "s" : ""} · {Math.round(pct2)}%</Text>
-                      </View>
-                    </View>
-                    <View style={{ height: 4, backgroundColor: Colors.border, borderRadius: 2, overflow: "hidden" }}>
-                      <View style={{ height: "100%", width: `${pct2}%`, backgroundColor: c2, borderRadius: 2 }} />
-                    </View>
-                  </View>
-                );
-              })}
-            </Animated.View>
-          )}
-
           {/* Hourly distribution */}
           {hourly.length > 0 && (
-            <Animated.View entering={FadeInDown.delay(480).duration(400)} style={[s.card, Shadow.sm]}>
+            <Animated.View entering={FadeInDown.delay(480).duration(400)} style={[s.card, Shadow.sm, { backgroundColor: t.bgAlt }]}>
               <View style={s.cardHeader}>
                 <View style={[s.cardIconBox, { backgroundColor: Colors.success + "14" }]}>
                   <Ionicons name="time-outline" size={16} color={Colors.success} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.cardTitle}>Horarios más activos</Text>
+                  <Text style={[s.cardTitle, { color: t.text }]}>Horarios más activos</Text>
                   {peakHour.count > 0 && (
                     <Text style={s.cardSub}>Pico: {peakHour.hour}:00 – {peakHour.hour + 1}:00</Text>
                   )}
@@ -594,8 +512,8 @@ export default function ReportsScreen() {
           {!loading && revenue === 0 && apptCount === 0 && (
             <View style={s.emptyBox}>
               <Ionicons name="bar-chart-outline" size={40} color={Colors.subtle} />
-              <Text style={s.emptyTitle}>Sin datos {periodLabel}</Text>
-              <Text style={s.emptyTxt}>Los reportes aparecerán cuando haya citas registradas.</Text>
+              <Text style={[s.emptyTitle, { color: t.text }]}>Sin datos {periodLabel}</Text>
+              <Text style={[s.emptyTxt, { color: t.muted }]}>Los reportes aparecerán cuando haya citas registradas.</Text>
             </View>
           )}
         </ScrollView>
@@ -619,10 +537,10 @@ const s = StyleSheet.create({
   periodBtnTxt:    { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.8)" },
   periodBtnTxtActive: { color: Colors.red, fontFamily: "SpaceGrotesk_700Bold" },
 
-  sectionTitle: { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 12 },
+  sectionTitle: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 12 },
   kpiRow:       { flexDirection: "row", gap: 10, marginBottom: 10 },
 
-  card:       { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16, marginBottom: 14 },
+  card:       { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, marginBottom: 14 },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 16 },
   cardIconBox:{ width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   cardTitle:  { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },

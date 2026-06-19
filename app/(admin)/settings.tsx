@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Switch } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import { Colors, Fonts, Gradients, MonoLabel, Radius, Shadow } from "@/constants/theme";
+import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -15,6 +17,7 @@ function SettingRow({
 }: {
   icon: IoniconName; color?: string; label: string; sub?: string; onPress?: () => void; danger?: boolean;
 }) {
+  const { t } = useTheme();
   const iconColor = danger ? Colors.red : (color ?? Colors.purple);
   const iconBg    = danger ? Colors.red + "12" : (color ?? Colors.purple) + "12";
   return (
@@ -23,10 +26,10 @@ function SettingRow({
         <Ionicons name={icon} size={18} color={iconColor} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={[s.rowLabel, danger && { color: Colors.red }]}>{label}</Text>
-        {sub && <Text style={s.rowSub}>{sub}</Text>}
+        <Text style={[s.rowLabel, { color: danger ? Colors.red : t.text }]}>{label}</Text>
+        {sub && <Text style={[s.rowSub, { color: t.muted }]}>{sub}</Text>}
       </View>
-      {!danger && <Ionicons name="chevron-forward" size={16} color={Colors.subtle} />}
+      {!danger && <Ionicons name="chevron-forward" size={16} color={t.subtle} />}
     </TouchableOpacity>
   );
 }
@@ -35,15 +38,17 @@ type Tenant = { name: string; phone?: string };
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { mode, t, toggle } = useTheme();
+  const { tenantId } = useAuth();
   const [tenant, setTenant] = useState<Tenant | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("name, phone").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenant(data); });
-    });
-  }, []);
+    if (!tenantId) return;
+    let cancelled = false;
+    supabase.from("tenants").select("name, phone").eq("id", tenantId).single()
+      .then(({ data }) => { if (!cancelled && data) setTenant(data); });
+    return () => { cancelled = true; };
+  }, [tenantId]);
 
   const handleLogout = () => {
     Alert.alert("Cerrar sesión", "¿Seguro que quieres salir?", [
@@ -63,7 +68,6 @@ export default function SettingsScreen() {
       title: "Tu negocio",
       items: [
         { icon: "storefront-outline" as IoniconName,  color: Colors.red,     label: "Mi Tienda",                sub: "Personalización y link de reservas",          route: "/settings/store" },
-        { icon: "color-palette-outline" as IoniconName, color: "#8b5cf6",    label: "Mi Marca",                 sub: "Logo, colores y página de reservas",          route: "/(admin)/branding" },
         { icon: "time-outline" as IoniconName,        color: "#f59e0b",      label: "Horario de atención",      sub: "Días y horas disponibles",                    route: "/settings/schedule" },
         { icon: "cut-outline" as IoniconName,         color: Colors.purple,  label: "Servicios",                sub: "Gestiona tu catálogo de precios",             route: "/settings/services" },
         { icon: "people-outline" as IoniconName,      color: Colors.blue,    label: "Equipo de trabajo",        sub: "Profesionales y permisos",                    route: "/settings/team" },
@@ -86,16 +90,14 @@ export default function SettingsScreen() {
     {
       title: "Finanzas",
       items: [
-        { icon: "stats-chart-outline" as IoniconName, color: Colors.blue,    label: "Hub Financiero",      sub: "Resumen, caja, ventas y rentabilidad", route: "/(admin)/finanzas" },
-        { icon: "wallet-outline" as IoniconName,      color: Colors.success, label: "Caja",                sub: "Control de ingresos y egresos",        route: "/(admin)/caja" },
-        { icon: "ribbon-outline" as IoniconName,      color: "#f59e0b",      label: "Comisiones",          sub: "Paga a tu equipo de trabajo",          route: "/(admin)/commissions" },
-        { icon: "document-text-outline" as IoniconName, color: Colors.blue,  label: "Factura Electrónica", sub: "Emite facturas DIAN vía Factus",       route: "/(admin)/invoices" },
+        { icon: "wallet-outline" as IoniconName,      color: Colors.success, label: "Caja",                sub: "Control de ingresos y egresos",   route: "/(admin)/caja" },
+        { icon: "ribbon-outline" as IoniconName,      color: "#f59e0b",      label: "Comisiones",          sub: "Paga a tu equipo de trabajo",     route: "/(admin)/commissions" },
+        { icon: "document-text-outline" as IoniconName, color: Colors.blue,  label: "Factura Electrónica", sub: "Emite facturas DIAN vía Factus",  route: "/(admin)/invoices" },
       ],
     },
     {
       title: "Herramientas",
       items: [
-        { icon: "cube-outline" as IoniconName,        color: "#f59e0b",      label: "Inventario",            sub: "Productos, stock y movimientos",    route: "/(admin)/inventario" },
         { icon: "bar-chart-outline" as IoniconName,   color: Colors.red,     label: "Reportes",              sub: "Ingresos, servicios y rendimiento", route: "/(admin)/reports" },
         { icon: "options-outline" as IoniconName,     color: "#8b5cf6",      label: "Campos Personalizados", sub: "Datos extra para clientes y citas", route: "/(admin)/custom-fields" },
       ],
@@ -110,21 +112,55 @@ export default function SettingsScreen() {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-      <View style={s.header}>
-        <View style={{ flex: 1 }}>
-          <Text style={s.headerCrumb}>Configuración</Text>
-          <Text style={s.headerTitle}>Ajustes</Text>
-          <Text style={s.headerSub}>{tenant?.name ?? "Configura tu negocio"}</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+        <View style={s.headerBlob1} />
+        <View style={s.headerBlob2} />
+
+        <View style={s.headerTopRow}>
+          <View style={s.headerIconBox}>
+            <Ionicons name="settings" size={16} color="white" />
+          </View>
+          <Text style={s.headerLabel}>Ajustes</Text>
         </View>
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.headerAccent} />
-      </View>
+
+        <Text style={s.headerTitle}>Configura tu negocio</Text>
+
+        {tenant && (
+          <View style={s.headerPill}>
+            <Ionicons name="storefront" size={12} color="rgba(255,255,255,.9)" />
+            <Text style={s.headerPillText}>{tenant.name}</Text>
+          </View>
+        )}
+      </LinearGradient>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 110 }}>
+        {/* ── Theme toggle ── */}
+        <Animated.View entering={FadeInDown.duration(400)}>
+          <Text style={[s.sectionTitle, { color: t.subtle }]}>Apariencia</Text>
+          <View style={[s.group, Shadow.sm, { backgroundColor: t.card, borderColor: t.cardBorder }]}>
+            <View style={s.row}>
+              <View style={[s.rowIcon, { backgroundColor: mode === "dark" ? "#6366f1" + "18" : "#f59e0b" + "18" }]}>
+                <Ionicons name={mode === "dark" ? "moon" : "sunny"} size={18} color={mode === "dark" ? "#6366f1" : "#f59e0b"} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.rowLabel, { color: t.text }]}>Modo oscuro</Text>
+                <Text style={[s.rowSub, { color: t.muted }]}>{mode === "dark" ? "Activado" : "Desactivado"}</Text>
+              </View>
+              <Switch
+                value={mode === "dark"}
+                onValueChange={toggle}
+                trackColor={{ false: "rgba(20,15,30,0.12)", true: Colors.red + "60" }}
+                thumbColor={mode === "dark" ? Colors.red : "#f4f3f4"}
+              />
+            </View>
+          </View>
+        </Animated.View>
+
         {SECTIONS.map((sec, si) => (
-          <Animated.View key={si} entering={FadeInDown.delay(si * 80).duration(400)}>
-            <Text style={s.sectionTitle}>{sec.title}</Text>
-            <View style={[s.group, Shadow.sm]}>
+          <Animated.View key={si} entering={FadeInDown.delay((si + 1) * 80).duration(400)}>
+            <Text style={[s.sectionTitle, { color: t.subtle }]}>{sec.title}</Text>
+            <View style={[s.group, Shadow.sm, { backgroundColor: t.card, borderColor: t.cardBorder }]}>
               {sec.items.map((item, ii) => (
                 <View key={ii}>
                   <SettingRow
@@ -134,21 +170,21 @@ export default function SettingsScreen() {
                     sub={item.sub}
                     onPress={item.route ? () => router.push(item.route as any) : undefined}
                   />
-                  {ii < sec.items.length - 1 && <View style={s.divider} />}
+                  {ii < sec.items.length - 1 && <View style={[s.divider, { backgroundColor: t.divider }]} />}
                 </View>
               ))}
             </View>
           </Animated.View>
         ))}
 
-        <Animated.View entering={FadeInDown.delay(320).duration(400)}>
-          <View style={[s.group, Shadow.sm]}>
+        <Animated.View entering={FadeInDown.delay(400).duration(400)}>
+          <View style={[s.group, Shadow.sm, { backgroundColor: t.card, borderColor: t.cardBorder }]}>
             <SettingRow icon="log-out-outline" label="Cerrar sesión" onPress={handleLogout} danger />
           </View>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(400).duration(400)} style={{ alignItems: "center", marginTop: 24 }}>
-          <Text style={{ fontSize: 12, color: Colors.subtle, fontFamily: "SpaceGrotesk_400Regular" }}>
+        <Animated.View entering={FadeInDown.delay(480).duration(400)} style={{ alignItems: "center", marginTop: 24 }}>
+          <Text style={{ fontSize: 12, color: t.subtle, fontFamily: "SpaceGrotesk_400Regular" }}>
             Zyncra · v1.0.0 · Hecho en Colombia 🇨🇴
           </Text>
         </Animated.View>
@@ -158,16 +194,20 @@ export default function SettingsScreen() {
 }
 
 const s = StyleSheet.create({
-  header:       { flexDirection: "row", alignItems: "center", paddingTop: 18, paddingHorizontal: 24, paddingBottom: 16 },
-  headerCrumb:  { ...MonoLabel, fontSize: 9, marginBottom: 5 },
-  headerTitle:  { fontSize: 24, fontFamily: Fonts.bold, color: Colors.text, letterSpacing: -0.6 },
-  headerSub:    { fontSize: 13, color: Colors.muted, fontFamily: Fonts.regular, marginTop: 2 },
-  headerAccent: { width: 34, height: 4, borderRadius: 2 },
-  sectionTitle: { ...MonoLabel, marginBottom: 10, marginTop: 20 },
-  group:        { backgroundColor: Colors.white, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, overflow: "hidden" },
+  header:          { paddingTop: 14, paddingHorizontal: 20, paddingBottom: 16, overflow: "hidden" },
+  headerBlob1:     { position: "absolute", width: 200, height: 200, borderRadius: 100, backgroundColor: "rgba(255,255,255,.06)", top: -80, right: -40 },
+  headerBlob2:     { position: "absolute", width: 100, height: 100, borderRadius: 50, backgroundColor: "rgba(0,0,0,.05)", bottom: -30, left: -20 },
+  headerTopRow:    { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14, position: "relative", zIndex: 1 },
+  headerIconBox:   { width: 32, height: 32, borderRadius: 10, backgroundColor: "rgba(255,255,255,.15)", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)" },
+  headerLabel:     { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.8)" },
+  headerTitle:     { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.5, marginBottom: 12, position: "relative", zIndex: 1 },
+  headerPill:      { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.14)", borderRadius: Radius.full, paddingVertical: 8, paddingHorizontal: 14, alignSelf: "flex-start", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)", position: "relative", zIndex: 1 },
+  headerPillText:  { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.9)" },
+  sectionTitle: { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10, marginTop: 20 },
+  group:        { ...Glass.cardStrong, borderRadius: Radius.lg, overflow: "hidden" },
   row:          { flexDirection: "row", alignItems: "center", gap: 14, padding: 16 },
   rowIcon:      { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  rowLabel:     { fontSize: 14, fontFamily: Fonts.semibold, color: Colors.text },
-  rowSub:       { fontSize: 12, fontFamily: Fonts.regular, color: Colors.muted, marginTop: 2 },
+  rowLabel:     { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
+  rowSub:       { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
   divider:      { height: 1, backgroundColor: Colors.border, marginLeft: 70 },
 });

@@ -10,20 +10,24 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
 
 function Field({ label, value, onChangeText, placeholder, keyboardType, multiline }: {
   label: string; value: string; onChangeText: (t: string) => void;
   placeholder: string; keyboardType?: "phone-pad" | "email-address" | "default"; multiline?: boolean;
 }) {
+  const { t } = useTheme();
   return (
     <View style={s.field}>
-      <Text style={s.fieldLabel}>{label}</Text>
+      <Text style={[s.fieldLabel, { color: t.muted }]}>{label}</Text>
       <TextInput
-        style={[s.input, multiline && { height: 80, textAlignVertical: "top" }]}
+        style={[s.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }, multiline && { height: 80, textAlignVertical: "top" }]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={Colors.subtle}
+        placeholderTextColor={t.subtle}
         keyboardType={keyboardType ?? "default"}
         multiline={multiline}
         autoCapitalize={keyboardType === "phone-pad" ? "none" : "sentences"}
@@ -34,7 +38,8 @@ function Field({ label, value, onChangeText, placeholder, keyboardType, multilin
 
 export default function BusinessInfoScreen() {
   const router = useRouter();
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const { t } = useTheme();
+  const { tenantId } = useAuth();
   const [name, setName]         = useState("");
   const [phone, setPhone]       = useState("");
   const [address, setAddress]   = useState("");
@@ -43,20 +48,20 @@ export default function BusinessInfoScreen() {
   const [saved, setSaved]       = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id, name, phone, address").eq("owner_id", user.id).single()
-        .then(({ data }) => {
-          if (data) {
-            setTenantId(data.id);
-            setName(data.name ?? "");
-            setPhone(data.phone ?? "");
-            setAddress(data.address ?? "");
-          }
-          setLoading(false);
-        });
-    });
-  }, []);
+    if (!tenantId) return;
+    let cancelled = false;
+    supabase.from("tenants").select("name, phone, address").eq("id", tenantId).single()
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (data) {
+          setName(data.name ?? "");
+          setPhone(data.phone ?? "");
+          setAddress(data.address ?? "");
+        }
+        setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [tenantId]);
 
   const canSave = name.trim().length >= 2;
 
@@ -74,9 +79,8 @@ export default function BusinessInfoScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
             <Ionicons name="arrow-back" size={20} color="white" />
@@ -109,7 +113,7 @@ export default function BusinessInfoScreen() {
             )}
           </ScrollView>
 
-          <View style={s.bottomBar}>
+          <View style={[s.bottomBar, { backgroundColor: t.bg, borderTopColor: t.border }]}>
             <TouchableOpacity style={[s.btn, !canSave && { opacity: 0.4 }]} onPress={handleSave} disabled={!canSave || saving} activeOpacity={0.85}>
               <View style={s.btnGrad}>
                 {saving ? <ActivityIndicator color="white" /> : <Text style={s.btnText}>Guardar cambios</Text>}
@@ -125,11 +129,11 @@ export default function BusinessInfoScreen() {
 const s = StyleSheet.create({
   header:      { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
   headerRow:   { flexDirection: "row", alignItems: "center", gap: 12 },
-  backBtn:     { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  backBtn:     { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.4 },
   headerSub:   { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
   field:       { marginBottom: 16 },
-  fieldLabel:  { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 },
+  fieldLabel:  { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 },
   input:       { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
   savedBanner: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.success + "12", borderRadius: Radius.md, padding: 14, marginTop: 8 },
   savedText:   { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.success },

@@ -10,10 +10,13 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
+import { Config } from "@/lib/config";
+import { useAuth } from "@/lib/auth";
+import { fmtMoneyFull, fmtDateFull } from "@/lib/format";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
-
-const FACTUS_API = "https://zyncra.app/api/factus";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -110,19 +113,13 @@ const EMPTY_ITEM: InvoiceItem = { name: "", quantity: 1, price: 0, tax_rate: "0.
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function fmt(n: number) {
-  return "$" + Math.round(n).toLocaleString("es-CO");
-}
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("es-CO", { day: "2-digit", month: "short", year: "numeric" });
-}
-
 // ─── Main ──────────────────────────────────────────────────────────────────────
 
 export default function InvoicesScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const [tab, setTab]         = useState(0);
-  const [tenantId, setTenantId] = useState<string | null>(null);
+  const { tenantId } = useAuth();
 
   // Settings
   const [settings, setSettings]     = useState<InvoiceSettings>(EMPTY_SETTINGS);
@@ -150,20 +147,17 @@ export default function InvoicesScreen() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
-
-  useEffect(() => {
     if (!tenantId) return;
-    loadSettings();
+    let cancelled = false;
+    loadSettings().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [tenantId]);
 
   useEffect(() => {
-    if (tab === 2 && tenantId) loadInvoices();
+    if (!tenantId || tab !== 2) return;
+    let cancelled = false;
+    loadInvoices().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
   }, [tab, tenantId]);
 
   const loadSettings = async () => {
@@ -204,7 +198,7 @@ export default function InvoicesScreen() {
     setTestingConn(true); setConnResult(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(FACTUS_API, {
+      const res = await fetch(Config.api.factus, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "test", supabaseToken: session?.access_token, tenantId }),
@@ -251,7 +245,7 @@ export default function InvoicesScreen() {
     setEmitting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(FACTUS_API, {
+      const res = await fetch(Config.api.factus, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -276,13 +270,13 @@ export default function InvoicesScreen() {
 
   const renderSettings = () => (
     <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 110 }}>
-      <Text style={s.sectionTitle}>Credenciales Factus</Text>
-      <View style={[s.card, Shadow.sm]}>
-        <Text style={s.hint}>
+      <Text style={[s.sectionTitle, { color: t.subtle }]}>Credenciales Factus</Text>
+      <View style={[s.card, Shadow.sm, { backgroundColor: t.bgAlt }]}>
+        <Text style={[s.hint, { color: t.muted }]}>
           Conecta tu cuenta de Factus para emitir facturas electrónicas validadas por la DIAN.
         </Text>
 
-        <Text style={s.fieldLabel}>Ambiente</Text>
+        <Text style={[s.fieldLabel, { color: t.subtle }]}>Ambiente</Text>
         <View style={s.envRow}>
           {(["sandbox", "production"] as const).map(env => (
             <TouchableOpacity
@@ -305,21 +299,21 @@ export default function InvoicesScreen() {
           { key: "numbering_range_id",   label: "ID Rango Numeración DIAN" },
         ].map(({ key, label }) => (
           <View key={key} style={{ marginBottom: 12 }}>
-            <Text style={s.fieldLabel}>{label}</Text>
+            <Text style={[s.fieldLabel, { color: t.subtle }]}>{label}</Text>
             <TextInput
-              style={s.input}
+              style={[s.input, { backgroundColor: t.bg, color: t.text }]}
               value={(settings as any)[key]}
               onChangeText={v => setSettings(p => ({ ...p, [key]: v }))}
               secureTextEntry={key.includes("secret") || key.includes("password")}
-              placeholderTextColor={Colors.subtle}
+              placeholderTextColor={t.subtle}
               placeholder={label}
             />
           </View>
         ))}
       </View>
 
-      <Text style={[s.sectionTitle, { marginTop: 20 }]}>Datos del Emisor</Text>
-      <View style={[s.card, Shadow.sm]}>
+      <Text style={[s.sectionTitle, { marginTop: 20, color: t.subtle }]}>Datos del Emisor</Text>
+      <View style={[s.card, Shadow.sm, { backgroundColor: t.bgAlt }]}>
         {[
           { key: "nit",          label: "NIT" },
           { key: "dv",           label: "Dígito de verificación (DV)" },
@@ -328,18 +322,18 @@ export default function InvoicesScreen() {
           { key: "address",      label: "Dirección" },
         ].map(({ key, label }) => (
           <View key={key} style={{ marginBottom: 12 }}>
-            <Text style={s.fieldLabel}>{label}</Text>
+            <Text style={[s.fieldLabel, { color: t.subtle }]}>{label}</Text>
             <TextInput
-              style={s.input}
+              style={[s.input, { backgroundColor: t.bg, color: t.text }]}
               value={(settings as any)[key]}
               onChangeText={v => setSettings(p => ({ ...p, [key]: v }))}
-              placeholderTextColor={Colors.subtle}
+              placeholderTextColor={t.subtle}
               placeholder={label}
             />
           </View>
         ))}
-        <Text style={s.fieldLabel}>Municipio</Text>
-        <TouchableOpacity style={s.pickerBtn} onPress={() => setMuniModal(true)}>
+        <Text style={[s.fieldLabel, { color: t.subtle }]}>Municipio</Text>
+        <TouchableOpacity style={[s.pickerBtn, { backgroundColor: t.bg }]} onPress={() => setMuniModal(true)}>
           <Text style={[s.pickerTxt, !settings.municipality_id && { color: Colors.subtle }]}>
             {MUNICIPALITIES.find(m => String(m.id) === settings.municipality_id)?.label ?? "Seleccionar municipio"}
           </Text>
@@ -375,11 +369,11 @@ export default function InvoicesScreen() {
 
   const renderNueva = () => (
     <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 110 }} keyboardShouldPersistTaps="handled">
-      <Text style={s.sectionTitle}>Datos del Cliente</Text>
-      <View style={[s.card, Shadow.sm]}>
-        <Text style={s.fieldLabel}>Tipo de documento</Text>
-        <TouchableOpacity style={s.pickerBtn} onPress={() => setIdTypeModal(true)}>
-          <Text style={s.pickerTxt}>{ID_TYPES.find(t => t.id === customer.id_type)?.label}</Text>
+      <Text style={[s.sectionTitle, { color: t.subtle }]}>Datos del Cliente</Text>
+      <View style={[s.card, Shadow.sm, { backgroundColor: t.bgAlt }]}>
+        <Text style={[s.fieldLabel, { color: t.subtle }]}>Tipo de documento</Text>
+        <TouchableOpacity style={[s.pickerBtn, { backgroundColor: t.bg }]} onPress={() => setIdTypeModal(true)}>
+          <Text style={[s.pickerTxt, { color: t.text }]}>{ID_TYPES.find(t => t.id === customer.id_type)?.label}</Text>
           <Ionicons name="chevron-down" size={16} color={Colors.subtle} />
         </TouchableOpacity>
 
@@ -393,38 +387,38 @@ export default function InvoicesScreen() {
           { key: "address",   label: "Dirección",           keyboard: "default" },
         ].map(({ key, label, keyboard }) => (
           <View key={key} style={{ marginBottom: 12 }}>
-            <Text style={s.fieldLabel}>{label}</Text>
+            <Text style={[s.fieldLabel, { color: t.subtle }]}>{label}</Text>
             <TextInput
-              style={s.input}
+              style={[s.input, { backgroundColor: t.bg, color: t.text }]}
               value={(customer as any)[key]}
               onChangeText={v => setCustomer(p => ({ ...p, [key]: v }))}
               keyboardType={keyboard as any}
               placeholder={label}
-              placeholderTextColor={Colors.subtle}
+              placeholderTextColor={t.subtle}
             />
           </View>
         ))}
 
-        <Text style={s.fieldLabel}>Municipio</Text>
-        <TouchableOpacity style={s.pickerBtn} onPress={() => setCusMuniModal(true)}>
-          <Text style={s.pickerTxt}>{MUNICIPALITIES.find(m => m.id === customer.municipality_id)?.label ?? "—"}</Text>
+        <Text style={[s.fieldLabel, { color: t.subtle }]}>Municipio</Text>
+        <TouchableOpacity style={[s.pickerBtn, { backgroundColor: t.bg }]} onPress={() => setCusMuniModal(true)}>
+          <Text style={[s.pickerTxt, { color: t.text }]}>{MUNICIPALITIES.find(m => m.id === customer.municipality_id)?.label ?? "—"}</Text>
           <Ionicons name="chevron-down" size={16} color={Colors.subtle} />
         </TouchableOpacity>
       </View>
 
-      <Text style={[s.sectionTitle, { marginTop: 20 }]}>Ítems / Servicios</Text>
-      <View style={[s.card, Shadow.sm]}>
+      <Text style={[s.sectionTitle, { marginTop: 20, color: t.subtle }]}>Ítems / Servicios</Text>
+      <View style={[s.card, Shadow.sm, { backgroundColor: t.bgAlt }]}>
         {items.map((item, i) => (
-          <View key={i} style={{ marginBottom: 16, borderBottomWidth: i < items.length - 1 ? 1 : 0, borderBottomColor: Colors.border, paddingBottom: i < items.length - 1 ? 16 : 0 }}>
+          <View key={i} style={{ marginBottom: 16, borderBottomWidth: i < items.length - 1 ? 1 : 0, borderBottomColor: t.border, paddingBottom: i < items.length - 1 ? 16 : 0 }}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-              <Text style={s.fieldLabel}>Ítem {i + 1}</Text>
+              <Text style={[s.fieldLabel, { color: t.subtle }]}>Ítem {i + 1}</Text>
               {items.length > 1 && (
                 <TouchableOpacity onPress={() => setItems(p => p.filter((_, idx) => idx !== i))}>
                   <Ionicons name="close-circle-outline" size={20} color={Colors.red} />
                 </TouchableOpacity>
               )}
             </View>
-            <TextInput style={[s.input, { marginBottom: 8 }]} value={item.name} onChangeText={v => updateItem(i, "name", v)} placeholder="Descripción del ítem" placeholderTextColor={Colors.subtle} />
+            <TextInput style={[s.input, { marginBottom: 8 }]} value={item.name} onChangeText={v => updateItem(i, "name", v)} placeholder="Descripción del ítem" placeholderTextColor={t.subtle} />
             <View style={{ flexDirection: "row", gap: 10, marginBottom: 8 }}>
               <View style={{ flex: 1 }}>
                 <Text style={[s.fieldLabel, { marginBottom: 4 }]}>Cant.</Text>
@@ -435,7 +429,7 @@ export default function InvoicesScreen() {
                 <TextInput style={s.input} value={String(item.price)} onChangeText={v => updateItem(i, "price", parseFloat(v) || 0)} keyboardType="numeric" />
               </View>
             </View>
-            <Text style={s.fieldLabel}>IVA</Text>
+            <Text style={[s.fieldLabel, { color: t.subtle }]}>IVA</Text>
             <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
               {TAX_OPTIONS.map(opt => (
                 <TouchableOpacity key={opt.value} style={[s.taxBtn, item.tax_rate === opt.value && s.taxBtnActive]} onPress={() => updateItem(i, "tax_rate", opt.value)}>
@@ -451,8 +445,8 @@ export default function InvoicesScreen() {
         </TouchableOpacity>
       </View>
 
-      <Text style={[s.sectionTitle, { marginTop: 20 }]}>Método de pago</Text>
-      <TouchableOpacity style={[s.card, Shadow.sm, { padding: 0 }]} onPress={() => setPayModal(true)}>
+      <Text style={[s.sectionTitle, { marginTop: 20, color: t.subtle }]}>Método de pago</Text>
+      <TouchableOpacity style={[s.card, Shadow.sm, { padding: 0, backgroundColor: t.bgAlt }]} onPress={() => setPayModal(true)}>
         {(() => {
           const pm = PAYMENT_METHODS.find(p => p.code === paymentMethod);
           return (
@@ -460,37 +454,37 @@ export default function InvoicesScreen() {
               <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: Colors.success + "16", alignItems: "center", justifyContent: "center" }}>
                 <Ionicons name={pm?.icon ?? "cash-outline"} size={18} color={Colors.success} />
               </View>
-              <Text style={{ flex: 1, fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text }}>{pm?.label}</Text>
-              <Ionicons name="chevron-down" size={16} color={Colors.subtle} />
+              <Text style={{ flex: 1, fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: t.text }}>{pm?.label}</Text>
+              <Ionicons name="chevron-down" size={16} color={t.subtle} />
             </View>
           );
         })()}
       </TouchableOpacity>
 
-      <Text style={[s.sectionTitle, { marginTop: 20 }]}>Notas</Text>
-      <View style={[s.card, Shadow.sm]}>
+      <Text style={[s.sectionTitle, { marginTop: 20, color: t.subtle }]}>Notas</Text>
+      <View style={[s.card, Shadow.sm, { backgroundColor: t.bgAlt }]}>
         <TextInput
-          style={[s.input, { minHeight: 70, textAlignVertical: "top" }]}
+          style={[s.input, { backgroundColor: t.bg, color: t.text }, { minHeight: 70, textAlignVertical: "top" }]}
           value={notes}
           onChangeText={setNotes}
           multiline
           placeholder="Observaciones (opcional)"
-          placeholderTextColor={Colors.subtle}
+          placeholderTextColor={t.subtle}
         />
       </View>
 
-      <View style={[s.summaryCard, Shadow.sm]}>
+      <View style={[s.summaryCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
         <View style={s.summaryRow}>
-          <Text style={s.summaryLabel}>Subtotal</Text>
-          <Text style={s.summaryValue}>{fmt(subtotal)}</Text>
+          <Text style={[s.summaryLabel, { color: t.muted }]}>Subtotal</Text>
+          <Text style={[s.summaryValue, { color: t.text }]}>{fmtMoneyFull(subtotal)}</Text>
         </View>
         <View style={s.summaryRow}>
-          <Text style={s.summaryLabel}>IVA</Text>
-          <Text style={s.summaryValue}>{fmt(taxTotal)}</Text>
+          <Text style={[s.summaryLabel, { color: t.muted }]}>IVA</Text>
+          <Text style={[s.summaryValue, { color: t.text }]}>{fmtMoneyFull(taxTotal)}</Text>
         </View>
-        <View style={[s.summaryRow, { borderTopWidth: 1, borderTopColor: Colors.border, paddingTop: 10, marginTop: 4 }]}>
-          <Text style={[s.summaryLabel, { fontFamily: "SpaceGrotesk_700Bold", color: Colors.text }]}>Total</Text>
-          <Text style={[s.summaryValue, { fontSize: 18, color: Colors.text }]}>{fmt(total)}</Text>
+        <View style={[s.summaryRow, { borderTopWidth: 1, borderTopColor: t.border, paddingTop: 10, marginTop: 4 }]}>
+          <Text style={[s.summaryLabel, { fontFamily: "SpaceGrotesk_700Bold", color: t.text }]}>Total</Text>
+          <Text style={[s.summaryValue, { fontSize: 18, color: t.text }]}>{fmtMoneyFull(total)}</Text>
         </View>
       </View>
 
@@ -509,7 +503,7 @@ export default function InvoicesScreen() {
           </>
         )}
       </TouchableOpacity>
-      <Text style={{ fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.subtle, textAlign: "center", marginTop: 6 }}>
+      <Text style={{ fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: t.subtle, textAlign: "center", marginTop: 6 }}>
         Se enviará a la DIAN vía Factus
       </Text>
     </ScrollView>
@@ -523,9 +517,9 @@ export default function InvoicesScreen() {
         <ActivityIndicator color={Colors.red} style={{ marginTop: 32 }} />
       ) : invoices.length === 0 ? (
         <View style={s.emptyBox}>
-          <Ionicons name="document-text-outline" size={40} color={Colors.subtle} />
-          <Text style={s.emptyTitle}>Sin facturas aún</Text>
-          <Text style={s.emptyTxt}>Las facturas emitidas aparecerán aquí</Text>
+          <Ionicons name="document-text-outline" size={40} color={t.subtle} />
+          <Text style={[s.emptyTitle, { color: t.text }]}>Sin facturas aún</Text>
+          <Text style={[s.emptyTxt, { color: t.muted }]}>Las facturas emitidas aparecerán aquí</Text>
         </View>
       ) : (
         <FlatList
@@ -537,23 +531,23 @@ export default function InvoicesScreen() {
             const st = STATUS_MAP[inv.status] ?? STATUS_MAP.draft;
             const expanded = expandedId === inv.id;
             return (
-              <View style={[s.invCard, Shadow.sm]}>
+              <View style={[s.invCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
                 <TouchableOpacity onPress={() => setExpandedId(expanded ? null : inv.id)} style={s.invHeader}>
                   <View style={s.invNumber}>
                     <Text style={s.invNumberTxt}>#{inv.number || "—"}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.invCustomer}>{inv.customer_name}</Text>
-                    <Text style={s.invDate}>{fmtDate(inv.created_at)}</Text>
+                    <Text style={[s.invCustomer, { color: t.text }]}>{inv.customer_name}</Text>
+                    <Text style={[s.invDate, { color: t.muted }]}>{fmtDateFull(inv.created_at)}</Text>
                   </View>
-                  <Text style={s.invTotal}>{fmt(inv.total)}</Text>
+                  <Text style={[s.invTotal, { color: t.text }]}>{fmtMoneyFull(inv.total)}</Text>
                   <View style={[s.statusBadge, { backgroundColor: st.bg }]}>
                     <Text style={[s.statusTxt, { color: st.color }]}>{st.label}</Text>
                   </View>
-                  <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={16} color={Colors.subtle} />
+                  <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={16} color={t.subtle} />
                 </TouchableOpacity>
                 {expanded && (
-                  <View style={s.invDetail}>
+                  <View style={[s.invDetail, { backgroundColor: t.bg, borderTopColor: t.border }]}>
                     {inv.cufe ? (
                       <View style={{ marginBottom: 10 }}>
                         <Text style={s.invDetailLabel}>CUFE</Text>
@@ -563,7 +557,7 @@ export default function InvoicesScreen() {
                     {inv.invoice_items?.map((it, i) => (
                       <View key={i} style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
                         <Text style={s.invItem}>{it.name} × {it.quantity}</Text>
-                        <Text style={s.invItem}>{fmt(it.total)}</Text>
+                        <Text style={s.invItem}>{fmtMoneyFull(it.total)}</Text>
                       </View>
                     ))}
                     {inv.pdf_url && (
@@ -583,7 +577,7 @@ export default function InvoicesScreen() {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
       <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
@@ -599,10 +593,10 @@ export default function InvoicesScreen() {
       </LinearGradient>
 
       {/* Tab bar */}
-      <View style={s.tabBar}>
+      <View style={[s.tabBar, { backgroundColor: t.bgAlt, borderBottomColor: t.border }]}>
         {["Configuración", "Nueva Factura", "Historial"].map((label, i) => (
           <TouchableOpacity key={i} style={s.tabItem} onPress={() => setTab(i)}>
-            <Text style={[s.tabTxt, tab === i && s.tabTxtActive]}>{label}</Text>
+            <Text style={[s.tabTxt, { color: t.muted }, tab === i && s.tabTxtActive]}>{label}</Text>
             {tab === i && <View style={s.tabUnderline} />}
           </TouchableOpacity>
         ))}

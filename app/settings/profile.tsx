@@ -9,7 +9,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 
 function getInitials(name: string, email: string) {
   const n = name.trim();
@@ -51,6 +53,8 @@ function FieldBlock({
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { t } = useTheme();
+  const { user } = useAuth();
   const [email, setEmail]         = useState("");
   const [displayName, setDisplayName] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -62,14 +66,12 @@ export default function ProfileScreen() {
   const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      setEmail(user.email ?? "");
-      const meta = user.user_metadata as { full_name?: string } | null;
-      setDisplayName(meta?.full_name ?? "");
-      setLoading(false);
-    });
-  }, []);
+    if (!user) return;
+    setEmail(user.email ?? "");
+    const meta = user.user_metadata as { full_name?: string } | null;
+    setDisplayName(meta?.full_name ?? "");
+    setLoading(false);
+  }, [user]);
 
   const handleSave = async () => {
     if (newPassword && newPassword !== confirmPass) {
@@ -114,7 +116,7 @@ export default function ProfileScreen() {
   const initials = getInitials(displayName, email);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
       <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />

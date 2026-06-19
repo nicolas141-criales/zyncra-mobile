@@ -6,17 +6,34 @@ import { JetBrainsMono_500Medium, JetBrainsMono_700Bold } from "@expo-google-fon
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { View, ActivityIndicator } from "react-native";
 import { Colors } from "@/constants/theme";
+import { ThemeProvider, useTheme } from "@/lib/theme";
+import { AuthProvider } from "@/lib/auth";
 import ZyncraIntro from "@/components/ZyncraIntro";
 import { registerForPushNotifications, scheduleDailyBriefing } from "@/lib/notifications";
 
-export default function RootLayout() {
+function AppContent() {
   const [showIntro, setShowIntro] = useState(true);
+  const { t } = useTheme();
 
   useEffect(() => {
     registerForPushNotifications();
     scheduleDailyBriefing();
   }, []);
 
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <StatusBar style={showIntro ? "light" : t.statusBar} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(admin)" options={{ animation: "fade", gestureEnabled: false }} />
+        <Stack.Screen name="(auth)"  options={{ animation: "fade", gestureEnabled: false }} />
+        <Stack.Screen name="(staff)" options={{ animation: "fade", gestureEnabled: false }} />
+      </Stack>
+      {showIntro && <ZyncraIntro onDone={() => setShowIntro(false)} />}
+    </GestureHandlerRootView>
+  );
+}
+
+export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     SpaceGrotesk_400Regular,
     SpaceGrotesk_600SemiBold,
@@ -34,14 +51,10 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style={showIntro ? "light" : "dark"} />
-      <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(admin)" options={{ animation: "fade", gestureEnabled: false }} />
-          <Stack.Screen name="(auth)"  options={{ animation: "fade", gestureEnabled: false }} />
-          <Stack.Screen name="(staff)" options={{ animation: "fade", gestureEnabled: false }} />
-        </Stack>
-      {showIntro && <ZyncraIntro onDone={() => setShowIntro(false)} />}
-    </GestureHandlerRootView>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

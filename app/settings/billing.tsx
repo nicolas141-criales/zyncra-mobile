@@ -6,7 +6,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -109,20 +111,23 @@ function openWhatsApp(msg: string) {
 
 export default function BillingScreen() {
   const router = useRouter();
+  const { t } = useTheme();
+  const { tenantId } = useAuth();
   const [tenant, setTenant] = useState<TenantPlan | null>(null);
 
   useEffect(() => {
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase
-        .from("tenants")
-        .select("name, plan, created_at, plan_expires_at")
-        .eq("owner_id", user.id)
-        .single();
-      if (data) setTenant(data as TenantPlan);
-    })();
-  }, []);
+    if (!tenantId) return;
+    let cancelled = false;
+    supabase
+      .from("tenants")
+      .select("name, plan, created_at, plan_expires_at")
+      .eq("id", tenantId)
+      .single()
+      .then(({ data }) => {
+        if (!cancelled && data) setTenant(data as TenantPlan);
+      });
+    return () => { cancelled = true; };
+  }, [tenantId]);
 
   const plan = (tenant?.plan ?? "trial") as keyof typeof PLANS;
   const planMeta = PLANS[plan] ?? PLANS.trial;
@@ -134,7 +139,7 @@ export default function BillingScreen() {
   const businessMsg = `Hola, quiero más información sobre el plan Business de Zyncra para mi negocio "${tenant?.name ?? ""}".`;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
 
         {/* ── Header ── */}

@@ -10,6 +10,11 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import ErrorState from "@/components/ErrorState";
+import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
+import { fmtMoneyFull, fmt12 } from "@/lib/format";
+import { STATUS_META } from "@/constants/status";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -26,25 +31,8 @@ type Appt = {
 
 type Professional = { id: string; name: string; color?: string };
 
-const STATUS_META: Record<string, { label: string; color: string; icon: IoniconName }> = {
-  pending:   { label: "Pendiente",  color: "#f59e0b",      icon: "time-outline" },
-  confirmed: { label: "Confirmada", color: Colors.blue,    icon: "checkmark-circle-outline" },
-  completed: { label: "Completada", color: Colors.success, icon: "checkmark-done-circle-outline" },
-  cancelled: { label: "Cancelada",  color: Colors.subtle,  icon: "close-circle-outline" },
-  no_show:   { label: "No asistió", color: Colors.red,     icon: "alert-circle-outline" },
-};
-
 const DAYS_ES = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 const MONTHS  = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-
-function fmt12(t: string) {
-  const h = parseInt(t.slice(0, 2), 10);
-  return `${h % 12 || 12}:${t.slice(3, 5)} ${h >= 12 ? "PM" : "AM"}`;
-}
-
-function fmtMoney(n: number) {
-  return `$${Math.round(n).toLocaleString("es-CO")}`;
-}
 
 function addDays(d: Date, n: number) {
   const r = new Date(d); r.setDate(r.getDate() + n); return r;
@@ -70,6 +58,7 @@ function buildDayRange(n: number): { date: Date; label: string; iso: string }[] 
 function RescheduleModal({ appt, tenantId, onClose, onSaved }: {
   appt: Appt | null; tenantId: string; onClose: () => void; onSaved: () => void;
 }) {
+  const { t } = useTheme();
   const [newDate, setNewDate] = useState("");
   const [newTime, setNewTime] = useState("");
   const [saving, setSaving]   = useState(false);
@@ -102,9 +91,8 @@ function RescheduleModal({ appt, tenantId, onClose, onSaved }: {
 
   return (
     <Modal visible={!!appt} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-        <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={rm.header}>
-          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={rm.header}>
           <View style={rm.headerRow}>
             <TouchableOpacity onPress={onClose} style={rm.closeBtn}>
               <Ionicons name="close" size={20} color="white" />
@@ -120,25 +108,25 @@ function RescheduleModal({ appt, tenantId, onClose, onSaved }: {
 
         <ScrollView contentContainerStyle={{ padding: 24, gap: 20 }}>
           <View>
-            <Text style={rm.fieldLabel}>Nueva fecha (YYYY-MM-DD)</Text>
+            <Text style={[rm.fieldLabel, { color: t.muted }]}>Nueva fecha (YYYY-MM-DD)</Text>
             <TextInput
-              style={rm.input}
+              style={[rm.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]}
               value={newDate}
               onChangeText={setNewDate}
               placeholder="2026-06-15"
-              placeholderTextColor={Colors.subtle}
+              placeholderTextColor={t.subtle}
               keyboardType="numeric"
               maxLength={10}
             />
           </View>
           <View>
-            <Text style={rm.fieldLabel}>Nueva hora (HH:MM, 24h)</Text>
+            <Text style={[rm.fieldLabel, { color: t.muted }]}>Nueva hora (HH:MM, 24h)</Text>
             <TextInput
-              style={rm.input}
+              style={[rm.input, { backgroundColor: t.bgAlt, borderColor: t.border, color: t.text }]}
               value={newTime}
               onChangeText={setNewTime}
               placeholder="14:00"
-              placeholderTextColor={Colors.subtle}
+              placeholderTextColor={t.subtle}
               keyboardType="numeric"
               maxLength={5}
             />
@@ -146,22 +134,22 @@ function RescheduleModal({ appt, tenantId, onClose, onSaved }: {
 
           {/* Quick hour presets */}
           <View>
-            <Text style={[rm.fieldLabel, { marginBottom: 10 }]}>Horas rápidas</Text>
+            <Text style={[rm.fieldLabel, { marginBottom: 10, color: t.muted }]}>Horas rápidas</Text>
             <View style={rm.presets}>
               {["08:00","09:00","10:00","11:00","12:00","14:00","15:00","16:00","17:00","18:00"].map(h => (
                 <TouchableOpacity
                   key={h}
-                  style={[rm.preset, newTime === h && rm.presetActive]}
+                  style={[rm.preset, { backgroundColor: t.bgAlt, borderColor: t.border }, newTime === h && rm.presetActive]}
                   onPress={() => setNewTime(h)}
                 >
-                  <Text style={[rm.presetText, newTime === h && { color: "white" }]}>{h}</Text>
+                  <Text style={[rm.presetText, { color: t.text }, newTime === h && { color: "white" }]}>{h}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           </View>
         </ScrollView>
 
-        <View style={rm.bottomBar}>
+        <View style={[rm.bottomBar, { backgroundColor: t.bg, borderTopColor: t.border }]}>
           <TouchableOpacity
             style={[rm.btn, saving && { opacity: 0.6 }]}
             onPress={handleSave}
@@ -187,12 +175,12 @@ function RescheduleModal({ appt, tenantId, onClose, onSaved }: {
 const rm = StyleSheet.create({
   header:        { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 20 },
   headerRow:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
-  closeBtn:      { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  closeBtn:      { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
   title:         { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   summary:       { backgroundColor: "rgba(255,255,255,.14)", borderRadius: Radius.lg, padding: 14 },
   summaryClient: { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   summaryService:{ fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.8)", marginTop: 4 },
-  fieldLabel:    { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 },
+  fieldLabel:    { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 },
   input:         { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 14, fontSize: 16, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text, letterSpacing: 1 },
   presets:       { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   preset:        { borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.full, paddingHorizontal: 14, paddingVertical: 8, backgroundColor: Colors.white },
@@ -208,21 +196,14 @@ const rm = StyleSheet.create({
 
 export default function UpcomingScreen() {
   const router = useRouter();
-  const [tenantId, setTenantId]       = useState<string | null>(null);
+  const { t } = useTheme();
+  const { tenantId } = useAuth();
   const [appts, setAppts]             = useState<Appt[]>([]);
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [selectedPro, setSelectedPro] = useState<string>("all");
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
   const [reschedule, setReschedule]   = useState<Appt | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) return;
-      supabase.from("tenants").select("id").eq("owner_id", user.id).single()
-        .then(({ data }) => { if (data) setTenantId(data.id); });
-    });
-  }, []);
 
   const load = useCallback(async () => {
     if (!tenantId) return;
@@ -249,7 +230,12 @@ export default function UpcomingScreen() {
     setLoading(false);
   }, [tenantId]);
 
-  useEffect(() => { if (tenantId) load(); }, [tenantId]);
+  useEffect(() => {
+    if (!tenantId) return;
+    let cancelled = false;
+    load().then(() => { if (cancelled) return; });
+    return () => { cancelled = true; };
+  }, [tenantId]);
 
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
@@ -283,10 +269,9 @@ export default function UpcomingScreen() {
     .reduce((s, a) => s + Number(a.services?.price ?? 0), 0);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
-      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
+      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.iconBtn}>
             <Ionicons name="arrow-back" size={20} color="white" />
@@ -306,7 +291,7 @@ export default function UpcomingScreen() {
           {pendingRevenue > 0 && (
             <View style={s.statPill}>
               <Ionicons name="cash-outline" size={13} color="rgba(255,255,255,.9)" />
-              <Text style={s.statPillText}>{fmtMoney(pendingRevenue)} proyectados</Text>
+              <Text style={s.statPillText}>{fmtMoneyFull(pendingRevenue)} proyectados</Text>
             </View>
           )}
         </View>
@@ -326,21 +311,21 @@ export default function UpcomingScreen() {
             <Animated.View entering={FadeInDown.duration(300)}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.proFilter}>
                 <TouchableOpacity
-                  style={[s.proChip, selectedPro === "all" && s.proChipActive]}
+                  style={[s.proChip, { backgroundColor: t.bgAlt, borderColor: t.border }, selectedPro === "all" && s.proChipActive]}
                   onPress={() => setSelectedPro("all")}
                 >
-                  <Text style={[s.proChipText, selectedPro === "all" && { color: "white" }]}>Todos</Text>
+                  <Text style={[s.proChipText, { color: t.text }, selectedPro === "all" && { color: "white" }]}>Todos</Text>
                 </TouchableOpacity>
                 {professionals.map(pro => (
                   <TouchableOpacity
                     key={pro.id}
-                    style={[s.proChip, selectedPro === pro.id && s.proChipActive]}
+                    style={[s.proChip, { backgroundColor: t.bgAlt, borderColor: t.border }, selectedPro === pro.id && s.proChipActive]}
                     onPress={() => setSelectedPro(pro.id)}
                   >
                     {pro.color && (
                       <View style={[s.proColorDot, { backgroundColor: pro.color }]} />
                     )}
-                    <Text style={[s.proChipText, selectedPro === pro.id && { color: "white" }]}>{pro.name}</Text>
+                    <Text style={[s.proChipText, { color: t.text }, selectedPro === pro.id && { color: "white" }]}>{pro.name}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -358,10 +343,10 @@ export default function UpcomingScreen() {
               <Animated.View key={day.iso} entering={FadeInDown.delay(di * 40).duration(350)}>
                 {/* Day header */}
                 <View style={s.dayHeader}>
-                  <Text style={s.dayLabel}>{day.label}</Text>
+                  <Text style={[s.dayLabel, { color: t.text }]}>{day.label}</Text>
                   <View style={s.dayMeta}>
-                    <Text style={s.dayCount}>{dayAppts.length} cita{dayAppts.length !== 1 ? "s" : ""}</Text>
-                    {dayRevenue > 0 && <Text style={s.dayRevenue}>{fmtMoney(dayRevenue)}</Text>}
+                    <Text style={[s.dayCount, { color: t.muted }]}>{dayAppts.length} cita{dayAppts.length !== 1 ? "s" : ""}</Text>
+                    {dayRevenue > 0 && <Text style={s.dayRevenue}>{fmtMoneyFull(dayRevenue)}</Text>}
                   </View>
                 </View>
 
@@ -372,7 +357,7 @@ export default function UpcomingScreen() {
 
                   return (
                     <Animated.View key={appt.id} entering={FadeInRight.delay(ai * 50).duration(300)}>
-                      <View style={[s.apptCard, Shadow.sm]}>
+                      <View style={[s.apptCard, Shadow.sm, { backgroundColor: t.bgAlt }]}>
                         <View style={[s.apptAccent, { backgroundColor: proColor }]} />
                         <View style={{ flex: 1, padding: 12 }}>
                           {/* Top row */}
@@ -383,22 +368,22 @@ export default function UpcomingScreen() {
                               </Text>
                             </View>
                             {appt.services?.price ? (
-                              <Text style={s.apptPrice}>{fmtMoney(appt.services.price)}</Text>
+                              <Text style={[s.apptPrice, { color: t.text }]}>{fmtMoneyFull(appt.services.price)}</Text>
                             ) : null}
                           </View>
 
                           {/* Client & service */}
-                          <Text style={s.apptClient} numberOfLines={1}>
+                          <Text style={[s.apptClient, { color: t.text }]} numberOfLines={1}>
                             {appt.clients?.name ?? "Sin cliente"}
                           </Text>
-                          <Text style={s.apptService} numberOfLines={1}>
+                          <Text style={[s.apptService, { color: t.muted }]} numberOfLines={1}>
                             {appt.services?.name ?? "Sin servicio"}
                           </Text>
 
                           {pro?.name && (
                             <View style={s.proRow}>
                               <View style={[s.proDot, { backgroundColor: proColor }]} />
-                              <Text style={s.proName}>{pro.name}</Text>
+                              <Text style={[s.proName, { color: t.muted }]}>{pro.name}</Text>
                             </View>
                           )}
 
@@ -459,10 +444,10 @@ export default function UpcomingScreen() {
 
           {/* Empty state */}
           {visibleAppts.length === 0 && (
-            <Animated.View entering={FadeInDown.delay(100).duration(350)} style={[s.empty, Shadow.sm, { margin: 16 }]}>
-              <Ionicons name="calendar-outline" size={40} color={Colors.subtle} style={{ marginBottom: 12 }} />
-              <Text style={s.emptyTitle}>Sin citas próximas</Text>
-              <Text style={s.emptySub}>No hay citas agendadas para los próximos 14 días</Text>
+            <Animated.View entering={FadeInDown.delay(100).duration(350)} style={[s.empty, Shadow.sm, { margin: 16, backgroundColor: t.bgAlt }]}>
+              <Ionicons name="calendar-outline" size={40} color={t.subtle} style={{ marginBottom: 12 }} />
+              <Text style={[s.emptyTitle, { color: t.text }]}>Sin citas próximas</Text>
+              <Text style={[s.emptySub, { color: t.muted }]}>No hay citas agendadas para los próximos 14 días</Text>
             </Animated.View>
           )}
         </ScrollView>
@@ -485,7 +470,7 @@ const s = StyleSheet.create({
   headerRow:    { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
   headerTitle:  { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.4 },
   headerSub:    { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
-  iconBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  iconBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
   statsPills:   { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   statPill:     { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.14)", borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 6 },
   statPillText: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "white" },
@@ -502,7 +487,7 @@ const s = StyleSheet.create({
   dayCount:   { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
   dayRevenue: { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: Colors.success },
 
-  apptCard:    { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, flexDirection: "row", marginHorizontal: 16, marginBottom: 10, overflow: "hidden" },
+  apptCard:    { backgroundColor: Colors.white, borderRadius: Radius.lg, flexDirection: "row", marginHorizontal: 16, marginBottom: 10, overflow: "hidden" },
   apptAccent:  { width: 4 },
   apptTopRow:  { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
   timePill:    { borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 4 },
@@ -519,7 +504,7 @@ const s = StyleSheet.create({
   actionBtns:  { flexDirection: "row", gap: 8 },
   actionBtn:   { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.blue + "12", alignItems: "center", justifyContent: "center" },
 
-  empty:       { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 44, alignItems: "center" },
+  empty:       { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 44, alignItems: "center" },
   emptyTitle:  { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:    { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
 });

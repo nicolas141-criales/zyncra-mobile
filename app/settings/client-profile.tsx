@@ -11,6 +11,10 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
+import { STATUS_META } from "@/constants/status";
+import { fmtDateShort } from "@/lib/format";
+import Avatar from "@/components/Avatar";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -33,14 +37,6 @@ type CustomField = {
 
 type FieldValue = { field_id: string; value: string };
 
-const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
-  pending:   { label: "Pendiente",   color: "#f59e0b", bg: "#fef9eb" },
-  confirmed: { label: "Confirmada",  color: Colors.blue, bg: "#eff2ff" },
-  completed: { label: "Completada",  color: Colors.success, bg: "#f0fdf4" },
-  cancelled: { label: "Cancelada",   color: Colors.subtle, bg: Colors.cream2 },
-  no_show:   { label: "No asistió",  color: Colors.red, bg: "#fff0f0" },
-};
-
 const FIELD_ICON: Record<string, IoniconName> = {
   text:    "text-outline",
   number:  "calculator-outline",
@@ -49,21 +45,6 @@ const FIELD_ICON: Record<string, IoniconName> = {
   boolean: "checkmark-circle-outline",
 };
 
-const MONTHS = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
-
-function fmtDate(d: string) {
-  const dt = new Date(d + "T00:00:00");
-  return `${dt.getDate()} ${MONTHS[dt.getMonth()]} ${dt.getFullYear()}`;
-}
-
-function Avatar({ name, size = 56 }: { name: string; size?: number }) {
-  const initials = name.split(" ").map(w => w[0]).filter(Boolean).join("").slice(0, 2).toUpperCase();
-  return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: Colors.blue + "14", borderWidth: 1.5, borderColor: Colors.blue + "30", alignItems: "center", justifyContent: "center" }}>
-      <Text style={{ color: Colors.blue, fontSize: size * 0.33, fontFamily: "SpaceGrotesk_700Bold" }}>{initials}</Text>
-    </View>
-  );
-}
 
 function StatBox({ value, label, color = Colors.text }: { value: string; label: string; color?: string }) {
   return (
@@ -79,6 +60,7 @@ function StatBox({ value, label, color = Colors.text }: { value: string; label: 
 function EditModal({ visible, client, onClose, onSaved }: {
   visible: boolean; client: Client | null; onClose: () => void; onSaved: (c: Client) => void;
 }) {
+  const { t } = useTheme();
   const [name, setName]   = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -116,9 +98,8 @@ function EditModal({ visible, client, onClose, onSaved }: {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-        <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={em.header}>
-          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={em.header}>
           <View style={em.headerRow}>
             <TouchableOpacity onPress={onClose} style={em.iconBtn}>
               <Ionicons name="close" size={20} color="white" />
@@ -174,6 +155,7 @@ function FieldsModal({ visible, fields, values, clientId, onClose, onSaved }: {
   onClose: () => void;
   onSaved: (newVals: FieldValue[]) => void;
 }) {
+  const { t } = useTheme();
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
@@ -212,9 +194,8 @@ function FieldsModal({ visible, fields, values, clientId, onClose, onSaved }: {
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-        <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={fm.header}>
-          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={fm.header}>
           <View style={fm.headerRow}>
             <TouchableOpacity onPress={onClose} style={fm.iconBtn}>
               <Ionicons name="close" size={20} color="white" />
@@ -291,6 +272,7 @@ function FieldsModal({ visible, fields, values, clientId, onClose, onSaved }: {
 
 export default function ClientProfileScreen() {
   const router = useRouter();
+  const { t } = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const [client, setClient]           = useState<Client | null>(null);
@@ -342,7 +324,7 @@ export default function ClientProfileScreen() {
 
   if (loading || !client) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2, alignItems: "center", justifyContent: "center" }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator color={Colors.red} size="large" />
       </SafeAreaView>
     );
@@ -351,7 +333,7 @@ export default function ClientProfileScreen() {
   const completed  = appts.filter(a => a.status === "completed");
   const noShows    = appts.filter(a => a.status === "no_show").length;
   const totalSpent = completed.reduce((s, a) => s + Number(a.services?.price ?? 0), 0);
-  const since      = client.created_at ? fmtDate(client.created_at.slice(0, 10)) : "—";
+  const since      = client.created_at ? fmtDateShort(client.created_at.slice(0, 10)) : "—";
 
   const fmtMoney = (n: number) =>
     n >= 1000 ? `$${(n / 1000).toFixed(0)}k` : `$${n}`;
@@ -364,10 +346,9 @@ export default function ClientProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       {/* Header */}
-      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
+      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.iconBtn}>
             <Ionicons name="arrow-back" size={20} color="white" />
@@ -512,12 +493,12 @@ export default function ClientProfileScreen() {
             appts.map((a, i) => {
               const meta = STATUS_META[a.status] ?? STATUS_META.pending;
               return (
-                <Animated.View key={a.id} entering={FadeInRight.delay(i * 40).duration(280)}>
+                <Animated.View key={a.id} entering={i < 10 ? FadeInRight.delay(i * 40).duration(280) : undefined}>
                   <View style={[s.apptRow, Shadow.sm]}>
                     {/* Date block */}
                     <View style={s.dateBlock}>
                       <Text style={s.dateDay}>{new Date(a.date + "T00:00:00").getDate()}</Text>
-                      <Text style={s.dateMon}>{MONTHS[new Date(a.date + "T00:00:00").getMonth()]}</Text>
+                      <Text style={s.dateMon}>{new Date(a.date + "T00:00:00").toLocaleDateString("es-CO", { month: "short" })}</Text>
                     </View>
 
                     {/* Info */}
@@ -569,7 +550,7 @@ export default function ClientProfileScreen() {
 const s = StyleSheet.create({
   header:       { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 28 },
   headerRow:    { flexDirection: "row", justifyContent: "space-between", marginBottom: 20 },
-  iconBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  iconBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
 
   identity:     { alignItems: "center", gap: 8 },
   clientName:   { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.4, textAlign: "center", marginTop: 4 },
@@ -579,18 +560,18 @@ const s = StyleSheet.create({
   actionBtn:    { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.2)", borderRadius: Radius.full, paddingHorizontal: 16, paddingVertical: 9 },
   actionLabel:  { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "white" },
 
-  sectionLabel: { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.9, marginBottom: 10, marginTop: 20 },
+  sectionLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.9, marginBottom: 10, marginTop: 20 },
   sectionRow:   { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 20, marginBottom: 10 },
   editBtn:      { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: Colors.blue + "12", borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 5 },
   editBtnText:  { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.blue },
 
-  statsCard:    { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, flexDirection: "row", padding: 16 },
+  statsCard:    { backgroundColor: Colors.white, borderRadius: Radius.lg, flexDirection: "row", padding: 16 },
   statBox:      { flex: 1, alignItems: "center", gap: 4 },
   statVal:      { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
   statLabel:    { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle, textAlign: "center" },
   statDivider:  { width: 1, backgroundColor: Colors.border, marginVertical: 4 },
 
-  card:         { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16 },
+  card:         { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16 },
   infoRow:      { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 4 },
   infoIcon:     { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   infoText:     { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
@@ -598,14 +579,14 @@ const s = StyleSheet.create({
   fieldName:    { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
   fieldVal:     { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text, marginTop: 2 },
 
-  emptyCard:    { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 40, alignItems: "center" },
+  emptyCard:    { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 40, alignItems: "center" },
   emptyTitle:   { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:     { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
 
   apptRow:      { backgroundColor: Colors.white, borderRadius: Radius.md, flexDirection: "row", alignItems: "center", gap: 14, padding: 14, marginBottom: 8 },
   dateBlock:    { width: 40, alignItems: "center", backgroundColor: Colors.cream2, borderRadius: Radius.sm, paddingVertical: 8 },
   dateDay:      { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, lineHeight: 20 },
-  dateMon:      { fontSize: 10, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase" },
+  dateMon:      { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle, textTransform: "uppercase" },
   apptService:  { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   apptTime:     { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
   apptPrice:    { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
@@ -616,10 +597,10 @@ const s = StyleSheet.create({
 const em = StyleSheet.create({
   header:     { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 20 },
   headerRow:  { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  iconBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  iconBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
   headerTitle:{ fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   field:      { marginBottom: 16 },
-  fieldLabel: { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 },
+  fieldLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 },
   input:      { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
   bottomBar:  { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
   btn:        { borderRadius: Radius.full, overflow: "hidden" },
@@ -630,10 +611,10 @@ const em = StyleSheet.create({
 const fm = StyleSheet.create({
   header:     { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 20 },
   headerRow:  { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  iconBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  iconBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
   headerTitle:{ fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   field:      { marginBottom: 20 },
-  fieldLabel: { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 },
+  fieldLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 10 },
   input:      { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
   boolRow:    { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 12 },
   boolLabel:  { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },

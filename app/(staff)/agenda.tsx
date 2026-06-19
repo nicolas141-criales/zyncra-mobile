@@ -5,17 +5,14 @@ import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { useTheme } from "@/lib/theme";
+import { STATUS_OPTIONS, STATUS_META } from "@/constants/status";
+import { buildWeek } from "@/lib/scheduling";
+import ErrorState from "@/components/ErrorState";
 
 const DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-
-function buildWeek(base: Date) {
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(base);
-    d.setDate(base.getDate() - base.getDay() + i);
-    return d;
-  });
-}
 
 type Appt = {
   id: string;
@@ -26,13 +23,6 @@ type Appt = {
   services: { name: string; price?: number } | null;
 };
 
-const STATUS_OPTIONS = [
-  { status: "pending",   label: "Pendiente",  color: "#f59e0b",      icon: "time-outline" as const },
-  { status: "confirmed", label: "Confirmada", color: Colors.blue,    icon: "checkmark-circle-outline" as const },
-  { status: "completed", label: "Completada", color: Colors.success, icon: "checkmark-done-circle-outline" as const },
-  { status: "cancelled", label: "Cancelada",  color: Colors.red,     icon: "close-circle-outline" as const },
-];
-
 function ApptDetailModal({ appt, onClose, onStatusChange }: {
   appt: Appt | null; onClose: () => void;
   onStatusChange: (id: string, status: string) => void;
@@ -41,11 +31,11 @@ function ApptDetailModal({ appt, onClose, onStatusChange }: {
   const time = appt.appointment_time.substring(0, 5);
   const current = STATUS_OPTIONS.find(o => o.status === appt.status);
 
+  const { t } = useTheme();
   return (
     <Modal visible={!!appt} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-        <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={dm.header}>
-          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
+      <View style={{ flex: 1, backgroundColor: t.bg }}>
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={dm.header}>
           <View style={dm.headerRow}>
             <TouchableOpacity onPress={onClose} style={dm.closeBtn}>
               <Ionicons name="close" size={20} color="white" />
@@ -97,54 +87,57 @@ function ApptDetailModal({ appt, onClose, onStatusChange }: {
 const dm = StyleSheet.create({
   header:      { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 24 },
   headerRow:   { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  closeBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  closeBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   clientName:  { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.5, marginBottom: 4 },
   serviceName: { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.8)" },
   timeBadge:   { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.18)", borderRadius: Radius.full, paddingHorizontal: 14, paddingVertical: 6, marginTop: 10 },
   timeText:    { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
-  sectionLabel:{ fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 12 },
+  sectionLabel:{ fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 12 },
   statusGrid:  { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 20 },
   statusBtn:   { flex: 1, minWidth: "45%", flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.white, borderRadius: Radius.md, padding: 14, borderWidth: 1.5, borderColor: Colors.border },
   statusLabel: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
-  infoCard:    { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md, padding: 14 },
+  infoCard:    { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Colors.white, borderRadius: Radius.md, padding: 14 },
   infoText:    { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
 });
 
 export default function StaffAgendaScreen() {
+  const { user } = useAuth();
+  const { t } = useTheme();
   const [professionalId, setProfessionalId] = useState<string | null>(null);
-  const [tenantId, setTenantId]             = useState<string | null>(null);
   const [weekBase, setWeekBase]             = useState(new Date());
   const [selectedDate, setSelectedDate]     = useState(new Date());
   const [appts, setAppts]                   = useState<Appt[]>([]);
   const [selectedAppt, setSelectedAppt]     = useState<Appt | null>(null);
   const [refreshing, setRefreshing]         = useState(false);
+  const [error, setError]                   = useState(false);
 
   const week = buildWeek(weekBase);
 
   useEffect(() => {
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: pro } = await supabase
-        .from("professionals")
-        .select("id, tenant_id")
-        .eq("user_id", user.id)
-        .single();
-      if (pro) { setProfessionalId(pro.id); setTenantId(pro.tenant_id); }
-    })();
-  }, []);
+    if (!user) return;
+    let cancelled = false;
+    supabase.from("professionals").select("id").eq("user_id", user.id).single()
+      .then(({ data }) => { if (!cancelled && data) setProfessionalId(data.id); });
+    return () => { cancelled = true; };
+  }, [user]);
 
   const load = useCallback(async () => {
     if (!professionalId) return;
-    const dateStr = selectedDate.toISOString().split("T")[0];
-    const { data } = await supabase
-      .from("appointments")
-      .select("id, appointment_date, appointment_time, status, clients(name, phone), services(name, price)")
-      .eq("professional_id", professionalId)
-      .eq("appointment_date", dateStr)
-      .order("appointment_time");
-    setAppts((data as Appt[]) ?? []);
+    try {
+      setError(false);
+      const dateStr = selectedDate.toISOString().split("T")[0];
+      const { data, error: err } = await supabase
+        .from("appointments")
+        .select("id, appointment_date, appointment_time, status, clients(name, phone), services(name, price)")
+        .eq("professional_id", professionalId)
+        .eq("appointment_date", dateStr)
+        .order("appointment_time");
+      if (err) throw err;
+      setAppts((data as Appt[]) ?? []);
+    } catch {
+      setError(true);
+    }
   }, [professionalId, selectedDate]);
 
   useEffect(() => { load(); }, [load]);
@@ -157,17 +150,10 @@ export default function StaffAgendaScreen() {
   };
 
   const dateStr = selectedDate.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
-  const statusColors: Record<string, string> = {
-    confirmed: Colors.success, pending: "#f59e0b", cancelled: Colors.red, completed: Colors.blue,
-  };
-  const statusLabels: Record<string, string> = {
-    confirmed: "Confirmada", pending: "Pendiente", cancelled: "Cancelada", completed: "Completada",
-  };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
         <View style={s.headerBlob} />
         <Animated.View entering={FadeInDown.duration(400)} style={{ position: "relative", zIndex: 1 }}>
           <Text style={s.headerTitle}>Mi Agenda</Text>
@@ -176,55 +162,58 @@ export default function StaffAgendaScreen() {
       </LinearGradient>
 
       {/* Week strip */}
-      <View style={[s.weekStrip, Shadow.sm]}>
+      <View style={[s.weekStrip, Shadow.sm, { backgroundColor: t.bgAlt }]}>
         <TouchableOpacity style={s.weekArrow} onPress={() => { const d = new Date(weekBase); d.setDate(d.getDate() - 7); setWeekBase(d); }}>
-          <Ionicons name="chevron-back" size={18} color={Colors.subtle} />
+          <Ionicons name="chevron-back" size={18} color={t.subtle} />
         </TouchableOpacity>
         {week.map((d) => {
           const isSelected = d.toDateString() === selectedDate.toDateString();
           const isToday    = d.toDateString() === new Date().toDateString();
           return (
             <TouchableOpacity key={d.toISOString()} style={s.dayBtn} onPress={() => setSelectedDate(d)} activeOpacity={0.7}>
-              <Text style={[s.dayLabel, isSelected && s.dayLabelSel, isToday && !isSelected && { color: Colors.red }]}>
+              <Text style={[s.dayLabel, { color: t.muted }, isSelected && s.dayLabelSel, isToday && !isSelected && { color: Colors.red }]}>
                 {DAYS[d.getDay()]}
               </Text>
               <View style={[s.dayNum, isSelected && s.dayNumSel]}>
-                <Text style={[s.dayNumText, isSelected && s.dayNumTextSel]}>{d.getDate()}</Text>
+                <Text style={[s.dayNumText, { color: t.text }, isSelected && s.dayNumTextSel]}>{d.getDate()}</Text>
               </View>
             </TouchableOpacity>
           );
         })}
         <TouchableOpacity style={s.weekArrow} onPress={() => { const d = new Date(weekBase); d.setDate(d.getDate() + 7); setWeekBase(d); }}>
-          <Ionicons name="chevron-forward" size={18} color={Colors.subtle} />
+          <Ionicons name="chevron-forward" size={18} color={t.subtle} />
         </TouchableOpacity>
       </View>
 
+      {error ? (
+        <ErrorState onRetry={load} />
+      ) : (
       <ScrollView
         contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.red} />}
       >
         {appts.length === 0 ? (
-          <Animated.View entering={FadeInDown.delay(100).duration(400)} style={[s.empty, Shadow.sm]}>
-            <Ionicons name="calendar-outline" size={40} color={Colors.subtle} style={{ marginBottom: 12 }} />
-            <Text style={s.emptyTitle}>Sin citas este día</Text>
-            <Text style={s.emptySub}>No tienes citas programadas para hoy</Text>
+          <Animated.View entering={FadeInDown.delay(100).duration(400)} style={[s.empty, Shadow.sm, { backgroundColor: t.bgAlt }]}>
+            <Ionicons name="calendar-outline" size={40} color={t.subtle} style={{ marginBottom: 12 }} />
+            <Text style={[s.emptyTitle, { color: t.text }]}>Sin citas este día</Text>
+            <Text style={[s.emptySub, { color: t.muted }]}>No tienes citas programadas para hoy</Text>
           </Animated.View>
         ) : (
           appts.map((a, i) => {
             const time = a.appointment_time.substring(0, 5);
             return (
-              <Animated.View key={a.id} entering={FadeInRight.delay(i * 70).duration(320)}>
-                <TouchableOpacity style={[s.row, Shadow.sm]} onPress={() => setSelectedAppt(a)} activeOpacity={0.8}>
+              <Animated.View key={a.id} entering={i < 10 ? FadeInRight.delay(i * 70).duration(320) : undefined}>
+                <TouchableOpacity style={[s.row, Shadow.sm, { backgroundColor: t.bgAlt }]} onPress={() => setSelectedAppt(a)} activeOpacity={0.8}>
                   <View style={[s.timePill, { backgroundColor: Colors.red + "12" }]}>
                     <Text style={[s.timeText, { color: Colors.red }]}>{time}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.clientName} numberOfLines={1}>{a.clients?.name ?? "Sin cliente"}</Text>
-                    <Text style={s.serviceName} numberOfLines={1}>{a.services?.name ?? "Sin servicio"}</Text>
+                    <Text style={[s.clientName, { color: t.text }]} numberOfLines={1}>{a.clients?.name ?? "Sin cliente"}</Text>
+                    <Text style={[s.serviceName, { color: t.muted }]} numberOfLines={1}>{a.services?.name ?? "Sin servicio"}</Text>
                   </View>
-                  <View style={[s.badge, { backgroundColor: (statusColors[a.status] ?? Colors.subtle) + "18" }]}>
-                    <Text style={[s.badgeText, { color: statusColors[a.status] ?? Colors.subtle }]}>
-                      {statusLabels[a.status] ?? a.status}
+                  <View style={[s.badge, { backgroundColor: (STATUS_META[a.status]?.color ?? t.subtle) + "18" }]}>
+                    <Text style={[s.badgeText, { color: STATUS_META[a.status]?.color ?? t.subtle }]}>
+                      {STATUS_META[a.status]?.label ?? a.status}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -233,6 +222,7 @@ export default function StaffAgendaScreen() {
           })
         )}
       </ScrollView>
+      )}
 
       <ApptDetailModal
         appt={selectedAppt}
@@ -264,7 +254,7 @@ const s = StyleSheet.create({
   serviceName:  { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
   badge:        { borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 5 },
   badgeText:    { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold" },
-  empty:        { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 40, alignItems: "center", marginTop: 20 },
+  empty:        { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 40, alignItems: "center", marginTop: 20 },
   emptyTitle:   { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:     { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
 });
