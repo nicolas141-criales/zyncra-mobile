@@ -10,8 +10,9 @@ import Animated, {
 } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { supabase } from "@/lib/supabase";
-import { Colors, Radius } from "@/constants/theme";
+import { Colors, Fonts, Gradients, Radius } from "@/constants/theme";
 
 const { height } = Dimensions.get("window");
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -25,7 +26,12 @@ function SolidButton({ label, onPress, loading }: { label: string; onPress: () =
       onPressIn={() => { scale.value = withSpring(0.97, { stiffness: 400 }); }}
       onPressOut={() => { scale.value = withSpring(1,    { stiffness: 400 }); }}
       onPress={onPress}>
-      <Text style={btn.label}>{loading ? "Entrando…" : label}</Text>
+      <LinearGradient
+        colors={Gradients.brand}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={btn.grad}>
+        <Text style={btn.label}>{loading ? "Entrando…" : label}</Text>
+      </LinearGradient>
     </AnimatedPressable>
   );
 }
@@ -184,14 +190,21 @@ export default function LoginScreen() {
 const btn = StyleSheet.create({
   solid: {
     borderRadius: 14,
+    overflow: "hidden",
+    shadowColor: "#0027fe",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.28,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  grad: {
     paddingVertical: 16,
     alignItems: "center",
-    backgroundColor: Colors.red,
   },
   label: {
     color: "white",
     fontSize: 15,
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontFamily: Fonts.bold,
     letterSpacing: 0.3,
   },
 });
@@ -200,7 +213,7 @@ const btn = StyleSheet.create({
 const s = StyleSheet.create({
   bg: {
     flex: 1,
-    backgroundColor: "#07071a",
+    backgroundColor: Colors.ink,
   },
   blob: {
     position: "absolute",
@@ -263,7 +276,7 @@ const s = StyleSheet.create({
   },
   tagline: {
     fontSize: 9.5,
-    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontFamily: Fonts.mono,
     color: "rgba(255,255,255,0.32)",
     letterSpacing: 2.2,
     textTransform: "uppercase",
@@ -292,11 +305,12 @@ const s = StyleSheet.create({
     marginBottom: 26,
   },
   label: {
-    fontSize: 12,
-    fontFamily: "SpaceGrotesk_600SemiBold",
-    color: "rgba(255,255,255,0.5)",
+    fontSize: 9.5,
+    fontFamily: Fonts.mono,
+    color: "rgba(255,255,255,0.45)",
     marginBottom: 8,
-    letterSpacing: 0.3,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
   },
   inputRow: {
     flexDirection: "row",

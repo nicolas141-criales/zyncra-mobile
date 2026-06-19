@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { Colors, Fonts, Gradients, MonoLabel, Radius, Shadow } from "@/constants/theme";
 import { refreshAllReminders } from "@/lib/notifications";
 import NewApptModal from "@/components/NewApptModal";
 
@@ -53,20 +53,20 @@ function StatChip({ icon, value, label, color, delay }: {
 }) {
   return (
     <Animated.View entering={FadeInUp.delay(delay).duration(350).springify()} style={[sc.chip, Shadow.sm]}>
-      <View style={[sc.iconBox, { backgroundColor: color + "15" }]}>
-        <Ionicons name={icon} size={15} color={color} />
+      <View style={sc.topRow}>
+        <Text style={sc.label} numberOfLines={1}>{label}</Text>
+        <Ionicons name={icon} size={13} color={color} />
       </View>
-      <Text style={[sc.value, { color }]}>{value}</Text>
-      <Text style={sc.label}>{label}</Text>
+      <Text style={sc.value}>{value}</Text>
     </Animated.View>
   );
 }
 
 const sc = StyleSheet.create({
-  chip:    { flex: 1, backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14, alignItems: "center", gap: 6 },
-  iconBox: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  value:   { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", letterSpacing: -0.5 },
-  label:   { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted, textAlign: "center" },
+  chip:    { flex: 1, backgroundColor: Colors.white, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, paddingVertical: 14, paddingHorizontal: 14, gap: 8 },
+  topRow:  { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 4 },
+  label:   { ...MonoLabel, fontSize: 9, flexShrink: 1 },
+  value:   { fontSize: 24, fontFamily: Fonts.bold, color: Colors.text, letterSpacing: -1, fontVariant: ["tabular-nums"] },
 });
 
 // ─── Appointment row ──────────────────────────────────────────────────────────
@@ -110,7 +110,7 @@ function ApptRow({ a, i, onPress }: { a: Appt; i: number; onPress: () => void })
 }
 
 const ar = StyleSheet.create({
-  row:       { backgroundColor: Colors.white, borderRadius: Radius.md, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10, overflow: "hidden" },
+  row:       { backgroundColor: Colors.white, borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.border, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10, overflow: "hidden" },
   accent:    { width: 4, alignSelf: "stretch" },
   timePill:  { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, minWidth: 48, alignItems: "center" },
   time:      { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold" },
@@ -178,35 +178,27 @@ export default function DashboardScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.red} />}
       >
-        {/* ── Header ── */}
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.headerGrad}>
-          <View style={s.headerBlob1} />
-          <View style={s.headerBlob2} />
-          <Animated.View entering={FadeInDown.duration(400)} style={{ position: "relative", zIndex: 1 }}>
-            <Text style={s.greeting}>{greeting()} 👋</Text>
+        {/* ── Header: tinta sobre lienzo, crumb mono ── */}
+        <Animated.View entering={FadeInDown.duration(400)} style={s.header}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.crumb}>{todayLabel}</Text>
             <Text style={s.bizName} numberOfLines={1}>{tenantName}</Text>
-            <Text style={s.date}>{todayLabel}</Text>
+            <Text style={s.greeting}>{greeting()} 👋</Text>
+          </View>
+          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.avatarRing}>
+            <View style={s.avatar}>
+              <Text style={s.avatarText}>{tenantName.slice(0, 2).toUpperCase()}</Text>
+            </View>
+          </LinearGradient>
+        </Animated.View>
 
-            {/* Summary pill */}
-            {metrics.total > 0 && (
-              <View style={s.summaryPill}>
-                <Ionicons name="calendar-outline" size={12} color="rgba(255,255,255,.9)" />
-                <Text style={s.summaryText}>
-                  {metrics.total} cita{metrics.total !== 1 ? "s" : ""} hoy
-                  {metrics.revenueDay > 0 ? `  ·  ${fmtMoney(metrics.revenueDay)} cobrado` : ""}
-                </Text>
-              </View>
-            )}
-          </Animated.View>
-        </LinearGradient>
+        <View style={{ paddingHorizontal: 20, paddingTop: 4, gap: 12 }}>
 
-        <View style={{ paddingHorizontal: 20, paddingTop: 20, gap: 12 }}>
-
-          {/* ── Revenue hero card ── */}
+          {/* ── Revenue hero card: superficie ink + firma de gradiente ── */}
           <Animated.View entering={FadeInDown.delay(120).duration(400)}>
             <View style={[s.revenueCard, Shadow.md]}>
-              <LinearGradient colors={["#1a1a2e", "#16213e"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.revenueGrad}>
-                <View style={s.revenueBlob} />
+              <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.revenueGrad}>
+                <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.revenueAccent} />
                 <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
                   <View>
                     <Text style={s.revenueLabel}>Ingresos del mes</Text>
@@ -318,20 +310,19 @@ export default function DashboardScreen() {
 }
 
 const s = StyleSheet.create({
-  headerGrad:    { paddingTop: 24, paddingHorizontal: 24, paddingBottom: 28, overflow: "hidden" },
-  headerBlob1:   { position: "absolute", width: 220, height: 220, borderRadius: 110, backgroundColor: "rgba(255,255,255,.08)", top: -70, right: -50 },
-  headerBlob2:   { position: "absolute", width: 120, height: 120, borderRadius: 60, backgroundColor: "rgba(0,0,0,.06)", bottom: -30, left: -20 },
-  greeting:      { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.8)", marginBottom: 4 },
-  bizName:       { fontSize: 28, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.8 },
-  date:          { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.65)", marginTop: 4, textTransform: "capitalize" },
-  summaryPill:   { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.15)", borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 6, marginTop: 14, alignSelf: "flex-start" },
-  summaryText:   { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.92)" },
+  header:        { flexDirection: "row", alignItems: "center", gap: 14, paddingTop: 18, paddingHorizontal: 24, paddingBottom: 18 },
+  crumb:         { ...MonoLabel, fontSize: 9, marginBottom: 5 },
+  bizName:       { fontSize: 26, fontFamily: Fonts.bold, color: Colors.text, letterSpacing: -0.8 },
+  greeting:      { fontSize: 13, fontFamily: Fonts.regular, color: Colors.muted, marginTop: 2 },
+  avatarRing:    { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  avatar:        { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.ink, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "white" },
+  avatarText:    { fontSize: 12, fontFamily: Fonts.bold, color: "white", letterSpacing: 0.5 },
 
   revenueCard:   { borderRadius: Radius.xl, overflow: "hidden" },
-  revenueGrad:   { padding: 20, overflow: "hidden" },
-  revenueBlob:   { position: "absolute", width: 180, height: 180, borderRadius: 90, backgroundColor: "rgba(255,255,255,.04)", top: -50, right: -40 },
-  revenueLabel:  { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.55)", marginBottom: 6 },
-  revenueValue:  { fontSize: 36, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -1.5 },
+  revenueGrad:   { padding: 20, paddingTop: 23, overflow: "hidden" },
+  revenueAccent: { position: "absolute", top: 0, left: 0, right: 0, height: 3 },
+  revenueLabel:  { ...MonoLabel, fontSize: 9.5, color: "rgba(255,255,255,.55)", marginBottom: 8 },
+  revenueValue:  { fontSize: 36, fontFamily: Fonts.bold, color: "white", letterSpacing: -1.5, fontVariant: ["tabular-nums"] },
   revenueSub:    { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 },
   revenueDot:    { width: 7, height: 7, borderRadius: 4 },
   revenueSubText:{ fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.6)" },
@@ -340,19 +331,19 @@ const s = StyleSheet.create({
   projectedText: { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.45)" },
 
   sectionHeader:    { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
-  sectionTitle:     { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, letterSpacing: -0.3 },
-  sectionLink:      { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.red },
-  newCitaBtn:       { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: Radius.full, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: Colors.red },
-  newCitaBtnText:   { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
+  sectionTitle:     { fontSize: 16, fontFamily: Fonts.bold, color: Colors.text, letterSpacing: -0.3 },
+  sectionLink:      { fontSize: 13, fontFamily: Fonts.semibold, color: Colors.red },
+  newCitaBtn:       { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: Radius.full, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: Colors.ink },
+  newCitaBtnText:   { fontSize: 12, fontFamily: Fonts.bold, color: "white" },
 
-  reportsBtn:       { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14, ...Shadow.sm },
+  reportsBtn:       { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.white, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, padding: 14, ...Shadow.sm },
   reportsBtnIcon:   { width: 36, height: 36, borderRadius: 11, backgroundColor: Colors.red + "14", alignItems: "center", justifyContent: "center" },
   reportsBtnTitle:  { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   reportsBtnSub:    { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 1 },
 
   empty:         { borderRadius: Radius.xl, overflow: "hidden" },
   emptyInner:    { padding: 36, alignItems: "center" },
-  emptyIcon:     { width: 60, height: 60, borderRadius: 20, backgroundColor: Colors.white, alignItems: "center", justifyContent: "center", marginBottom: 14, ...Shadow.sm },
+  emptyIcon:     { width: 60, height: 60, borderRadius: 20, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, alignItems: "center", justifyContent: "center", marginBottom: 14, ...Shadow.sm },
   emptyTitle:    { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:      { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center", lineHeight: 19, marginBottom: 20 },
   emptyBtn:      { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: Radius.full, paddingVertical: 11, paddingHorizontal: 20, backgroundColor: Colors.red },

@@ -44,7 +44,8 @@ function ApptDetailModal({ appt, onClose, onStatusChange }: {
   return (
     <Modal visible={!!appt} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={dm.header}>
+        <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={dm.header}>
+          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
           <View style={dm.headerRow}>
             <TouchableOpacity onPress={onClose} style={dm.closeBtn}>
               <Ionicons name="close" size={20} color="white" />
@@ -96,17 +97,17 @@ function ApptDetailModal({ appt, onClose, onStatusChange }: {
 const dm = StyleSheet.create({
   header:      { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 24 },
   headerRow:   { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  closeBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
+  closeBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   clientName:  { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.5, marginBottom: 4 },
   serviceName: { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.8)" },
   timeBadge:   { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.18)", borderRadius: Radius.full, paddingHorizontal: 14, paddingVertical: 6, marginTop: 10 },
   timeText:    { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
-  sectionLabel:{ fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 12 },
+  sectionLabel:{ fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 12 },
   statusGrid:  { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 20 },
   statusBtn:   { flex: 1, minWidth: "45%", flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.white, borderRadius: Radius.md, padding: 14, borderWidth: 1.5, borderColor: Colors.border },
   statusLabel: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
-  infoCard:    { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Colors.white, borderRadius: Radius.md, padding: 14 },
+  infoCard:    { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md, padding: 14 },
   infoText:    { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
 });
 
@@ -165,7 +166,8 @@ export default function StaffAgendaScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
         <View style={s.headerBlob} />
         <Animated.View entering={FadeInDown.duration(400)} style={{ position: "relative", zIndex: 1 }}>
           <Text style={s.headerTitle}>Mi Agenda</Text>
@@ -262,7 +264,7 @@ const s = StyleSheet.create({
   serviceName:  { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
   badge:        { borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 5 },
   badgeText:    { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold" },
-  empty:        { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 40, alignItems: "center", marginTop: 20 },
+  empty:        { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 40, alignItems: "center", marginTop: 20 },
   emptyTitle:   { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:     { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
 });

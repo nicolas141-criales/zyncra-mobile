@@ -87,7 +87,8 @@ export default function ManualSaleModal({ visible, tenantId, onClose, onSaved }:
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+        <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
           <View style={s.headerRow}>
             <TouchableOpacity onPress={onClose} style={s.closeBtn}>
               <Ionicons name="close" size={20} color="white" />
@@ -205,9 +206,9 @@ export default function ManualSaleModal({ visible, tenantId, onClose, onSaved }:
 const s = StyleSheet.create({
   header:        { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 20 },
   headerRow:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  closeBtn:      { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
+  closeBtn:      { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
   headerTitle:   { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
-  label:         { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8, marginTop: 16 },
+  label:         { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8, marginTop: 16 },
   input:         { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
   amountWrap:    { flexDirection: "row", alignItems: "center" },
   currencySymbol:{ backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderTopLeftRadius: Radius.md, borderBottomLeftRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, borderRightWidth: 0 },

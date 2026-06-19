@@ -376,7 +376,8 @@ export default function CustomFieldsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
       {/* Header */}
-      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
             <Ionicons name="arrow-back" size={22} color="white" />
@@ -564,7 +565,7 @@ const s = StyleSheet.create({
   addBtn:    { flexDirection: "row", alignItems: "center", gap: 8, margin: 20, marginBottom: 12, paddingVertical: 12, paddingHorizontal: 16, backgroundColor: Colors.red + "10", borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.red + "30", alignSelf: "flex-start" },
   addBtnTxt: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.red },
 
-  fieldCard:    { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14 },
+  fieldCard:    { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 14 },
   fieldIcon:    { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center" },
   fieldName:    { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   fieldSub:     { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 3 },
@@ -581,7 +582,7 @@ const s = StyleSheet.create({
   clientSelector:    { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, marginBottom: 16 },
   clientSelectorTxt: { flex: 1, fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle },
 
-  valuesCard: { backgroundColor: Colors.white, borderRadius: Radius.lg, overflow: "hidden", marginBottom: 16 },
+  valuesCard: { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, overflow: "hidden", marginBottom: 16 },
   divider:    { height: 1, backgroundColor: Colors.border, marginHorizontal: 16 },
   valueRow:   { padding: 16 },
   valueLabel: { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
@@ -603,7 +604,7 @@ const m = StyleSheet.create({
   sheet:       { backgroundColor: Colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, gap: 14 },
   handle:      { width: 40, height: 4, backgroundColor: Colors.border, borderRadius: 2, alignSelf: "center", marginBottom: 8 },
   title:       { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
-  label:       { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.5 },
+  label:       { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.5 },
   keyHint:     { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.subtle, marginTop: -10 },
   input:       { backgroundColor: Colors.cream2, borderRadius: Radius.md, padding: 14, fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
 

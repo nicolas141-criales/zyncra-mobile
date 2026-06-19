@@ -9,7 +9,7 @@ import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { Colors, Fonts, Gradients, MonoLabel, Radius, Shadow } from "@/constants/theme";
 import ManualSaleModal from "@/components/ManualSaleModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -72,7 +72,8 @@ function PaymentModal({ appt, onConfirm, onClose }: {
   return (
     <Modal visible={!!appt} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={pm.header}>
+        <View style={pm.header}>
+          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={pm.headerAccent} />
           <View style={pm.headerRow}>
             <TouchableOpacity onPress={onClose} style={pm.closeBtn}>
               <Ionicons name="close" size={20} color="white" />
@@ -103,7 +104,7 @@ function PaymentModal({ appt, onConfirm, onClose }: {
               <Text style={pm.totalVal}>{price > 0 ? fmt(price) : "—"}</Text>
             </View>
           </View>
-        </LinearGradient>
+        </View>
 
         <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: 120 }}>
           <Text style={pm.sectionLabel}>¿Cómo pagó el cliente?</Text>
@@ -134,7 +135,7 @@ function PaymentModal({ appt, onConfirm, onClose }: {
             disabled={saving}
             activeOpacity={0.85}
           >
-            <View style={pm.btnGrad}>
+            <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={pm.btnGrad}>
               {saving
                 ? <ActivityIndicator color="white" />
                 : <>
@@ -142,7 +143,7 @@ function PaymentModal({ appt, onConfirm, onClose }: {
                     <Text style={pm.btnText}>{price > 0 ? `Confirmar cobro · ${fmt(price)}` : "Completar cita"}</Text>
                   </>
               }
-            </View>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </View>
@@ -151,25 +152,26 @@ function PaymentModal({ appt, onConfirm, onClose }: {
 }
 
 const pm = StyleSheet.create({
-  header:       { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 24 },
+  header:       { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 24, backgroundColor: Colors.ink, overflow: "hidden" },
+  headerAccent: { position: "absolute", top: 0, left: 0, right: 0, height: 3 },
   headerRow:    { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
-  closeBtn:     { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
-  title:        { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
-  receipt:      { backgroundColor: "rgba(255,255,255,.15)", borderRadius: Radius.lg, paddingHorizontal: 16, paddingVertical: 8 },
+  closeBtn:     { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  title:        { fontSize: 18, fontFamily: Fonts.bold, color: "white" },
+  receipt:      { backgroundColor: "rgba(255,255,255,.07)", borderWidth: 1, borderColor: "rgba(255,255,255,.10)", borderRadius: Radius.lg, paddingHorizontal: 16, paddingVertical: 8 },
   receiptRow:   { flexDirection: "row", justifyContent: "space-between", paddingVertical: 11 },
-  receiptLabel: { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.75)" },
-  receiptVal:   { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "white" },
-  totalVal:     { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
-  divider:      { height: 1, backgroundColor: "rgba(255,255,255,.15)" },
-  sectionLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 12 },
+  receiptLabel: { fontSize: 13, fontFamily: Fonts.regular, color: "rgba(255,255,255,.6)" },
+  receiptVal:   { fontSize: 13, fontFamily: Fonts.semibold, color: "white" },
+  totalVal:     { fontSize: 20, fontFamily: Fonts.bold, color: "white", fontVariant: ["tabular-nums"] },
+  divider:      { height: 1, backgroundColor: "rgba(255,255,255,.10)" },
+  sectionLabel: { ...MonoLabel, marginBottom: 12 },
   methodRow:       { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: Colors.white, borderRadius: Radius.md, padding: 14, marginBottom: 10, borderWidth: 1.5, borderColor: Colors.border, overflow: "hidden" },
   methodRowActive: { borderWidth: 0 },
   methodIcon:      { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  methodLabel:     { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
+  methodLabel:     { fontSize: 15, fontFamily: Fonts.semibold, color: Colors.text },
   bottomBar:    { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
   btn:          { borderRadius: Radius.full, overflow: "hidden" },
-  btnGrad: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
-  btnText:      { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
+  btnGrad: { paddingVertical: 16, alignItems: "center" },
+  btnText:      { fontSize: 15, fontFamily: Fonts.bold, color: "white" },
 });
 
 // ─── Appointment card ─────────────────────────────────────────────────────────
@@ -257,7 +259,7 @@ function ApptCard({ appt, linkedSale, onCobrar, onCancel, index }: {
 }
 
 const ac = StyleSheet.create({
-  card:        { backgroundColor: Colors.white, borderRadius: Radius.lg, flexDirection: "row", marginBottom: 10, overflow: "hidden" },
+  card:        { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, flexDirection: "row", marginBottom: 10, overflow: "hidden" },
   accent:      { width: 5 },
   topRow:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
   timePill:    { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 5 },
@@ -393,20 +395,20 @@ export default function PosScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
       {/* Header */}
-      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+      <View style={s.header}>
         <View style={s.headerRow}>
           <View>
+            <Text style={s.headerCrumb}>Pagos del día</Text>
             <Text style={s.headerTitle}>Cobros</Text>
-            <Text style={s.headerSub}>Gestiona los pagos del día</Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <View style={s.dateNav}>
               <TouchableOpacity onPress={() => setDate(d => addDays(d, -1))} style={s.navBtn}>
-                <Ionicons name="chevron-back" size={16} color="white" />
+                <Ionicons name="chevron-back" size={16} color={Colors.text} />
               </TouchableOpacity>
               <Text style={s.dateLabel}>{dateLabel}</Text>
               <TouchableOpacity onPress={() => setDate(d => addDays(d, 1))} style={s.navBtn} disabled={isToday}>
-                <Ionicons name="chevron-forward" size={16} color={isToday ? "rgba(255,255,255,.3)" : "white"} />
+                <Ionicons name="chevron-forward" size={16} color={isToday ? Colors.subtle : Colors.text} />
               </TouchableOpacity>
             </View>
             <TouchableOpacity style={s.addBtn} onPress={() => router.push("/(admin)/pos-history" as any)} activeOpacity={0.8}>
@@ -417,7 +419,7 @@ export default function PosScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </LinearGradient>
+      </View>
 
       {loading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -431,7 +433,8 @@ export default function PosScreen() {
           {/* ── Revenue hero ── */}
           <Animated.View entering={FadeInDown.duration(350)} style={{ padding: 20, paddingBottom: 0, gap: 12 }}>
             <View style={[s.heroCard, Shadow.md]}>
-              <LinearGradient colors={["#1a1a2e", "#16213e"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroGrad}>
+              <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.heroGrad}>
+                <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.heroAccent} />
                 <View style={{ flex: 1 }}>
                   <Text style={s.heroLabel}>Total cobrado</Text>
                   <Text style={s.heroValue}>{cobrado > 0 ? fmt(cobrado) : "—"}</Text>
@@ -594,27 +597,28 @@ export default function PosScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  header:         { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
+  header:         { paddingTop: 18, paddingHorizontal: 24, paddingBottom: 16 },
   headerRow:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  headerTitle:    { fontSize: 24, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.5 },
-  headerSub:      { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
-  dateNav:        { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.15)", borderRadius: Radius.full, paddingVertical: 6, paddingHorizontal: 8 },
+  headerCrumb:    { ...MonoLabel, fontSize: 9, marginBottom: 5 },
+  headerTitle:    { fontSize: 24, fontFamily: Fonts.bold, color: Colors.text, letterSpacing: -0.6 },
+  dateNav:        { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.full, paddingVertical: 6, paddingHorizontal: 8 },
   navBtn:         { padding: 2 },
-  dateLabel:      { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: "white", minWidth: 40, textAlign: "center" },
-  addBtn:         { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,.22)", alignItems: "center", justifyContent: "center" },
+  dateLabel:      { fontSize: 12, fontFamily: Fonts.bold, color: Colors.text, minWidth: 40, textAlign: "center" },
+  addBtn:         { width: 38, height: 38, borderRadius: 19, backgroundColor: Colors.ink, alignItems: "center", justifyContent: "center" },
 
   heroCard:       { borderRadius: Radius.xl, overflow: "hidden" },
-  heroGrad:       { flexDirection: "row", alignItems: "center", padding: 22, gap: 16 },
-  heroLabel:      { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.6)", marginBottom: 4 },
-  heroValue:      { fontSize: 34, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -1 },
-  heroSub:        { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.5)", marginTop: 4 },
-  projectedBox:   { backgroundColor: "rgba(255,255,255,.08)", borderRadius: Radius.lg, padding: 14, alignItems: "center", minWidth: 110 },
-  projectedLabel: { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.6)", textTransform: "uppercase", letterSpacing: 0.5 },
-  projectedValue: { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white", marginTop: 4 },
-  projectedSub:   { fontSize: 10, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.5)", marginTop: 2 },
+  heroGrad:       { flexDirection: "row", alignItems: "center", padding: 22, paddingTop: 25, gap: 16 },
+  heroAccent:     { position: "absolute", top: 0, left: 0, right: 0, height: 3 },
+  heroLabel:      { ...MonoLabel, fontSize: 9.5, color: "rgba(255,255,255,.55)", marginBottom: 6 },
+  heroValue:      { fontSize: 34, fontFamily: Fonts.bold, color: "white", letterSpacing: -1, fontVariant: ["tabular-nums"] },
+  heroSub:        { fontSize: 11, fontFamily: Fonts.regular, color: "rgba(255,255,255,.5)", marginTop: 4 },
+  projectedBox:   { backgroundColor: "rgba(255,255,255,.07)", borderWidth: 1, borderColor: "rgba(255,255,255,.10)", borderRadius: Radius.lg, padding: 14, alignItems: "center", minWidth: 110 },
+  projectedLabel: { ...MonoLabel, fontSize: 8.5, color: "rgba(255,255,255,.55)" },
+  projectedValue: { fontSize: 18, fontFamily: Fonts.bold, color: "white", marginTop: 4, fontVariant: ["tabular-nums"] },
+  projectedSub:   { fontSize: 10, fontFamily: Fonts.regular, color: "rgba(255,255,255,.5)", marginTop: 2 },
 
-  methodsCard:    { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16 },
-  methodsTitle:   { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 12 },
+  methodsCard:    { backgroundColor: Colors.white, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, padding: 16 },
+  methodsTitle:   { ...MonoLabel, marginBottom: 12 },
   methodsRow:     { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   methodChip:     { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 8 },
   methodChipLabel:{ fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold" },
@@ -627,9 +631,9 @@ const s = StyleSheet.create({
 
   sectionHeader:  { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 },
   sectionDot:     { width: 8, height: 8, borderRadius: 4 },
-  sectionTitle:   { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.5 },
+  sectionTitle:   { ...MonoLabel },
 
-  saleCard:       { backgroundColor: Colors.white, borderRadius: Radius.lg, flexDirection: "row", marginBottom: 10, overflow: "hidden" },
+  saleCard:       { backgroundColor: Colors.white, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, flexDirection: "row", marginBottom: 10, overflow: "hidden" },
   saleAccent:     { width: 5 },
   saleTopRow:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
   saleTimePill:   { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 5 },
@@ -642,7 +646,7 @@ const s = StyleSheet.create({
   methodTagText:  { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold" },
   voidBtn:        { width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.red + "12", alignItems: "center", justifyContent: "center" },
 
-  empty:          { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 44, alignItems: "center", marginTop: 4 },
+  empty:          { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 44, alignItems: "center", marginTop: 4 },
   emptyTitle:     { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:       { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
 });

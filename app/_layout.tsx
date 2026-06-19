@@ -2,6 +2,7 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useFonts, SpaceGrotesk_400Regular, SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold } from "@expo-google-fonts/space-grotesk";
+import { JetBrainsMono_500Medium, JetBrainsMono_700Bold } from "@expo-google-fonts/jetbrains-mono";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { View, ActivityIndicator } from "react-native";
 import { Colors } from "@/constants/theme";
@@ -19,8 +20,9 @@ export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     SpaceGrotesk_400Regular,
     SpaceGrotesk_600SemiBold,
-    SpaceGrotesk_600SemiBold,
     SpaceGrotesk_700Bold,
+    JetBrainsMono_500Medium,
+    JetBrainsMono_700Bold,
   });
 
   if (!fontsLoaded) {

@@ -585,7 +585,8 @@ export default function InvoicesScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
       {/* Header */}
-      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
             <Ionicons name="arrow-back" size={22} color="white" />
@@ -749,10 +750,10 @@ const s = StyleSheet.create({
   tabTxtActive: { color: Colors.red, fontFamily: "SpaceGrotesk_700Bold" },
   tabUnderline: { position: "absolute", bottom: 0, left: 8, right: 8, height: 2, backgroundColor: Colors.red, borderRadius: 1 },
 
-  sectionTitle: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 },
-  card:         { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, marginBottom: 4 },
+  sectionTitle: { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 },
+  card:         { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16, marginBottom: 4 },
   hint:         { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginBottom: 16, lineHeight: 18 },
-  fieldLabel:   { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 },
+  fieldLabel:   { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 },
   input:        { backgroundColor: Colors.cream2, borderRadius: Radius.md, padding: 12, fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
 
   envRow:      { flexDirection: "row", gap: 10, marginBottom: 16 },
@@ -780,12 +781,12 @@ const s = StyleSheet.create({
   addItemBtn:    { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 },
   addItemBtnTxt: { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.blue },
 
-  summaryCard:  { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, marginTop: 16 },
+  summaryCard:  { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16, marginTop: 16 },
   summaryRow:   { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },
   summaryLabel: { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
   summaryValue: { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
 
-  invCard:     { backgroundColor: Colors.white, borderRadius: Radius.lg, overflow: "hidden" },
+  invCard:     { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, overflow: "hidden" },
   invHeader:   { flexDirection: "row", alignItems: "center", gap: 10, padding: 14 },
   invNumber:   { backgroundColor: Colors.red + "14", paddingVertical: 4, paddingHorizontal: 8, borderRadius: Radius.sm },
   invNumberTxt:{ fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: Colors.red },
@@ -795,7 +796,7 @@ const s = StyleSheet.create({
   statusBadge: { paddingVertical: 3, paddingHorizontal: 8, borderRadius: Radius.full },
   statusTxt:   { fontSize: 10, fontFamily: "SpaceGrotesk_700Bold" },
   invDetail:   { padding: 14, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
-  invDetailLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", marginBottom: 4 },
+  invDetailLabel: { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase", marginBottom: 4 },
   invCufe:     { fontSize: 10, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text, lineHeight: 16 },
   invItem:     { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
 
@@ -815,7 +816,7 @@ const pk = StyleSheet.create({
 
 const sc = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: 24 },
-  card:    { backgroundColor: Colors.white, borderRadius: 24, padding: 28, width: "100%", alignItems: "center" },
+  card:    { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: 24, padding: 28, width: "100%", alignItems: "center" },
   icon:    { marginBottom: 12 },
   title:   { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   sub:     { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginBottom: 16 },
@@ -823,6 +824,6 @@ const sc = StyleSheet.create({
   numLabel:{ fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
   numValue:{ fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", color: Colors.blue },
   cufeBox: { backgroundColor: Colors.cream2, borderRadius: Radius.md, padding: 12, width: "100%" },
-  cufeLabel:{ fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", marginBottom: 4 },
+  cufeLabel:{ fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", marginBottom: 4 },
   cufeValue:{ fontSize: 10, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text, lineHeight: 16 },
 });

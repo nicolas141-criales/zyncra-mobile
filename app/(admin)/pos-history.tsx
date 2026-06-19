@@ -113,7 +113,8 @@ export default function PosHistoryScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
       {/* Header */}
-      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.iconBtn}>
             <Ionicons name="arrow-back" size={20} color="white" />
@@ -141,7 +142,7 @@ export default function PosHistoryScreen() {
           <Animated.View entering={FadeInDown.duration(350)}>
             {/* Revenue summary */}
             <View style={[s.summaryCard, Shadow.md]}>
-              <LinearGradient colors={["#1a1a2e", "#16213e"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.summaryGrad}>
+              <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.summaryGrad}>
                 <View>
                   <Text style={s.summaryLabel}>Total del mes</Text>
                   <Text style={s.summaryValue}>{totalRevenue > 0 ? fmt(totalRevenue) : "—"}</Text>
@@ -234,7 +235,7 @@ const s = StyleSheet.create({
   header:       { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
   headerRow:    { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
   headerTitle:  { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.4 },
-  iconBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
+  iconBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
   monthNav:     { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 16 },
   navBtn:       { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.15)", alignItems: "center", justifyContent: "center" },
   monthLabel:   { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: "white", minWidth: 160, textAlign: "center", textTransform: "capitalize" },
@@ -245,8 +246,8 @@ const s = StyleSheet.create({
   summaryValue: { fontSize: 36, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -1 },
   summarySub:   { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.5)", marginTop: 4 },
 
-  methodsCard:  { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, marginBottom: 16 },
-  methodsTitle: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 12 },
+  methodsCard:  { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16, marginBottom: 16 },
+  methodsTitle: { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 12 },
   methodRow:    { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 },
   methodIcon:   { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center" },
   methodName:   { flex: 1, fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
@@ -257,7 +258,7 @@ const s = StyleSheet.create({
   dayLabel:     { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, textTransform: "capitalize" },
   dayTotal:     { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: Colors.success },
 
-  saleCard:     { backgroundColor: Colors.white, borderRadius: Radius.md, flexDirection: "row", marginBottom: 8, overflow: "hidden" },
+  saleCard:     { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md, flexDirection: "row", marginBottom: 8, overflow: "hidden" },
   saleAccent:   { width: 4 },
   saleTopRow:   { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 },
   saleTime:     { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
@@ -269,7 +270,7 @@ const s = StyleSheet.create({
   methodTagText:{ fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold" },
   voidBtn:      { width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.muted + "15", alignItems: "center", justifyContent: "center" },
 
-  empty:        { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 44, alignItems: "center", marginTop: 8 },
+  empty:        { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 44, alignItems: "center", marginTop: 8 },
   emptyTitle:   { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:     { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
 });

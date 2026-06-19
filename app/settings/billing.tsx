@@ -138,7 +138,8 @@ export default function BillingScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
 
         {/* ── Header ── */}
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+        <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
           <View style={s.headerBlob} />
           <View style={s.headerRow}>
             <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
@@ -283,7 +284,7 @@ const s = StyleSheet.create({
   header:           { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 28, overflow: "hidden" },
   headerBlob:       { position: "absolute", width: 220, height: 220, borderRadius: 110, backgroundColor: "rgba(255,255,255,.07)", top: -70, right: -50 },
   headerRow:        { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 20 },
-  backBtn:          { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
+  backBtn:          { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
   headerTitle:      { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.4 },
   headerSub:        { fontSize: 12, color: "rgba(255,255,255,.7)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
   planBadge:        { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "rgba(255,255,255,.14)", borderRadius: Radius.lg, padding: 14 },
@@ -294,10 +295,10 @@ const s = StyleSheet.create({
   trialPillText:    { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   warnCard:         { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: "#fffbeb", borderRadius: Radius.md, padding: 14, borderWidth: 1, borderColor: "#f59e0b33", marginBottom: 16 },
   warnText:         { flex: 1, fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "#92400e", lineHeight: 19 },
-  card:             { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 18 },
+  card:             { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 18 },
   cardTitle:        { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 14 },
-  sectionLabel:     { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 12 },
-  proCard:          { backgroundColor: Colors.white, borderRadius: Radius.xl, overflow: "hidden" },
+  sectionLabel:     { fontSize: 12, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 12 },
+  proCard:          { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, overflow: "hidden" },
   proCardHeader:    { padding: 18, overflow: "hidden" },
   proCardHeaderBlob:{ position: "absolute", width: 160, height: 160, borderRadius: 80, backgroundColor: "rgba(255,255,255,.08)", top: -50, right: -30 },
   proIconBox:       { width: 36, height: 36, borderRadius: 12, backgroundColor: "rgba(255,255,255,.2)", alignItems: "center", justifyContent: "center" },
@@ -307,11 +308,11 @@ const s = StyleSheet.create({
   proPeriod:        { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.7)", textAlign: "right" },
   upgradeBtn:       { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "white", borderRadius: Radius.full, paddingVertical: 12 },
   upgradeBtnText:   { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.red },
-  businessCard:     { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16 },
+  businessCard:     { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16 },
   businessIconBox:  { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   businessCardTitle:{ fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   businessCardSub:  { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
-  faqCard:          { backgroundColor: Colors.white, borderRadius: Radius.md, padding: 16, marginBottom: 10 },
+  faqCard:          { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md, padding: 16, marginBottom: 10 },
   faqQ:             { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   faqA:             { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, lineHeight: 19 },
 });

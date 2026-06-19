@@ -136,7 +136,7 @@ function KpiCard({ label, value, sub, icon, color, trend, delay }: {
 }
 
 const kpi = StyleSheet.create({
-  card:    { flex: 1, backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14, alignItems: "center", gap: 4 },
+  card:    { flex: 1, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 14, alignItems: "center", gap: 4 },
   iconBox: { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center", marginBottom: 4 },
   value:   { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", letterSpacing: -0.5 },
   label:   { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted, textAlign: "center" },
@@ -361,7 +361,8 @@ export default function ReportsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
       {/* Header */}
-      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
             <Ionicons name="arrow-back" size={22} color="white" />
@@ -545,10 +546,10 @@ const s = StyleSheet.create({
   periodBtnTxt:    { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.8)" },
   periodBtnTxtActive: { color: Colors.red, fontFamily: "SpaceGrotesk_700Bold" },
 
-  sectionTitle: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 12 },
+  sectionTitle: { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 12 },
   kpiRow:       { flexDirection: "row", gap: 10, marginBottom: 10 },
 
-  card:       { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, marginBottom: 14 },
+  card:       { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16, marginBottom: 14 },
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 16 },
   cardIconBox:{ width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   cardTitle:  { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },

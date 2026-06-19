@@ -9,7 +9,7 @@ import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { Colors, Fonts, Gradients, MonoLabel, Radius, Shadow } from "@/constants/theme";
 
 type Client = { id: string; name: string; phone?: string; email?: string; no_shows?: number; created_at?: string };
 type Appt = {
@@ -92,19 +92,19 @@ function EditModal({ visible, client, tenantId, onClose, onSaved }: {
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={em.header}>
+        <View style={em.header}>
           <View style={em.headerRow}>
             <TouchableOpacity onPress={onClose} style={em.iconBtn}>
-              <Ionicons name="close" size={20} color="white" />
+              <Ionicons name="close" size={20} color={Colors.text} />
             </TouchableOpacity>
             <Text style={em.headerTitle}>{isNew ? "Nuevo cliente" : "Editar cliente"}</Text>
             {!isNew ? (
               <TouchableOpacity onPress={handleDelete} style={em.iconBtn}>
-                <Ionicons name="trash-outline" size={18} color="white" />
+                <Ionicons name="trash-outline" size={18} color={Colors.red} />
               </TouchableOpacity>
             ) : <View style={{ width: 40 }} />}
           </View>
-        </LinearGradient>
+        </View>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
             {[
@@ -123,9 +123,9 @@ function EditModal({ visible, client, tenantId, onClose, onSaved }: {
           <View style={em.bottomBar}>
             <TouchableOpacity style={[em.btn, !canSave && { opacity: 0.4 }]}
               onPress={handleSave} disabled={!canSave || saving} activeOpacity={0.85}>
-              <View style={em.btnGrad}>
+              <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={em.btnGrad}>
                 {saving ? <ActivityIndicator color="white" /> : <Text style={em.btnText}>{isNew ? "Crear cliente" : "Guardar cambios"}</Text>}
-              </View>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
@@ -191,8 +191,8 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
     <Modal visible animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: Colors.cream2 }}>
         {/* Header */}
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={[p.header, { paddingTop: insets.top + 12 }]}>
+        <View style={[p.header, { paddingTop: insets.top + 12 }]}>
+          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={p.headerAccent} />
           <View style={p.headerRow}>
             <TouchableOpacity onPress={onClose} style={p.iconBtn}>
               <Ionicons name="arrow-back" size={20} color="white" />
@@ -229,7 +229,7 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
               )}
             </View>
           </View>
-        </LinearGradient>
+        </View>
 
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }}>
           {/* Stats */}
@@ -395,17 +395,18 @@ export default function ClientsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+      <View style={s.header}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <View>
+            <Text style={s.headerCrumb}>Base de datos</Text>
             <Text style={s.headerTitle}>Clientes</Text>
-            <Text style={s.headerSub}>{clients.length} en tu base de datos</Text>
+            <Text style={s.headerSub}>{clients.length} registrado{clients.length !== 1 ? "s" : ""}</Text>
           </View>
           <TouchableOpacity style={s.addBtn} onPress={() => setNewModal(true)} activeOpacity={0.8}>
-            <Ionicons name="person-add-outline" size={20} color="white" />
+            <Ionicons name="person-add-outline" size={19} color="white" />
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
 
       <View style={s.searchWrap}>
         <Ionicons name="search-outline" size={16} color={Colors.subtle} style={{ marginRight: 8 }} />
@@ -485,40 +486,42 @@ export default function ClientsScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  header:      { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
-  headerTitle: { fontSize: 24, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.5 },
-  headerSub:   { fontSize: 13, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
-  addBtn:      { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.22)", alignItems: "center", justifyContent: "center" },
-  searchWrap:  { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.border },
-  search:      { flex: 1, fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
-  row:         { backgroundColor: Colors.white, borderRadius: Radius.md, padding: 14, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 },
+  header:      { paddingTop: 18, paddingHorizontal: 24, paddingBottom: 16 },
+  headerCrumb: { ...MonoLabel, fontSize: 9, marginBottom: 5 },
+  headerTitle: { fontSize: 24, fontFamily: Fonts.bold, color: Colors.text, letterSpacing: -0.6 },
+  headerSub:   { fontSize: 13, color: Colors.muted, fontFamily: Fonts.regular, marginTop: 2 },
+  addBtn:      { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.ink, alignItems: "center", justifyContent: "center" },
+  searchWrap:  { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 1, borderTopColor: Colors.border, borderBottomWidth: 1, borderBottomColor: Colors.border },
+  search:      { flex: 1, fontSize: 14, fontFamily: Fonts.regular, color: Colors.text },
+  row:         { backgroundColor: Colors.white, borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.border, padding: 14, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 },
   name:        { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   info:        { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
   noShows:     { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.red },
-  empty:       { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 48, alignItems: "center", marginTop: 20, ...Shadow.sm },
+  empty:       { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 48, alignItems: "center", marginTop: 20, ...Shadow.sm },
   emptyTitle:  { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:    { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
 });
 
 // Profile styles
 const p = StyleSheet.create({
-  header:      { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 28 },
+  header:      { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 28, backgroundColor: Colors.ink, overflow: "hidden" },
+  headerAccent:{ position: "absolute", top: 0, left: 0, right: 0, height: 3 },
   headerRow:   { flexDirection: "row", justifyContent: "space-between", marginBottom: 20 },
-  iconBtn:     { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
+  iconBtn:     { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
   identity:    { alignItems: "center", gap: 6 },
-  clientName:  { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.4, marginTop: 6, textAlign: "center" },
-  clientSince: { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.75)" },
+  clientName:  { fontSize: 22, fontFamily: Fonts.bold, color: "white", letterSpacing: -0.4, marginTop: 6, textAlign: "center" },
+  clientSince: { fontSize: 12, fontFamily: Fonts.regular, color: "rgba(255,255,255,.6)" },
   actions:     { flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap", justifyContent: "center" },
-  actionBtn:   { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.2)", borderRadius: Radius.full, paddingHorizontal: 14, paddingVertical: 8 },
-  actionLabel: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "white" },
+  actionBtn:   { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.10)", borderWidth: 1, borderColor: "rgba(255,255,255,.12)", borderRadius: Radius.full, paddingHorizontal: 14, paddingVertical: 8 },
+  actionLabel: { fontSize: 12, fontFamily: Fonts.semibold, color: "white" },
 
-  sectionLabel:{ fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.9, marginBottom: 10, marginTop: 20 },
-  card:        { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16 },
+  sectionLabel:{ ...MonoLabel, marginBottom: 10, marginTop: 20 },
+  card:        { backgroundColor: Colors.white, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, padding: 16 },
 
-  statsCard:   { backgroundColor: Colors.white, borderRadius: Radius.lg, flexDirection: "row", padding: 16 },
+  statsCard:   { backgroundColor: Colors.white, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, flexDirection: "row", padding: 16 },
   statBox:     { flex: 1, alignItems: "center", gap: 4 },
-  statVal:     { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold" },
-  statLabel:   { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle, textAlign: "center" },
+  statVal:     { fontSize: 20, fontFamily: Fonts.bold, fontVariant: ["tabular-nums"] },
+  statLabel:   { ...MonoLabel, fontSize: 8.5, textAlign: "center" },
   statDiv:     { width: 1, backgroundColor: Colors.border, marginVertical: 4 },
 
   infoRow:     { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 4 },
@@ -528,14 +531,14 @@ const p = StyleSheet.create({
   infoLabel:   { flex: 1, fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   infoValue:   { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
 
-  emptyCard:   { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 40, alignItems: "center" },
+  emptyCard:   { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 40, alignItems: "center" },
   emptyTitle:  { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:    { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
 
-  apptRow:     { backgroundColor: Colors.white, borderRadius: Radius.md, flexDirection: "row", alignItems: "center", gap: 14, padding: 14, marginBottom: 8 },
+  apptRow:     { backgroundColor: Colors.white, borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.border, flexDirection: "row", alignItems: "center", gap: 14, padding: 14, marginBottom: 8 },
   dateBlock:   { width: 40, alignItems: "center", backgroundColor: Colors.cream2, borderRadius: Radius.sm, paddingVertical: 8 },
   dateDay:     { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, lineHeight: 20 },
-  dateMon:     { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle, textTransform: "uppercase" },
+  dateMon:     { fontSize: 10, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase" },
   apptService: { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   apptTime:    { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
   apptPrice:   { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
@@ -545,15 +548,15 @@ const p = StyleSheet.create({
 
 // Edit modal styles
 const em = StyleSheet.create({
-  header:     { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 20 },
+  header:     { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.white },
   headerRow:  { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  iconBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
-  headerTitle:{ fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
+  iconBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.cream2, borderWidth: 1, borderColor: Colors.border, alignItems: "center", justifyContent: "center" },
+  headerTitle:{ fontSize: 17, fontFamily: Fonts.bold, color: Colors.text, letterSpacing: -0.3 },
   field:      { marginBottom: 16 },
-  fieldLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 },
-  input:      { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
+  fieldLabel: { ...MonoLabel, fontSize: 9.5, marginBottom: 8 },
+  input:      { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: Fonts.regular, color: Colors.text },
   bottomBar:  { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
   btn:        { borderRadius: Radius.full, overflow: "hidden" },
-  btnGrad: { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
-  btnText:    { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
+  btnGrad: { paddingVertical: 16, alignItems: "center" },
+  btnText:    { fontSize: 15, fontFamily: Fonts.bold, color: "white" },
 });

@@ -100,7 +100,7 @@ function KpiCard({ label, value, icon, color }: { label: string; value: string; 
 }
 
 const kpi = StyleSheet.create({
-  card:    { flex: 1, backgroundColor: Colors.white, borderRadius: Radius.md, padding: 14, alignItems: "center", gap: 6 },
+  card:    { flex: 1, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md, padding: 14, alignItems: "center", gap: 6 },
   iconBox: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   value:   { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
   label:   { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
@@ -497,7 +497,8 @@ export default function CommissionsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
       {/* Header */}
-      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
             <Ionicons name="arrow-back" size={22} color="white" />
@@ -685,9 +686,9 @@ const s = StyleSheet.create({
 
   kpiRow:   { flexDirection: "row", gap: 10, marginBottom: 20 },
 
-  tableCard:   { backgroundColor: Colors.white, borderRadius: Radius.lg, overflow: "hidden", marginBottom: 16 },
+  tableCard:   { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, overflow: "hidden", marginBottom: 16 },
   tableHeader: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, backgroundColor: Colors.cream2 },
-  thTxt:       { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.5 },
+  thTxt:       { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.5 },
   tableRow:    { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   divider:     { height: 1, backgroundColor: Colors.border, marginHorizontal: 16 },
 
@@ -708,7 +709,7 @@ const s = StyleSheet.create({
 
   hint: { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginBottom: 16, lineHeight: 18 },
 
-  payCard:    { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16 },
+  payCard:    { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16 },
   payHeader:  { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 },
   payAmount:  { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.success },
   payDetails: { gap: 4, borderTopWidth: 1, borderTopColor: Colors.border, paddingTop: 10 },
@@ -723,7 +724,7 @@ const m = StyleSheet.create({
   sheet:     { backgroundColor: Colors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, gap: 16 },
   handle:    { width: 40, height: 4, backgroundColor: Colors.border, borderRadius: 2, alignSelf: "center", marginBottom: 8 },
   title:     { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
-  label:     { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.5 },
+  label:     { fontSize: 12, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.5 },
   input:     { backgroundColor: Colors.cream2, borderRadius: Radius.md, padding: 14, fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
   typeRow:   { flexDirection: "row", gap: 10 },
   typeBtn:   { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: Radius.md, backgroundColor: Colors.cream2, borderWidth: 1, borderColor: Colors.border },

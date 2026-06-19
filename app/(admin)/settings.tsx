@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { Colors, Fonts, Gradients, MonoLabel, Radius, Shadow } from "@/constants/theme";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -63,6 +63,7 @@ export default function SettingsScreen() {
       title: "Tu negocio",
       items: [
         { icon: "storefront-outline" as IoniconName,  color: Colors.red,     label: "Mi Tienda",                sub: "Personalización y link de reservas",          route: "/settings/store" },
+        { icon: "color-palette-outline" as IoniconName, color: "#8b5cf6",    label: "Mi Marca",                 sub: "Logo, colores y página de reservas",          route: "/(admin)/branding" },
         { icon: "time-outline" as IoniconName,        color: "#f59e0b",      label: "Horario de atención",      sub: "Días y horas disponibles",                    route: "/settings/schedule" },
         { icon: "cut-outline" as IoniconName,         color: Colors.purple,  label: "Servicios",                sub: "Gestiona tu catálogo de precios",             route: "/settings/services" },
         { icon: "people-outline" as IoniconName,      color: Colors.blue,    label: "Equipo de trabajo",        sub: "Profesionales y permisos",                    route: "/settings/team" },
@@ -85,14 +86,16 @@ export default function SettingsScreen() {
     {
       title: "Finanzas",
       items: [
-        { icon: "wallet-outline" as IoniconName,      color: Colors.success, label: "Caja",                sub: "Control de ingresos y egresos",   route: "/(admin)/caja" },
-        { icon: "ribbon-outline" as IoniconName,      color: "#f59e0b",      label: "Comisiones",          sub: "Paga a tu equipo de trabajo",     route: "/(admin)/commissions" },
-        { icon: "document-text-outline" as IoniconName, color: Colors.blue,  label: "Factura Electrónica", sub: "Emite facturas DIAN vía Factus",  route: "/(admin)/invoices" },
+        { icon: "stats-chart-outline" as IoniconName, color: Colors.blue,    label: "Hub Financiero",      sub: "Resumen, caja, ventas y rentabilidad", route: "/(admin)/finanzas" },
+        { icon: "wallet-outline" as IoniconName,      color: Colors.success, label: "Caja",                sub: "Control de ingresos y egresos",        route: "/(admin)/caja" },
+        { icon: "ribbon-outline" as IoniconName,      color: "#f59e0b",      label: "Comisiones",          sub: "Paga a tu equipo de trabajo",          route: "/(admin)/commissions" },
+        { icon: "document-text-outline" as IoniconName, color: Colors.blue,  label: "Factura Electrónica", sub: "Emite facturas DIAN vía Factus",       route: "/(admin)/invoices" },
       ],
     },
     {
       title: "Herramientas",
       items: [
+        { icon: "cube-outline" as IoniconName,        color: "#f59e0b",      label: "Inventario",            sub: "Productos, stock y movimientos",    route: "/(admin)/inventario" },
         { icon: "bar-chart-outline" as IoniconName,   color: Colors.red,     label: "Reportes",              sub: "Ingresos, servicios y rendimiento", route: "/(admin)/reports" },
         { icon: "options-outline" as IoniconName,     color: "#8b5cf6",      label: "Campos Personalizados", sub: "Datos extra para clientes y citas", route: "/(admin)/custom-fields" },
       ],
@@ -108,10 +111,14 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
-        <Text style={s.headerTitle}>Ajustes</Text>
-        <Text style={s.headerSub}>Configura tu negocio</Text>
-      </LinearGradient>
+      <View style={s.header}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.headerCrumb}>Configuración</Text>
+          <Text style={s.headerTitle}>Ajustes</Text>
+          <Text style={s.headerSub}>{tenant?.name ?? "Configura tu negocio"}</Text>
+        </View>
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.headerAccent} />
+      </View>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 110 }}>
         {SECTIONS.map((sec, si) => (
@@ -151,14 +158,16 @@ export default function SettingsScreen() {
 }
 
 const s = StyleSheet.create({
-  header:       { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
-  headerTitle:  { fontSize: 24, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.5 },
-  headerSub:    { fontSize: 13, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
-  sectionTitle: { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10, marginTop: 20 },
-  group:        { backgroundColor: Colors.white, borderRadius: Radius.lg, overflow: "hidden" },
+  header:       { flexDirection: "row", alignItems: "center", paddingTop: 18, paddingHorizontal: 24, paddingBottom: 16 },
+  headerCrumb:  { ...MonoLabel, fontSize: 9, marginBottom: 5 },
+  headerTitle:  { fontSize: 24, fontFamily: Fonts.bold, color: Colors.text, letterSpacing: -0.6 },
+  headerSub:    { fontSize: 13, color: Colors.muted, fontFamily: Fonts.regular, marginTop: 2 },
+  headerAccent: { width: 34, height: 4, borderRadius: 2 },
+  sectionTitle: { ...MonoLabel, marginBottom: 10, marginTop: 20 },
+  group:        { backgroundColor: Colors.white, borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border, overflow: "hidden" },
   row:          { flexDirection: "row", alignItems: "center", gap: 14, padding: 16 },
   rowIcon:      { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  rowLabel:     { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
-  rowSub:       { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
+  rowLabel:     { fontSize: 14, fontFamily: Fonts.semibold, color: Colors.text },
+  rowSub:       { fontSize: 12, fontFamily: Fonts.regular, color: Colors.muted, marginTop: 2 },
   divider:      { height: 1, backgroundColor: Colors.border, marginLeft: 70 },
 });

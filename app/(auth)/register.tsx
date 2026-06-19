@@ -173,7 +173,8 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       {/* ── Header ── */}
-      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={c.header}>
+      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={c.header}>
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
         <View style={c.headerBlob1} />
         <View style={c.headerBlob2} />
         <View style={{ position: "relative", zIndex: 1 }}>
@@ -329,7 +330,7 @@ export default function RegisterScreen() {
             <LinearGradient
               colors={plan === "Pro" ? ["#fff5f5", "#fff0f0"] : plan === "Personalizado" ? ["#f8f0ff", "#f3e8ff"] : ["#f5f4f2", "#f0efec"]}
               style={[c.planCard, Shadow.md]}>
-              <Text style={{ fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", textTransform: "uppercase", letterSpacing: 1, color: PLAN_INFO[plan].color, marginBottom: 4 }}>
+              <Text style={{ fontSize: 11, fontFamily: "JetBrainsMono_500Medium", textTransform: "uppercase", letterSpacing: 1, color: PLAN_INFO[plan].color, marginBottom: 4 }}>
                 Plan recomendado
               </Text>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>

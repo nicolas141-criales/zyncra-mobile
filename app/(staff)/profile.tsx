@@ -135,7 +135,8 @@ export default function StaffProfileScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
       {/* Header */}
-      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
         <View style={s.headerBlob} />
         <Animated.View entering={FadeInDown.duration(400)} style={{ alignItems: "center", position: "relative", zIndex: 1 }}>
           <View style={[s.avatarRing, { borderColor: avatarColor + "60" }]}>
@@ -258,11 +259,11 @@ const s = StyleSheet.create({
   businessPill: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,.14)", borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 5, marginTop: 10 },
   businessText: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.85)" },
 
-  sectionLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 },
+  sectionLabel: { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 },
 
-  commCard:   { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, overflow: "hidden" },
+  commCard:   { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16, overflow: "hidden" },
   commMain:   { flexDirection: "row", alignItems: "flex-start", gap: 14, marginBottom: 16 },
-  commLabel:  { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.5 },
+  commLabel:  { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.5 },
   commAmount: { fontSize: 32, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, letterSpacing: -1, marginTop: 4 },
   commRule:   { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.success, marginTop: 4 },
   commIcon:   { width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center" },
@@ -272,13 +273,13 @@ const s = StyleSheet.create({
   commStatVal:   { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
   commStatLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
 
-  weekCard:    { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14 },
+  weekCard:    { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 14 },
   weekIconBox: { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center" },
   weekLabel:   { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   weekSub:     { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
   weekAmount:  { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.blue },
 
-  card:     { backgroundColor: Colors.white, borderRadius: Radius.lg, overflow: "hidden" },
+  card:     { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, overflow: "hidden" },
   infoRow:  { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
   infoIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: Colors.cream2, alignItems: "center", justifyContent: "center" },
   infoLabel:{ fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },

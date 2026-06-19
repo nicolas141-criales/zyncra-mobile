@@ -275,7 +275,8 @@ export default function NewApptModal({ visible, onClose, tenantId, initialDate, 
       <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
 
         {/* Header */}
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+        <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
           <View style={s.headerRow}>
             <TouchableOpacity onPress={step === 0 ? onClose : () => setStep(p => p - 1)} style={s.backBtn}>
               <Text style={s.backBtnText}>{step === 0 ? "✕" : "←"}</Text>
@@ -602,7 +603,7 @@ function SummaryRow({ label, value, highlight }: { label: string; value: string;
 const s = StyleSheet.create({
   header:        { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 18 },
   headerRow:     { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
-  backBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
+  backBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
   backBtnText:   { color: "white", fontSize: 18, fontFamily: "SpaceGrotesk_600SemiBold" },
   headerTitle:   { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   headerSub:     { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
@@ -625,8 +626,8 @@ const s = StyleSheet.create({
   toggleText:      { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
   toggleTextActive:{ color: "white" },
 
-  card:       { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, marginBottom: 12 },
-  fieldLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.6 },
+  card:       { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16, marginBottom: 12 },
+  fieldLabel: { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.6 },
   input:      { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, padding: 12 },
 
   searchBar:   { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, borderRadius: Radius.lg, paddingHorizontal: 14, paddingVertical: 11, marginBottom: 12, gap: 8 },
@@ -655,12 +656,12 @@ const s = StyleSheet.create({
   arrow:     { width: 34, alignItems: "center" },
   arrowText: { fontSize: 26, color: Colors.muted, lineHeight: 30 },
   dayCol:    { flex: 1, alignItems: "center", gap: 6 },
-  dayName:   { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle, textTransform: "uppercase" },
+  dayName:   { fontSize: 10, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase" },
   dayCircle: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   dayNum:    { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   closedBar: { width: 16, height: 2, borderRadius: 1, backgroundColor: Colors.muted },
 
-  sectionLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 },
+  sectionLabel: { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 },
   timeGrid:     { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   timeSlot:     { paddingVertical: 13, borderRadius: Radius.md, overflow: "hidden", backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, alignItems: "center" },
   timeSlotActive:{ borderWidth: 0 },

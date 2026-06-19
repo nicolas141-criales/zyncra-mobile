@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   RefreshControl, Modal, ActivityIndicator,
@@ -9,7 +9,7 @@ import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { Colors, Fonts, Gradients, MonoLabel, Radius, Shadow } from "@/constants/theme";
 import NewApptModal from "@/components/NewApptModal";
 import { scheduleAppointmentReminder, cancelAppointmentReminder } from "@/lib/notifications";
 
@@ -94,6 +94,14 @@ type Appt = {
   professionals: { id: string; name: string } | null;
 };
 
+type BlockedSlot = {
+  id: string;
+  blocked_date: string;
+  start_time: string;
+  end_time: string;
+  reason: string | null;
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function buildWeek(base: Date) {
@@ -126,7 +134,8 @@ function ApptDetailModal({ appt, onClose, onStatusChange, onEdit }: {
   return (
     <Modal visible={!!appt} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={dm.header}>
+        <View style={dm.header}>
+          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={dm.headerAccent} />
           <View style={dm.headerRow}>
             <TouchableOpacity onPress={onClose} style={dm.closeBtn}>
               <Ionicons name="close" size={20} color="white" />
@@ -147,7 +156,7 @@ function ApptDetailModal({ appt, onClose, onStatusChange, onEdit }: {
               <Text style={dm.price}>${Math.round(appt.services.price).toLocaleString("es-CO")}</Text>
             )}
           </View>
-        </LinearGradient>
+        </View>
 
         <ScrollView contentContainerStyle={{ padding: 20 }}>
           <Text style={dm.sectionLabel}>Estado de la cita</Text>
@@ -180,19 +189,20 @@ function ApptDetailModal({ appt, onClose, onStatusChange, onEdit }: {
 }
 
 const dm = StyleSheet.create({
-  header:      { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 24 },
+  header:      { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 24, backgroundColor: Colors.ink, overflow: "hidden" },
+  headerAccent:{ position: "absolute", top: 0, left: 0, right: 0, height: 3 },
   headerRow:   { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
-  closeBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
-  summaryBox:  { backgroundColor: "rgba(255,255,255,.15)", borderRadius: Radius.lg, padding: 16, alignItems: "center", gap: 4 },
-  clientName:  { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
-  meta:        { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.8)" },
-  proMeta:     { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.65)", fontStyle: "italic" },
-  price:       { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", marginTop: 4 },
-  sectionLabel:{ fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 14 },
+  closeBtn:    { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  headerTitle: { fontSize: 18, fontFamily: Fonts.bold, color: "white" },
+  summaryBox:  { backgroundColor: "rgba(255,255,255,.07)", borderWidth: 1, borderColor: "rgba(255,255,255,.10)", borderRadius: Radius.lg, padding: 16, alignItems: "center", gap: 4 },
+  clientName:  { fontSize: 18, fontFamily: Fonts.bold, color: "white" },
+  meta:        { fontSize: 13, fontFamily: Fonts.regular, color: "rgba(255,255,255,.7)" },
+  proMeta:     { fontSize: 12, fontFamily: Fonts.semibold, color: "rgba(255,255,255,.55)", fontStyle: "italic" },
+  price:       { fontSize: 22, fontFamily: Fonts.bold, color: "white", marginTop: 4, fontVariant: ["tabular-nums"] },
+  sectionLabel:{ ...MonoLabel, marginBottom: 14 },
   statusBtn:   { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Colors.white, borderRadius: Radius.md, padding: 14, borderWidth: 1.5, borderColor: Colors.border, overflow: "hidden" },
   statusIcon:  { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center" },
-  statusLabel: { flex: 1, fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
+  statusLabel: { flex: 1, fontSize: 14, fontFamily: Fonts.semibold, color: Colors.text },
 });
 
 // ─── Edit appointment modal ───────────────────────────────────────────────────
@@ -275,16 +285,35 @@ function EditApptModal({ appt, tenantId, professionals, onClose, onSaved }: {
     const dateStr = selectedDate.toISOString().split("T")[0];
     const proId   = selectedPro!.id;
 
-    const { data: existing } = await supabase
-      .from("appointments")
-      .select("appointment_time, service_id")
-      .eq("professional_id", proId)
-      .eq("appointment_date", dateStr)
-      .neq("status", "cancelled")
-      .neq("id", appt!.id);
+    const [{ data: existing }, { data: bsData }] = await Promise.all([
+      supabase
+        .from("appointments")
+        .select("appointment_time, service_id")
+        .eq("professional_id", proId)
+        .eq("appointment_date", dateStr)
+        .neq("status", "cancelled")
+        .neq("id", appt!.id),
+      supabase
+        .from("blocked_slots")
+        .select("start_time, end_time")
+        .eq("tenant_id", tenantId)
+        .eq("blocked_date", dateStr),
+    ]);
+
+    const blockedRanges = (bsData ?? []) as { start_time: string; end_time: string }[];
+
+    const filterBlocked = (candidates: string[]) =>
+      candidates.filter(slot => {
+        const slotMins = timeToMins(slot);
+        return !blockedRanges.some(br => {
+          const bStart = timeToMins(br.start_time.slice(0, 5));
+          const bEnd   = timeToMins(br.end_time.slice(0, 5));
+          return slotMins >= bStart && slotMins < bEnd;
+        });
+      });
 
     if (!existing || existing.length === 0) {
-      const avail = computeAvailable(slots, [], duration);
+      const avail = filterBlocked(computeAvailable(slots, [], duration));
       setAvailableSlots(avail);
       const cur = appt!.appointment_time.slice(0, 5);
       if (avail.includes(cur)) setSelectedTime(cur);
@@ -300,7 +329,7 @@ function EditApptModal({ appt, tenantId, professionals, onClose, onSaved }: {
       duration: durMap.get(a.service_id) ?? 60,
     }));
 
-    const avail = computeAvailable(slots, blocks, duration);
+    const avail = filterBlocked(computeAvailable(slots, blocks, duration));
     setAvailableSlots(avail);
     const cur = appt!.appointment_time.slice(0, 5);
     if (avail.includes(cur)) setSelectedTime(cur);
@@ -351,7 +380,8 @@ function EditApptModal({ appt, tenantId, professionals, onClose, onSaved }: {
     <Modal visible={!!appt} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
         {/* Header */}
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={em.header}>
+        <View style={em.header}>
+          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={em.headerAccent} />
           <View style={em.headerRow}>
             <TouchableOpacity onPress={step === 0 ? onClose : () => setStep(p => p - 1)} style={em.headerBtn}>
               <Text style={em.backText}>{step === 0 ? "✕" : "←"}</Text>
@@ -367,7 +397,7 @@ function EditApptModal({ appt, tenantId, professionals, onClose, onSaved }: {
               <View key={i} style={[em.progressDot, step >= i && em.progressActive]} />
             ))}
           </View>
-        </LinearGradient>
+        </View>
 
         {loading ? (
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -596,16 +626,17 @@ function EditApptModal({ appt, tenantId, professionals, onClose, onSaved }: {
 }
 
 const em = StyleSheet.create({
-  header:         { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 18 },
+  header:         { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 18, backgroundColor: Colors.ink, overflow: "hidden" },
+  headerAccent:   { position: "absolute", top: 0, left: 0, right: 0, height: 3 },
   headerRow:      { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
-  headerBtn:      { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
-  backText:       { color: "white", fontSize: 18, fontFamily: "SpaceGrotesk_600SemiBold" },
-  headerTitle:    { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
-  headerSub:      { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
+  headerBtn:      { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  backText:       { color: "white", fontSize: 18, fontFamily: Fonts.semibold },
+  headerTitle:    { fontSize: 18, fontFamily: Fonts.bold, color: "white" },
+  headerSub:      { fontSize: 12, color: "rgba(255,255,255,.6)", fontFamily: Fonts.regular, marginTop: 2 },
   progressRow:    { flexDirection: "row", gap: 6 },
-  progressDot:    { height: 4, flex: 1, borderRadius: 2, backgroundColor: "rgba(255,255,255,.3)" },
-  progressActive: { backgroundColor: "rgba(255,255,255,.95)" },
-  sectionLabel:   { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 },
+  progressDot:    { height: 4, flex: 1, borderRadius: 2, backgroundColor: "rgba(255,255,255,.18)" },
+  progressActive: { backgroundColor: Colors.red },
+  sectionLabel:   { ...MonoLabel, marginBottom: 10 },
   selectCard:     { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14, marginBottom: 10, borderWidth: 1.5, borderColor: "transparent", gap: 14 },
   selectCardActive:{ borderColor: Colors.red, backgroundColor: Colors.red + "08" },
   svcCard:        { flexDirection: "row", alignItems: "center", backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, marginBottom: 10, borderWidth: 1.5, borderColor: "transparent" },
@@ -624,13 +655,13 @@ const em = StyleSheet.create({
   arrow:          { width: 32, alignItems: "center" },
   arrowText:      { fontSize: 24, color: Colors.muted, lineHeight: 28 },
   dayCol:         { flex: 1, alignItems: "center", gap: 5 },
-  dayName:        { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle, textTransform: "uppercase" },
+  dayName:        { fontSize: 10, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase" },
   dayCircle:      { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
   dayNum:         { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   timeSlot:       { paddingVertical: 13, borderRadius: Radius.md, overflow: "hidden", backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, alignItems: "center" },
   timeSlotActive: { borderWidth: 0 },
   timeSlotText:   { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
-  emptyBox:       { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 32, alignItems: "center" },
+  emptyBox:       { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 32, alignItems: "center" },
   emptyTitle:     { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 4 },
   emptySub:       { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
   bottomBar:      { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 34, backgroundColor: Colors.cream2, borderTopWidth: 1, borderTopColor: Colors.border },
@@ -667,6 +698,36 @@ const pc = StyleSheet.create({
   avatar:     { width: 18, height: 18, borderRadius: 9, alignItems: "center", justifyContent: "center" },
   avatarText: { fontSize: 9, fontFamily: "SpaceGrotesk_700Bold" },
   label:      { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
+});
+
+// ─── Blocked slot row ─────────────────────────────────────────────────────────
+
+function BlockedSlotRow({ slot, index }: { slot: BlockedSlot; index: number }) {
+  const start = slot.start_time.slice(0, 5);
+  const end   = slot.end_time.slice(0, 5);
+  return (
+    <Animated.View entering={FadeInRight.delay(index * 55).duration(320)} style={tl.slot}>
+      <View style={tl.timeCol}>
+        <Text style={[tl.timeText, { color: Colors.red }]}>{start}</Text>
+        <View style={[tl.line, { backgroundColor: Colors.red + "30" }]} />
+      </View>
+      <View style={tl.cardsCol}>
+        <View style={bs.card}>
+          <Ionicons name="lock-closed-outline" size={14} color={Colors.red} />
+          <View style={{ flex: 1 }}>
+            <Text style={bs.label}>Bloqueado · {start}–{end}</Text>
+            {slot.reason ? <Text style={bs.reason}>{slot.reason}</Text> : null}
+          </View>
+        </View>
+      </View>
+    </Animated.View>
+  );
+}
+
+const bs = StyleSheet.create({
+  card:   { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Colors.red + "08", borderWidth: 1.5, borderColor: Colors.red + "30", borderRadius: Radius.md, padding: 12 },
+  label:  { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.red },
+  reason: { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
 });
 
 // ─── Timeline slot ────────────────────────────────────────────────────────────
@@ -733,7 +794,7 @@ const tl = StyleSheet.create({
   conflictText:{ fontSize: 9, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   line:        { flex: 1, width: 1.5, backgroundColor: Colors.border, marginTop: 6, minHeight: 20 },
   cardsCol:    { flex: 1 },
-  card:        { backgroundColor: Colors.white, borderRadius: Radius.md, flexDirection: "row", alignItems: "stretch", overflow: "hidden" },
+  card:        { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md, flexDirection: "row", alignItems: "stretch", overflow: "hidden" },
   accent:      { width: 4 },
   clientName:  { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text, paddingLeft: 10 },
   serviceName: { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2, paddingLeft: 10 },
@@ -758,6 +819,9 @@ export default function AgendaScreen() {
   const [refreshKey, setRefreshKey]   = useState(0);
   const [detailAppt, setDetailAppt]   = useState<Appt | null>(null);
   const [editAppt, setEditAppt]       = useState<Appt | null>(null);
+  const [blockedSlots, setBlockedSlots] = useState<BlockedSlot[]>([]);
+  const selectedRef = useRef(selected);
+  useEffect(() => { selectedRef.current = selected; }, [selected]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -770,7 +834,7 @@ export default function AgendaScreen() {
   const loadAppts = useCallback(async (date: Date) => {
     if (!tenantId) return;
     const dateStr = date.toISOString().split("T")[0];
-    const [{ data: apptData }, { data: proData }] = await Promise.all([
+    const [{ data: apptData }, { data: proData }, { data: bsData }] = await Promise.all([
       supabase.from("appointments")
         .select("id, appointment_date, appointment_time, status, service_id, client_id, clients(name), services(name, price, duration_minutes), professionals(id, name)")
         .eq("tenant_id", tenantId)
@@ -781,9 +845,14 @@ export default function AgendaScreen() {
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
         .order("name"),
+      supabase.from("blocked_slots")
+        .select("id, blocked_date, start_time, end_time, reason")
+        .eq("tenant_id", tenantId)
+        .eq("blocked_date", dateStr),
     ]);
     setAppts((apptData as Appt[]) ?? []);
     setProfessionals((proData as Professional[]) ?? []);
+    setBlockedSlots((bsData as BlockedSlot[]) ?? []);
   }, [tenantId]);
 
   const handleStatusChange = async (id: string, status: string) => {
@@ -813,6 +882,17 @@ export default function AgendaScreen() {
 
 
   useEffect(() => { loadAppts(selected); }, [selected, tenantId, refreshKey]);
+
+  useEffect(() => {
+    if (!tenantId) return;
+    const channel = supabase
+      .channel(`agenda-${tenantId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "appointments", filter: `tenant_id=eq.${tenantId}` }, () => loadAppts(selectedRef.current))
+      .on("postgres_changes", { event: "*", schema: "public", table: "blocked_slots", filter: `tenant_id=eq.${tenantId}` }, () => loadAppts(selectedRef.current))
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [tenantId, loadAppts]);
+
   const onRefresh = async () => { setRefreshing(true); await loadAppts(selected); setRefreshing(false); };
 
   // Filter + group by time
@@ -830,16 +910,29 @@ export default function AgendaScreen() {
 
   const conflictCount = timeSlots.filter(([, s]) => s.length > 1).length;
 
+  type TimelineEntry =
+    | { type: "appt"; time: string; appts: Appt[] }
+    | { type: "blocked"; slot: BlockedSlot };
+
+  const timeline: TimelineEntry[] = [
+    ...timeSlots.map(([time, apts]) => ({ type: "appt" as const, time, appts: apts })),
+    ...blockedSlots.map(slot => ({ type: "blocked" as const, slot })),
+  ].sort((a, b) => {
+    const aTime = a.type === "appt" ? a.time : a.slot.start_time.slice(0, 5);
+    const bTime = b.type === "appt" ? b.time : b.slot.start_time.slice(0, 5);
+    return aTime.localeCompare(bTime);
+  });
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
       {/* ── Header ── */}
-      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+      <View style={s.header}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <View>
-            <Text style={s.headerTitle}>Agenda</Text>
-            <Text style={s.headerSub} numberOfLines={1}>
+            <Text style={s.headerCrumb} numberOfLines={1}>
               {selected.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" })}
             </Text>
+            <Text style={s.headerTitle}>Agenda</Text>
           </View>
           <TouchableOpacity style={s.addBtn} onPress={() => setShowNew(true)} activeOpacity={0.8}>
             <Ionicons name="add" size={24} color="white" />
@@ -849,13 +942,13 @@ export default function AgendaScreen() {
         {/* conflict warning */}
         {conflictCount > 0 && (
           <View style={s.conflictWarn}>
-            <Ionicons name="warning-outline" size={13} color="#fbbf24" />
+            <Ionicons name="warning-outline" size={13} color="#b45309" />
             <Text style={s.conflictWarnText}>
               {conflictCount} horario{conflictCount !== 1 ? "s" : ""} con citas simultáneas
             </Text>
           </View>
         )}
-      </LinearGradient>
+      </View>
 
       {/* ── Week strip ── */}
       <View style={[s.weekStrip, Shadow.sm]}>
@@ -943,7 +1036,7 @@ export default function AgendaScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 110 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.red} />}
       >
-        {timeSlots.length === 0 ? (
+        {timeline.length === 0 ? (
           <Animated.View entering={FadeInDown.duration(400)} style={[s.empty, Shadow.sm]}>
             <Ionicons name="calendar-outline" size={40} color={Colors.subtle} style={{ marginBottom: 12 }} />
             <Text style={s.emptyTitle}>
@@ -954,17 +1047,21 @@ export default function AgendaScreen() {
             <Text style={s.emptySub}>Toca + para agendar una nueva cita</Text>
           </Animated.View>
         ) : (
-          timeSlots.map(([time, slotAppts], index) => (
-            <TimelineSlot
-              key={time}
-              time={time}
-              slotAppts={slotAppts}
-              professionals={professionals}
-              showPro={filterProId === null}
-              onPressAppt={setDetailAppt}
-              index={index}
-            />
-          ))
+          timeline.map((entry, index) =>
+            entry.type === "appt" ? (
+              <TimelineSlot
+                key={entry.time}
+                time={entry.time}
+                slotAppts={entry.appts}
+                professionals={professionals}
+                showPro={filterProId === null}
+                onPressAppt={setDetailAppt}
+                index={index}
+              />
+            ) : (
+              <BlockedSlotRow key={entry.slot.id} slot={entry.slot} index={index} />
+            )
+          )
         )}
       </ScrollView>
     </SafeAreaView>
@@ -974,17 +1071,17 @@ export default function AgendaScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  header:       { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 16 },
-  headerTitle:  { fontSize: 24, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.5 },
-  headerSub:    { fontSize: 13, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2, textTransform: "capitalize" },
-  addBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.22)", alignItems: "center", justifyContent: "center" },
-  conflictWarn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(0,0,0,.15)", borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 6, marginTop: 12, alignSelf: "flex-start" },
-  conflictWarnText: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "#fbbf24" },
+  header:       { paddingTop: 18, paddingHorizontal: 24, paddingBottom: 16 },
+  headerCrumb:  { ...MonoLabel, fontSize: 9, marginBottom: 5 },
+  headerTitle:  { fontSize: 24, fontFamily: Fonts.bold, color: Colors.text, letterSpacing: -0.6 },
+  addBtn:       { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.ink, alignItems: "center", justifyContent: "center" },
+  conflictWarn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(245,158,11,.10)", borderWidth: 1, borderColor: "rgba(245,158,11,.25)", borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 6, marginTop: 12, alignSelf: "flex-start" },
+  conflictWarnText: { fontSize: 12, fontFamily: Fonts.semibold, color: "#b45309" },
 
-  weekStrip:    { backgroundColor: Colors.white, flexDirection: "row", paddingVertical: 12, paddingHorizontal: 4, alignItems: "center" },
+  weekStrip:    { backgroundColor: Colors.white, flexDirection: "row", paddingVertical: 12, paddingHorizontal: 4, alignItems: "center", borderTopWidth: 1, borderTopColor: Colors.border },
   weekArrow:    { width: 32, alignItems: "center", justifyContent: "center" },
   dayCol:       { flex: 1, alignItems: "center", gap: 6 },
-  dayName:      { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle, textTransform: "uppercase" },
+  dayName:      { fontSize: 10, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase" },
   dayNum:       { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center", overflow: "hidden" },
   dayNumSel:    { borderRadius: 10 },
   dayNumText:   { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
@@ -992,7 +1089,7 @@ const s = StyleSheet.create({
   filterStrip:  { backgroundColor: Colors.white, borderBottomWidth: 1, borderBottomColor: Colors.border, maxHeight: 56 },
   filterRow:    { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingVertical: 10 },
 
-  empty:        { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 44, alignItems: "center", marginTop: 8 },
+  empty:        { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 44, alignItems: "center", marginTop: 8 },
   emptyTitle:   { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:     { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
 });

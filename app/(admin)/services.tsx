@@ -42,7 +42,7 @@ function Field({ label, value, onChangeText, placeholder, keyboardType, multilin
 }
 
 const f = StyleSheet.create({
-  label: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 },
+  label: { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 },
   input: { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
 });
 
@@ -100,7 +100,8 @@ function ServiceModal({ visible, service, tenantId, onClose, onSaved }: {
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.mHeader}>
+        <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.mHeader}>
+          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
           <View style={s.mHeaderRow}>
             <TouchableOpacity onPress={onClose} style={s.closeBtn}>
               <Ionicons name="close" size={20} color="white" />
@@ -168,7 +169,8 @@ export default function ServicesScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
             <Ionicons name="arrow-back" size={20} color="white" />
@@ -234,21 +236,21 @@ export default function ServicesScreen() {
 const s = StyleSheet.create({
   header:     { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
   headerRow:  { flexDirection: "row", alignItems: "center", gap: 12 },
-  backBtn:    { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
+  backBtn:    { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
   headerTitle:{ fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.4 },
   headerSub:  { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
-  addBtn:     { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,.22)", alignItems: "center", justifyContent: "center" },
+  addBtn:     { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
   row:        { backgroundColor: Colors.white, borderRadius: Radius.md, padding: 14, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 },
   iconBox:    { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   name:       { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   info:       { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
   price:      { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
-  empty:      { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 48, alignItems: "center", marginTop: 20 },
+  empty:      { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 48, alignItems: "center", marginTop: 20 },
   emptyTitle: { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:   { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
   mHeader:    { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 20 },
   mHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  closeBtn:   { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
+  closeBtn:   { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
   mTitle:     { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
   bottomBar:  { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
   btn:        { borderRadius: Radius.full, overflow: "hidden" },

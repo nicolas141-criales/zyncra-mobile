@@ -125,7 +125,8 @@ export default function SiteReviewsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
-      <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+      <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
+        <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
         <View style={s.headerRow}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
             <Ionicons name="arrow-back" size={20} color="white" />
@@ -365,7 +366,7 @@ export default function SiteReviewsScreen() {
 const s = StyleSheet.create({
   header:       { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
   headerRow:    { flexDirection: "row", alignItems: "center", gap: 12 },
-  backBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" },
+  backBtn:      { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
   headerTitle:  { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.3 },
   headerSub:    { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
   pendingBadge: { minWidth: 24, height: 24, borderRadius: 12, backgroundColor: "#f59e0b", alignItems: "center", justifyContent: "center", paddingHorizontal: 6 },
@@ -378,12 +379,12 @@ const s = StyleSheet.create({
   tabLabelActive:{ fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.red },
 
   kpiRow:       { flexDirection: "row", gap: 10, marginBottom: 16 },
-  kpiCard:      { flex: 1, backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 14, alignItems: "center", gap: 4 },
+  kpiCard:      { flex: 1, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 14, alignItems: "center", gap: 4 },
   kpiValue:     { fontSize: 26, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
   kpiLabel:     { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   kpiSub:       { fontSize: 10, fontFamily: "SpaceGrotesk_400Regular", color: Colors.subtle, textAlign: "center" },
 
-  distCard:     { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, marginBottom: 20 },
+  distCard:     { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16, marginBottom: 20 },
   distTitle:    { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 12 },
   distRow:      { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
   distStar:     { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted, width: 24 },
@@ -391,9 +392,9 @@ const s = StyleSheet.create({
   distBar:      { height: 8, backgroundColor: "#f59e0b", borderRadius: 4 },
   distCount:    { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted, width: 20, textAlign: "right" },
 
-  sectionLabel: { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 },
+  sectionLabel: { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 },
 
-  reviewCard:   { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16, marginBottom: 10 },
+  reviewCard:   { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16, marginBottom: 10 },
   reviewTop:    { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 },
   reviewName:   { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
   reviewService:{ fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
@@ -413,11 +414,11 @@ const s = StyleSheet.create({
   filterChipText:{ fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
   filterChipTextActive:{ color: "white" },
 
-  emptyCard:    { backgroundColor: Colors.white, borderRadius: Radius.xl, padding: 48, alignItems: "center", marginTop: 20 },
+  emptyCard:    { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 48, alignItems: "center", marginTop: 20 },
   emptyTitle:   { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:     { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
 
-  configCard:   { backgroundColor: Colors.white, borderRadius: Radius.lg, padding: 16 },
+  configCard:   { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16 },
   configCardTitle:{ fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   configCardSub:{ fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, lineHeight: 18 },
   linkRow:      { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.cream2, borderRadius: Radius.md, padding: 12 },

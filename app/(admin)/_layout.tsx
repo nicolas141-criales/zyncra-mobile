@@ -1,7 +1,8 @@
 ﻿import { Tabs } from "expo-router";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, Shadow } from "@/constants/theme";
+import { Colors, Fonts, Gradients, Shadow } from "@/constants/theme";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -36,7 +37,12 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
               <View style={s.tabInner}>
                 {focused ? (
                   <>
-                    <View style={s.iconBox}>
+                    <View style={s.iconBoxActive}>
+                      <LinearGradient
+                        colors={Gradients.brand}
+                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                        style={s.activeDot}
+                      />
                       <Ionicons name={tab.iconFocused} size={20} color="white" />
                     </View>
                     <Text style={s.labelFocused}>{tab.label}</Text>
@@ -44,7 +50,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
                 ) : (
                   <>
                     <View style={s.iconBoxInactive}>
-                      <Ionicons name={tab.icon} size={20} color={Colors.subtle} />
+                      <Ionicons name={tab.icon} size={20} color="rgba(255,255,255,0.52)" />
                     </View>
                     <Text style={s.label}>{tab.label}</Text>
                   </>
@@ -59,14 +65,15 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
 }
 
 const s = StyleSheet.create({
-  wrapper:         { position: "absolute", bottom: 0, left: 0, right: 0, paddingBottom: 24, paddingHorizontal: 12 },
-  bar:             { backgroundColor: "white", borderRadius: 22, flexDirection: "row", paddingVertical: 10, paddingHorizontal: 4 },
+  wrapper:         { position: "absolute", bottom: 0, left: 0, right: 0, paddingBottom: 24, paddingHorizontal: 14 },
+  bar:             { backgroundColor: Colors.ink, borderRadius: 24, flexDirection: "row", paddingVertical: 10, paddingHorizontal: 6, borderWidth: 1, borderColor: "rgba(255,255,255,0.07)" },
   tab:             { flex: 1, alignItems: "center" },
   tabInner:        { alignItems: "center", gap: 4 },
-  iconBox:         { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: Colors.red },
-  iconBoxInactive: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  label:           { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.subtle, textAlign: "center" },
-  labelFocused:    { fontSize: 10, fontFamily: "SpaceGrotesk_700Bold", color: Colors.red, textAlign: "center" },
+  iconBoxActive:   { width: 38, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.10)", overflow: "hidden" },
+  activeDot:       { position: "absolute", top: 0, left: 8, right: 8, height: 3, borderBottomLeftRadius: 3, borderBottomRightRadius: 3 },
+  iconBoxInactive: { width: 38, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  label:           { fontSize: 10, fontFamily: Fonts.semibold, color: "rgba(255,255,255,0.45)", textAlign: "center" },
+  labelFocused:    { fontSize: 10, fontFamily: Fonts.bold, color: "white", textAlign: "center" },
 });
 
 export default function AdminLayout() {
@@ -96,6 +103,9 @@ export default function AdminLayout() {
       <Tabs.Screen name="custom-fields"   options={{ tabBarButton: () => null }} />
       <Tabs.Screen name="reports"          options={{ tabBarButton: () => null }} />
       <Tabs.Screen name="pos-history"     options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="finanzas"        options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="branding"        options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="inventario"      options={{ tabBarButton: () => null }} />
     </Tabs>
   );
 }
