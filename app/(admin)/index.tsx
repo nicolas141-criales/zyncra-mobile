@@ -147,7 +147,7 @@ export default function DashboardScreen() {
     const dateStr    = now.toISOString().split("T")[0];
     const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 
-    const [{ data: todayAppts }, { count: clientCount }, { data: sales }] = await Promise.all([
+    const [{ data: todayAppts }, { count: clientCount }, { data: sales }, { data: monthAppts }] = await Promise.all([
       supabase.from("appointments")
         .select("id, appointment_date, appointment_time, status, clients(name), services(name, price)")
         .eq("tenant_id", tenant.id)
@@ -155,15 +155,32 @@ export default function DashboardScreen() {
         .order("appointment_time"),
       supabase.from("clients").select("*", { count: "exact", head: true }).eq("tenant_id", tenant.id),
       supabase.from("pos_sales").select("total, created_at").eq("tenant_id", tenant.id).gte("created_at", monthStart),
+      supabase.from("appointments")
+        .select("appointment_date, services(price)")
+        .eq("tenant_id", tenant.id)
+        .in("status", ["completed", "confirmed"])
+        .gte("appointment_date", monthStart)
+        .lte("appointment_date", dateStr)
+        .limit(2000),
     ]);
 
     const all      = (todayAppts as Appt[]) ?? [];
     const allSales = sales ?? [];
-    const revenueDay   = allSales.filter(s => s.created_at?.slice(0, 10) === dateStr).reduce((acc, s) => acc + Number(s.total ?? 0), 0);
-    const revenueMonth = allSales.reduce((acc, s) => acc + Number(s.total ?? 0), 0);
+
+    const getApptPrice = (a: any) => Number((Array.isArray(a.services) ? a.services[0] : a.services)?.price ?? 0);
+    const posDay   = allSales.filter(s => s.created_at?.slice(0, 10) === dateStr).reduce((acc, s) => acc + Number(s.total ?? 0), 0);
+    const posMonth = allSales.reduce((acc, s) => acc + Number(s.total ?? 0), 0);
+    const apptDay  = all.filter(a => ["completed", "confirmed"].includes(a.status)).reduce((acc, a) => acc + getApptPrice(a), 0);
+    const apptMonthTotal = (monthAppts ?? []).reduce((acc, a) => acc + getApptPrice(a), 0);
 
     setAppts(all);
-    setMetrics({ total: all.length, confirmed: all.filter(a => a.status === "confirmed").length, clients: clientCount ?? 0, revenueDay, revenueMonth });
+    setMetrics({
+      total: all.length,
+      confirmed: all.filter(a => a.status === "confirmed").length,
+      clients: clientCount ?? 0,
+      revenueDay:   posDay + apptDay,
+      revenueMonth: posMonth + apptMonthTotal,
+    });
   };
 
   useEffect(() => { load(); refreshAllReminders(); }, []);
