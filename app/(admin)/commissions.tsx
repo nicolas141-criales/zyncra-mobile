@@ -87,6 +87,25 @@ function calcCommission(rule: CommissionRule | null, revenue: number, count: num
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
+function MiniBar({ data, color }: { data: number[]; color: string }) {
+  const max = Math.max(...data, 1);
+  return (
+    <View style={{ flexDirection: "row", alignItems: "flex-end", height: 44, gap: 3, marginTop: 8 }}>
+      {data.map((v, i) => (
+        <View
+          key={i}
+          style={{
+            flex: 1,
+            height: `${Math.max((v / max) * 100, v > 0 ? 8 : 2)}%`,
+            backgroundColor: v === 0 ? "rgba(20,15,30,0.07)" : color,
+            borderRadius: 3,
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
 function KpiCard({ label, value, icon, color }: { label: string; value: string; icon: IoniconName; color: string }) {
   return (
     <View style={[kpi.card, Shadow.sm]}>
@@ -118,6 +137,8 @@ export default function CommissionsScreen() {
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd]   = useState("");
   const [summaries, setSummaries]   = useState<ProSummary[]>([]);
+  const [chartSlots, setChartSlots] = useState<number[]>([]);
+  const [chartLabels, setChartLabels] = useState<string[]>([]);
   const [loadingSum, setLoadingSum] = useState(false);
 
   // Reglas
@@ -132,6 +153,7 @@ export default function CommissionsScreen() {
   // Historial
   const [payments, setPayments] = useState<CommissionPayment[]>([]);
   const [loadingPay, setLoadingPay] = useState(false);
+  const [filterProIdHist, setFilterProIdHist] = useState<string | null>(null);
 
   // Liquidar modal
   const [liquidarPro, setLiquidarPro] = useState<ProSummary | null>(null);
@@ -189,7 +211,7 @@ export default function CommissionsScreen() {
       supabase.from("professionals").select("id, name, color").eq("tenant_id", tenantId).eq("is_active", true).order("name"),
       supabase.from("commission_rules").select("*").eq("tenant_id", tenantId),
       supabase.from("appointments")
-        .select("professional_id, services(price)")
+        .select("professional_id, appointment_date, services(price)")
         .eq("tenant_id", tenantId)
         .neq("status", "cancelled")
         .gte("appointment_date", start)
@@ -210,6 +232,30 @@ export default function CommissionsScreen() {
     });
 
     setSummaries(result);
+
+    const now = new Date();
+    if (period === "week" || period === "month") {
+      const days = period === "week" ? 7 : new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const baseDate = period === "week"
+        ? (() => { const d = new Date(now); d.setDate(now.getDate() - ((now.getDay() + 6) % 7)); return d; })()
+        : new Date(now.getFullYear(), now.getMonth(), 1);
+      const slots: number[] = [];
+      const labels: string[] = [];
+      for (let i = 0; i < days; i++) {
+        const d = new Date(baseDate); d.setDate(baseDate.getDate() + i);
+        const ds = d.toISOString().slice(0, 10);
+        const dayAppts = appts.filter((a: any) => (a.appointment_date ?? "").startsWith(ds));
+        const dayRev = dayAppts.reduce((s: number, a: any) => s + (a.services?.price ?? 0), 0);
+        slots.push(dayRev);
+        labels.push(period === "week" ? ["L","M","X","J","V","S","D"][i] : String(i + 1));
+      }
+      setChartSlots(slots);
+      setChartLabels(labels);
+    } else {
+      setChartSlots([]);
+      setChartLabels([]);
+    }
+
     setLoadingSum(false);
   }, [tenantId, period, customStart, customEnd]);
 
@@ -351,6 +397,23 @@ export default function CommissionsScreen() {
         <KpiCard label="Con regla" value={`${prosConRegla}/${summaries.length}`} icon="people-outline" color="#f59e0b" />
       </View>
 
+      {chartSlots.length > 0 && chartSlots.some(v => v > 0) && (
+        <View style={[s.tableCard, Shadow.sm, { padding: 14, marginBottom: 16 }]}>
+          <Text style={{ fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted, marginBottom: 2 }}>
+            Ingresos del período
+          </Text>
+          <Text style={{ fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, letterSpacing: -0.5 }}>
+            {fmt(totalRevenue)}
+          </Text>
+          <MiniBar data={chartSlots} color={Colors.blue} />
+          <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
+            {chartLabels.filter((_, i) => chartLabels.length <= 14 || i % Math.ceil(chartLabels.length / 7) === 0).map((l, i) => (
+              <Text key={i} style={{ fontSize: 8, fontFamily: "SpaceGrotesk_400Regular", color: Colors.subtle }}>{l}</Text>
+            ))}
+          </View>
+        </View>
+      )}
+
       {/* Pro table */}
       {loadingSum ? (
         <ActivityIndicator color={Colors.red} style={{ marginTop: 32 }} />
@@ -451,18 +514,49 @@ export default function CommissionsScreen() {
     </ScrollView>
   );
 
-  const renderHistorial = () => (
+  const renderHistorial = () => {
+    const filteredPayments = filterProIdHist
+      ? payments.filter(p => p.professional_id === filterProIdHist)
+      : payments;
+
+    return (
     <View style={{ flex: 1 }}>
+      {professionals.length > 1 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 10, gap: 8, flexDirection: "row" }}
+          style={{ backgroundColor: Colors.white, borderBottomWidth: 1, borderBottomColor: Colors.border, maxHeight: 52 }}
+        >
+          <TouchableOpacity
+            onPress={() => setFilterProIdHist(null)}
+            style={[s.filterChip, filterProIdHist === null && s.filterChipActive]}
+          >
+            <Text style={[s.filterChipTxt, filterProIdHist === null && s.filterChipTxtActive]}>Todos</Text>
+          </TouchableOpacity>
+          {professionals.map(pro => (
+            <TouchableOpacity
+              key={pro.id}
+              onPress={() => setFilterProIdHist(prev => prev === pro.id ? null : pro.id)}
+              style={[s.filterChip, filterProIdHist === pro.id && s.filterChipActive]}
+            >
+              <Text style={[s.filterChipTxt, filterProIdHist === pro.id && s.filterChipTxtActive]}>
+                {pro.name.split(" ")[0]}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
       {loadingPay ? (
         <ActivityIndicator color={Colors.red} style={{ marginTop: 32 }} />
-      ) : payments.length === 0 ? (
+      ) : filteredPayments.length === 0 ? (
         <View style={[s.emptyBox, { marginTop: 40 }]}>
           <Ionicons name="document-text-outline" size={36} color={Colors.subtle} />
           <Text style={s.emptyTxt}>Sin liquidaciones registradas</Text>
         </View>
       ) : (
         <FlatList
-          data={payments}
+          data={filteredPayments}
           keyExtractor={(i) => i.id}
           contentContainerStyle={{ padding: 20, paddingBottom: 110 }}
           ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
@@ -492,7 +586,8 @@ export default function CommissionsScreen() {
         />
       )}
     </View>
-  );
+    );
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.cream2 }}>
@@ -717,6 +812,11 @@ const s = StyleSheet.create({
 
   emptyBox: { alignItems: "center", justifyContent: "center", gap: 12, paddingVertical: 40 },
   emptyTxt: { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
+
+  filterChip:       { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999, backgroundColor: Colors.cream2, borderWidth: 1, borderColor: Colors.border },
+  filterChipActive: { backgroundColor: Colors.ink, borderColor: Colors.ink },
+  filterChipTxt:    { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
+  filterChipTxtActive: { color: "white" },
 });
 
 const m = StyleSheet.create({

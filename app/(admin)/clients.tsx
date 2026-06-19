@@ -11,7 +11,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { Colors, Fonts, Gradients, MonoLabel, Radius, Shadow } from "@/constants/theme";
 
-type Client = { id: string; name: string; phone?: string; email?: string; no_shows?: number; created_at?: string };
+type Client = {
+  id: string; name: string; phone?: string; email?: string;
+  no_shows?: number; created_at?: string;
+  visitCount?: number;
+  lastVisit?: string;
+};
 type Appt = {
   id: string; appointment_date: string; appointment_time: string; status: string; notes?: string;
   services: { name: string; price: number } | null;
@@ -146,6 +151,9 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
   const [editOpen, setEditOpen] = useState(false);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [fieldValues, setFieldValues]   = useState<Record<string, string>>({});
+  const [editingFields, setEditingFields] = useState(false);
+  const [draftValues, setDraftValues]     = useState<Record<string, string>>({});
+  const [savingFields, setSavingFields]   = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -170,6 +178,7 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
     const map: Record<string, string> = {};
     (fvRes.data ?? []).forEach((r: any) => { map[r.field_id] = r.value ?? ""; });
     setFieldValues(map);
+    setDraftValues(map);
     setLoading(false);
   }, [initialClient.id, tenantId]);
 
@@ -281,17 +290,68 @@ function ClientProfileModal({ client: initialClient, tenantId, onClose, onRefres
           {/* Custom fields */}
           {customFields.length > 0 && (
             <Animated.View entering={FadeInDown.delay(90).duration(300)}>
-              <Text style={p.sectionLabel}>Datos adicionales</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <Text style={p.sectionLabel}>Datos adicionales</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (editingFields) setDraftValues(fieldValues);
+                    setEditingFields(v => !v);
+                  }}
+                  style={{ padding: 4 }}
+                >
+                  <Ionicons
+                    name={editingFields ? "close-outline" : "pencil-outline"}
+                    size={16} color={Colors.blue}
+                  />
+                </TouchableOpacity>
+              </View>
               <View style={[p.card, Shadow.sm]}>
                 {customFields.map((f, i) => (
                   <View key={f.id}>
                     {i > 0 && <View style={p.infoDivider} />}
-                    <View style={p.infoRow}>
-                      <Text style={p.infoLabel}>{f.name}</Text>
-                      <Text style={p.infoValue}>{fieldValues[f.id] || "—"}</Text>
-                    </View>
+                    {editingFields ? (
+                      <View style={p.infoRow}>
+                        <Text style={[p.infoLabel, { flex: 1 }]}>{f.name}</Text>
+                        <TextInput
+                          style={p.cfInput}
+                          value={draftValues[f.id] ?? ""}
+                          onChangeText={v => setDraftValues(prev => ({ ...prev, [f.id]: v }))}
+                          placeholder="—"
+                          placeholderTextColor={Colors.subtle}
+                        />
+                      </View>
+                    ) : (
+                      <View style={p.infoRow}>
+                        <Text style={p.infoLabel}>{f.name}</Text>
+                        <Text style={p.infoValue}>{fieldValues[f.id] || "—"}</Text>
+                      </View>
+                    )}
                   </View>
                 ))}
+                {editingFields && (
+                  <TouchableOpacity
+                    style={[p.saveCfBtn, savingFields && { opacity: 0.5 }]}
+                    disabled={savingFields}
+                    onPress={async () => {
+                      setSavingFields(true);
+                      await Promise.all(
+                        customFields.map(f =>
+                          supabase.from("client_field_values").upsert(
+                            { client_id: initialClient.id, field_id: f.id, value: draftValues[f.id] ?? "" },
+                            { onConflict: "client_id,field_id" }
+                          )
+                        )
+                      );
+                      setFieldValues({ ...draftValues });
+                      setSavingFields(false);
+                      setEditingFields(false);
+                    }}
+                  >
+                    {savingFields
+                      ? <ActivityIndicator size="small" color="white" />
+                      : <Text style={p.saveCfBtnTxt}>Guardar campos</Text>}
+                  </TouchableOpacity>
+                )}
               </View>
             </Animated.View>
           )}
@@ -374,12 +434,29 @@ export default function ClientsScreen() {
 
   const loadClients = async () => {
     if (!tenantId) return;
-    const { data } = await supabase.from("clients")
-      .select("id, name, phone, email, no_shows, created_at")
-      .eq("tenant_id", tenantId).order("name");
-    const c = data ?? [];
-    setClients(c);
-    setFiltered(c);
+    const [{ data }, { data: appts }] = await Promise.all([
+      supabase.from("clients")
+        .select("id, name, phone, email, no_shows, created_at")
+        .eq("tenant_id", tenantId).order("name"),
+      supabase.from("appointments")
+        .select("client_id, appointment_date")
+        .eq("tenant_id", tenantId)
+        .neq("status", "cancelled")
+        .neq("status", "no_show")
+        .limit(3000),
+    ]);
+    const statsMap = new Map<string, { count: number; last: string }>();
+    (appts ?? []).forEach((a: any) => {
+      const s = statsMap.get(a.client_id);
+      if (!s) statsMap.set(a.client_id, { count: 1, last: a.appointment_date });
+      else { s.count++; if (a.appointment_date > s.last) s.last = a.appointment_date; }
+    });
+    const enriched = (data ?? []).map((c: any) => {
+      const st = statsMap.get(c.id);
+      return { ...c, visitCount: st?.count ?? 0, lastVisit: st?.last ?? undefined };
+    });
+    setClients(enriched);
+    setFiltered(enriched);
   };
 
   useEffect(() => { loadClients(); }, [tenantId]);
@@ -446,6 +523,12 @@ export default function ClientsScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={s.name} numberOfLines={1}>{c.name}</Text>
                   <Text style={s.info} numberOfLines={1}>{c.phone ?? c.email ?? "Sin contacto"}</Text>
+                  {(c.visitCount ?? 0) > 0 && (
+                    <Text style={s.visitStats} numberOfLines={1}>
+                      {c.visitCount} visita{c.visitCount !== 1 ? "s" : ""}
+                      {c.lastVisit ? ` · última: ${fmtDate(c.lastVisit)}` : ""}
+                    </Text>
+                  )}
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
                   {(c.no_shows ?? 0) > 0 ? (
@@ -497,6 +580,7 @@ const s = StyleSheet.create({
   name:        { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   info:        { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
   noShows:     { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.red },
+  visitStats:  { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 1 },
   empty:       { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 48, alignItems: "center", marginTop: 20, ...Shadow.sm },
   emptyTitle:  { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
   emptySub:    { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
@@ -530,6 +614,9 @@ const p = StyleSheet.create({
   infoDivider: { height: 1, backgroundColor: Colors.border, marginVertical: 8 },
   infoLabel:   { flex: 1, fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   infoValue:   { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted },
+  cfInput:     { flex: 1, fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text, textAlign: "right", paddingVertical: 2 },
+  saveCfBtn:   { marginTop: 12, backgroundColor: Colors.blue, borderRadius: Radius.md, paddingVertical: 10, alignItems: "center" },
+  saveCfBtnTxt:{ fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 
   emptyCard:   { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 40, alignItems: "center" },
   emptyTitle:  { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },

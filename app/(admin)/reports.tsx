@@ -234,6 +234,11 @@ export default function ReportsScreen() {
   const [revenueSlots, setRevenueSlots] = useState<number[]>([]);
   const [slotLabels, setSlotLabels]     = useState<string[]>([]);
 
+  // POS
+  const [posRevenue, setPosRevenue]         = useState(0);
+  const [prevPosRevenue, setPrevPosRevenue] = useState(0);
+  const [paymentMethods, setPaymentMethods] = useState<{ method: string; amount: number; count: number }[]>([]);
+
   // Rankings
   const [topServices, setTopServices] = useState<{ name: string; count: number }[]>([]);
   const [staffPerf, setStaffPerf]     = useState<{ name: string; count: number; revenue: number }[]>([]);
@@ -257,7 +262,7 @@ export default function ReportsScreen() {
     const { start, end }         = getRange(period);
     const { start: ps, end: pe } = getPrevRange(period);
 
-    const [curRes, prevRes] = await Promise.all([
+    const [curRes, prevRes, posRes, prevPosRes] = await Promise.all([
       supabase.from("appointments")
         .select("id, appointment_date, appointment_time, status, services(name, price), professionals(name), clients(id, created_at)")
         .eq("tenant_id", tenantId)
@@ -268,10 +273,44 @@ export default function ReportsScreen() {
         .eq("tenant_id", tenantId)
         .gte("appointment_date", ps)
         .lte("appointment_date", pe),
+      supabase.from("pos_sales")
+        .select("total, payment_method, created_at")
+        .eq("tenant_id", tenantId)
+        .gte("created_at", start + "T00:00:00")
+        .lte("created_at", end + "T23:59:59"),
+      supabase.from("pos_sales")
+        .select("total, payment_method")
+        .eq("tenant_id", tenantId)
+        .gte("created_at", ps + "T00:00:00")
+        .lte("created_at", pe + "T23:59:59"),
     ]);
 
     const cur: any[]  = curRes.data  ?? [];
     const prev: any[] = prevRes.data ?? [];
+
+    const posSales: any[]     = posRes.data     ?? [];
+    const prevPosSales: any[] = prevPosRes.data ?? [];
+    const posRev     = posSales.reduce((s: number, p: any) => s + (p.total ?? 0), 0);
+    const prevPosRev = prevPosSales.reduce((s: number, p: any) => s + (p.total ?? 0), 0);
+
+    setPosRevenue(posRev);
+    setPrevPosRevenue(prevPosRev);
+
+    const pmMap = new Map<string, { amount: number; count: number }>();
+    const PM_LABELS: Record<string, string> = {
+      cash: "Efectivo", card: "Tarjeta", transfer: "Transferencia",
+      nequi: "Nequi", daviplata: "Daviplata", other: "Otro",
+    };
+    posSales.forEach((p: any) => {
+      const m = p.payment_method ?? "other";
+      const cur2 = pmMap.get(m) ?? { amount: 0, count: 0 };
+      pmMap.set(m, { amount: cur2.amount + (p.total ?? 0), count: cur2.count + 1 });
+    });
+    setPaymentMethods(
+      Array.from(pmMap.entries())
+        .map(([method, v]) => ({ method: PM_LABELS[method] ?? method, amount: v.amount, count: v.count }))
+        .sort((a, b) => b.amount - a.amount)
+    );
 
     // KPIs
     const done  = cur.filter(a => a.status === "completed" || a.status === "confirmed");
@@ -347,7 +386,9 @@ export default function ReportsScreen() {
 
   const onRefresh = () => { setRefreshing(true); load(); };
 
-  const revTrend   = prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : 0;
+  const totalRevenue     = revenue + posRevenue;
+  const totalPrevRevenue = prevRevenue + prevPosRevenue;
+  const revTrend   = totalPrevRevenue > 0 ? ((totalRevenue - totalPrevRevenue) / totalPrevRevenue) * 100 : 0;
   const countTrend = prevCount   > 0 ? ((apptCount - prevCount) / prevCount) * 100   : 0;
 
   const topSvcTotal = topServices.reduce((s, x) => s + x.count, 0);
@@ -402,9 +443,9 @@ export default function ReportsScreen() {
           <Text style={s.sectionTitle}>Resumen {periodLabel}</Text>
           <View style={s.kpiRow}>
             <KpiCard
-              label="Ingresos" value={fmt(revenue)} icon="cash-outline" color={Colors.red}
+              label="Ingresos totales" value={fmt(totalRevenue)} icon="cash-outline" color={Colors.red}
               trend={revTrend > 0 ? "up" : revTrend < 0 ? "down" : "neutral"}
-              sub={prevRevenue > 0 ? `${revTrend > 0 ? "+" : ""}${pct(revTrend)} vs anterior` : undefined}
+              sub={totalPrevRevenue > 0 ? `${revTrend > 0 ? "+" : ""}${pct(revTrend)} vs anterior` : undefined}
               delay={0}
             />
             <KpiCard
@@ -483,6 +524,38 @@ export default function ReportsScreen() {
                   </View>
                 </Animated.View>
               ))}
+            </Animated.View>
+          )}
+
+          {/* Payment methods */}
+          {paymentMethods.length > 0 && (
+            <Animated.View entering={FadeInDown.delay(420).duration(400)} style={[s.card, Shadow.sm]}>
+              <View style={s.cardHeader}>
+                <View style={[s.cardIconBox, { backgroundColor: "#f59e0b14" }]}>
+                  <Ionicons name="card-outline" size={16} color="#f59e0b" />
+                </View>
+                <Text style={s.cardTitle}>Métodos de pago (POS)</Text>
+              </View>
+              {paymentMethods.map((pm, i) => {
+                const pmTotal = paymentMethods.reduce((s2, x) => s2 + x.amount, 0);
+                const pct2 = pmTotal > 0 ? (pm.amount / pmTotal) * 100 : 0;
+                const colors2 = ["#f59e0b", Colors.blue, Colors.success, "#8b5cf6", Colors.red];
+                const c2 = colors2[i % colors2.length];
+                return (
+                  <View key={pm.method} style={{ marginBottom: 12 }}>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
+                      <Text style={{ fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text }}>{pm.method}</Text>
+                      <View style={{ alignItems: "flex-end" }}>
+                        <Text style={{ fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: c2 }}>{fmt(pm.amount)}</Text>
+                        <Text style={{ fontSize: 10, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted }}>{pm.count} venta{pm.count !== 1 ? "s" : ""} · {Math.round(pct2)}%</Text>
+                      </View>
+                    </View>
+                    <View style={{ height: 4, backgroundColor: Colors.border, borderRadius: 2, overflow: "hidden" }}>
+                      <View style={{ height: "100%", width: `${pct2}%`, backgroundColor: c2, borderRadius: 2 }} />
+                    </View>
+                  </View>
+                );
+              })}
             </Animated.View>
           )}
 
