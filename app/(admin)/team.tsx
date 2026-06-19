@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   Modal, TextInput, KeyboardAvoidingView, Platform,
-  ActivityIndicator, Alert, RefreshControl, Switch, Image,
+  ActivityIndicator, Alert, RefreshControl, Switch, Image, FlatList,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
@@ -15,8 +15,94 @@ import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
 
 const EDGE_URL = "https://bwmwuzwhinnzkjicdzot.supabase.co/functions/v1/create-staff-user";
 
-type Pro = { id: string; name: string; role: string; is_active: boolean; user_id: string | null; email: string | null; photo_url: string | null };
+const DAYS = [
+  { key: "1", label: "Lunes",      short: "Lun" },
+  { key: "2", label: "Martes",     short: "Mar" },
+  { key: "3", label: "Miercoles",  short: "Mie" },
+  { key: "4", label: "Jueves",     short: "Jue" },
+  { key: "5", label: "Viernes",    short: "Vie" },
+  { key: "6", label: "Sabado",     short: "Sab" },
+  { key: "0", label: "Domingo",    short: "Dom" },
+];
 
+const TIME_OPTS = [
+  "06:00","07:00","08:00","09:00","10:00","11:00","12:00",
+  "13:00","14:00","15:00","16:00","17:00","18:00","19:00",
+  "20:00","21:00","22:00","23:00",
+];
+
+function fmt12(t: string): string {
+  const h = parseInt(t.slice(0, 2), 10);
+  return `${h % 12 || 12}:00 ${h >= 12 ? "PM" : "AM"}`;
+}
+
+type DayConfig   = { open: boolean; start: string; end: string };
+type ProSchedule = Record<string, DayConfig>;
+
+function buildSched(base?: ProSchedule | null): ProSchedule {
+  const sc: ProSchedule = {};
+  DAYS.forEach(d => {
+    sc[d.key] = base?.[d.key] ?? { open: d.key !== "0", start: "09:00", end: "18:00" };
+  });
+  return sc;
+}
+
+type Pro = {
+  id: string; name: string; role: string; is_active: boolean;
+  user_id: string | null; email: string | null; photo_url: string | null;
+  schedule: ProSchedule | null;
+};
+
+// ── Tiny time picker ─────────────────────────────────────────────────────────
+function TimeBtn({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <TouchableOpacity style={tp.btn} onPress={() => setOpen(true)} activeOpacity={0.7}>
+        <Text style={tp.lblTxt}>{label}</Text>
+        <Text style={tp.valTxt}>{fmt12(value)}</Text>
+      </TouchableOpacity>
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <TouchableOpacity style={tp.overlay} onPress={() => setOpen(false)} activeOpacity={1}>
+          <View style={tp.sheet}>
+            <Text style={tp.sheetTitle}>{label}</Text>
+            <FlatList
+              data={TIME_OPTS}
+              keyExtractor={i => i}
+              showsVerticalScrollIndicator={false}
+              style={{ maxHeight: 300 }}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[tp.opt, item === value && tp.optActive]}
+                  onPress={() => { onChange(item); setOpen(false); }}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[tp.optTxt, item === value && tp.optTxtActive]}>{fmt12(item)}</Text>
+                  {item === value && <Ionicons name="checkmark" size={16} color={Colors.red} />}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </>
+  );
+}
+
+const tp = StyleSheet.create({
+  btn:          { flex: 1, backgroundColor: Colors.cream2, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 10, paddingVertical: 9, alignItems: "center", gap: 2 },
+  lblTxt:       { fontSize: 9, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.8 },
+  valTxt:       { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text },
+  overlay:      { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
+  sheet:        { backgroundColor: Colors.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40 },
+  sheetTitle:   { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 14, textAlign: "center" },
+  opt:          { paddingVertical: 12, paddingHorizontal: 16, borderRadius: Radius.md, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  optActive:    { backgroundColor: Colors.red + "0f" },
+  optTxt:       { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
+  optTxtActive: { fontFamily: "SpaceGrotesk_700Bold", color: Colors.red },
+});
+
+// ── Pro modal ─────────────────────────────────────────────────────────────────
 function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
   visible: boolean; pro: Pro | null; tenantId: string;
   onClose: () => void; onSaved: () => void;
@@ -33,29 +119,43 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
   const [accLoading, setAccLoading] = useState(false);
   const [accSuccess, setAccSuccess] = useState(false);
 
+  const [useCustomSched, setUseCustomSched] = useState(false);
+  const [proSched, setProSched]             = useState<ProSchedule>(buildSched());
+  const [bizSched, setBizSched]             = useState<ProSchedule>(buildSched());
+
   useEffect(() => {
-    if (visible) {
-      setName(pro?.name ?? "");
-      setRole(pro?.role ?? "");
-      setActive(pro?.is_active ?? true);
-      setAccEmail(pro?.email ?? "");
-      setAccPass("");
-      setAccSuccess(false);
-      setPhotoUri(null);
-    }
+    if (!visible) return;
+    setName(pro?.name ?? "");
+    setRole(pro?.role ?? "");
+    setActive(pro?.is_active ?? true);
+    setAccEmail(pro?.email ?? "");
+    setAccPass("");
+    setAccSuccess(false);
+    setPhotoUri(null);
+
+    supabase.from("tenants").select("settings").eq("id", tenantId).single()
+      .then(({ data }) => {
+        const biz = buildSched((data?.settings as any)?.schedule);
+        setBizSched(biz);
+        if (pro?.schedule) {
+          setUseCustomSched(true);
+          setProSched(buildSched(pro.schedule));
+        } else {
+          setUseCustomSched(false);
+          setProSched(buildSched(biz));
+        }
+      });
   }, [visible, pro]);
+
+  const updateDay = (dayKey: string, patch: Partial<DayConfig>) => {
+    setProSched(prev => ({ ...prev, [dayKey]: { ...prev[dayKey], ...patch } }));
+  };
 
   const pickPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("Permiso requerido", "Necesitamos acceso a tu galeria.");
-      return;
-    }
+    if (status !== "granted") { Alert.alert("Permiso requerido", "Necesitamos acceso a tu galeria."); return; }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
+      mediaTypes: ["images"], allowsEditing: true, aspect: [1, 1], quality: 0.8,
     });
     if (!result.canceled) setPhotoUri(result.assets[0].uri);
   };
@@ -69,9 +169,7 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
       xhr.onload = async () => {
         const blob: Blob = xhr.response;
         const path = `${proId}.jpg`;
-        const { error } = await supabase.storage
-          .from("professionals")
-          .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+        const { error } = await supabase.storage.from("professionals").upload(path, blob, { contentType: "image/jpeg", upsert: true });
         if (error) { resolve(null); return; }
         const { data } = supabase.storage.from("professionals").getPublicUrl(path);
         resolve(`${data.publicUrl}?t=${Date.now()}`);
@@ -89,6 +187,7 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
     try {
       const payload: Record<string, unknown> = {
         name: name.trim(), role: role.trim() || "Profesional", is_active: active,
+        schedule: useCustomSched ? proSched : null,
       };
       if (isEdit) {
         if (photoUri) {
@@ -162,7 +261,8 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
 
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
           <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 120 }}>
-            {/* Photo picker */}
+
+            {/* Photo */}
             <TouchableOpacity style={s.photoPicker} onPress={pickPhoto} activeOpacity={0.8}>
               {(photoUri || pro?.photo_url) ? (
                 <Image source={{ uri: photoUri ?? pro?.photo_url! }} style={s.photoImg} />
@@ -173,9 +273,7 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
                   </Text>
                 </View>
               )}
-              <View style={s.photoEditBadge}>
-                <Ionicons name="camera" size={14} color="white" />
-              </View>
+              <View style={s.photoEditBadge}><Ionicons name="camera" size={14} color="white" /></View>
             </TouchableOpacity>
             <Text style={s.photoHint}>Toca para cambiar la foto</Text>
 
@@ -200,6 +298,75 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
               </View>
             )}
 
+            {/* ── Horario personalizado ── */}
+            {isEdit && (
+              <View style={{ marginTop: 28 }}>
+                <Text style={[s.fieldLabel, { marginBottom: 12 }]}>Horario de atencion</Text>
+
+                <View style={[s.switchRow, Shadow.sm, { marginBottom: useCustomSched ? 12 : 0 }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.switchLabel}>Horario personalizado</Text>
+                    <Text style={s.switchSub}>
+                      {useCustomSched ? "Horario propio, diferente al negocio" : "Sigue el horario del negocio"}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={useCustomSched}
+                    onValueChange={v => {
+                      setUseCustomSched(v);
+                      if (!v) setProSched(buildSched(bizSched));
+                    }}
+                    trackColor={{ false: Colors.border, true: Colors.blue + "99" }}
+                    thumbColor={useCustomSched ? Colors.blue : Colors.subtle}
+                  />
+                </View>
+
+                {useCustomSched && (
+                  <View style={{ gap: 6 }}>
+                    {DAYS.map(day => {
+                      const cfg = proSched[day.key] ?? { open: true, start: "09:00", end: "18:00" };
+                      return (
+                        <View
+                          key={day.key}
+                          style={[
+                            s.dayRow,
+                            Shadow.sm,
+                            !cfg.open && { backgroundColor: Colors.cream2, borderColor: Colors.border },
+                          ]}
+                        >
+                          <View style={[s.dayPill, cfg.open ? s.dayPillOpen : s.dayPillClosed]}>
+                            <Text style={[s.dayShort, cfg.open ? s.dayShortOpen : s.dayShortClosed]}>
+                              {day.short}
+                            </Text>
+                          </View>
+                          <Text style={[s.dayName, !cfg.open && { color: Colors.muted }]} numberOfLines={1}>
+                            {day.label}
+                          </Text>
+                          {cfg.open ? (
+                            <View style={{ flexDirection: "row", gap: 6, flex: 1 }}>
+                              <TimeBtn label="Inicio" value={cfg.start} onChange={v => updateDay(day.key, { start: v })} />
+                              <TimeBtn label="Fin"    value={cfg.end}   onChange={v => updateDay(day.key, { end: v })} />
+                            </View>
+                          ) : (
+                            <Text style={{ flex: 1, fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.subtle }}>
+                              Cerrado
+                            </Text>
+                          )}
+                          <Switch
+                            value={cfg.open}
+                            onValueChange={v => updateDay(day.key, { open: v })}
+                            trackColor={{ false: Colors.border, true: Colors.success + "99" }}
+                            thumbColor={cfg.open ? Colors.success : Colors.subtle}
+                          />
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* ── Cuenta de acceso ── */}
             {isEdit && (
               <View style={{ marginTop: 28 }}>
                 <Text style={[s.fieldLabel, { marginBottom: 12 }]}>Cuenta de acceso</Text>
@@ -255,6 +422,7 @@ function ProModal({ visible, pro, tenantId, onClose, onSaved }: {
   );
 }
 
+// ── Avatar ────────────────────────────────────────────────────────────────────
 function Avatar({ name, photoUrl, size = 52 }: { name: string; photoUrl?: string | null; size?: number }) {
   if (photoUrl) {
     return (
@@ -271,6 +439,7 @@ function Avatar({ name, photoUrl, size = 52 }: { name: string; photoUrl?: string
   );
 }
 
+// ── Screen ────────────────────────────────────────────────────────────────────
 export default function TeamScreen() {
   const router = useRouter();
   const [pros, setPros]             = useState<Pro[]>([]);
@@ -289,9 +458,9 @@ export default function TeamScreen() {
   const load = async () => {
     if (!tenantId) return;
     const { data } = await supabase.from("professionals")
-      .select("id, name, role, is_active, user_id, email, photo_url")
+      .select("id, name, role, is_active, user_id, email, photo_url, schedule")
       .eq("tenant_id", tenantId).order("name");
-    setPros(data ?? []);
+    setPros((data ?? []) as Pro[]);
   };
 
   useEffect(() => { load(); }, [tenantId]);
@@ -337,11 +506,17 @@ export default function TeamScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={s.name}>{p.name}</Text>
                   <Text style={s.role}>{p.role}</Text>
-                  <View style={{ flexDirection: "row", gap: 6, marginTop: 5 }}>
+                  <View style={{ flexDirection: "row", gap: 6, marginTop: 5, flexWrap: "wrap" }}>
                     {p.user_id && (
                       <View style={s.activeBadge}>
                         <Ionicons name="shield-checkmark" size={10} color={Colors.success} />
                         <Text style={[s.badgeText, { color: Colors.success }]}>Cuenta activa</Text>
+                      </View>
+                    )}
+                    {p.schedule && (
+                      <View style={s.schedBadge}>
+                        <Ionicons name="time-outline" size={10} color={Colors.blue} />
+                        <Text style={[s.badgeText, { color: Colors.blue }]}>Horario propio</Text>
                       </View>
                     )}
                     {!p.is_active && (
@@ -372,46 +547,55 @@ export default function TeamScreen() {
 }
 
 const s = StyleSheet.create({
-  header:           { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
-  headerRow:        { flexDirection: "row", alignItems: "center", gap: 12 },
-  backBtn:          { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
-  headerTitle:      { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.4 },
-  headerSub:        { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
-  addBtn:           { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
-  row:              { backgroundColor: Colors.white, borderRadius: Radius.md, padding: 14, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 },
-  name:             { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
-  role:             { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
-  activeBadge:      { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: Colors.success + "14", borderRadius: Radius.full, paddingHorizontal: 7, paddingVertical: 3 },
-  badgeText:        { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold" },
-  inactiveBadge:    { backgroundColor: Colors.border, borderRadius: Radius.full, paddingHorizontal: 8, paddingVertical: 3 },
-  inactiveBadgeText:{ fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
-  empty:            { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 48, alignItems: "center", marginTop: 20 },
-  emptyTitle:       { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
-  emptySub:         { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
-  photoPicker:      { alignSelf: "center", marginBottom: 6 },
-  photoImg:         { width: 88, height: 88, borderRadius: 44 },
-  photoPlaceholder: { width: 88, height: 88, borderRadius: 44, backgroundColor: Colors.red + "18", borderWidth: 1.5, borderColor: Colors.red + "30", alignItems: "center", justifyContent: "center" },
-  photoInitials:    { color: Colors.red, fontSize: 30, fontFamily: "SpaceGrotesk_700Bold" },
-  photoEditBadge:   { position: "absolute", bottom: 0, right: 0, width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.red, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: Colors.cream2 },
-  photoHint:        { textAlign: "center", fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginBottom: 4 },
-  mHeader:          { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 20 },
-  mHeaderRow:       { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  closeBtn:         { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
-  mTitle:           { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
-  fieldLabel:       { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 },
-  input:            { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
-  switchRow:        { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: Colors.white, borderRadius: Radius.md, padding: 16, marginTop: 16 },
-  switchLabel:      { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
-  switchSub:        { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
-  accountCard:      { backgroundColor: Colors.white, borderRadius: Radius.md, padding: 16, borderWidth: 1.5, borderColor: Colors.border },
-  accountCardRow:   { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 },
-  accountIcon:      { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  accountCardTitle: { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
-  accountCardSub:   { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
-  accBtn:           { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: Colors.red, borderRadius: Radius.md, paddingVertical: 13, marginTop: 4 },
-  accBtnText:       { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
-  bottomBar:        { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
-  btn:              { borderRadius: Radius.full, overflow: "hidden" },
-  btnGrad:          { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
-  btnText:          { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
+  header:             { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 20 },
+  headerRow:          { flexDirection: "row", alignItems: "center", gap: 12 },
+  backBtn:            { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  headerTitle:        { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.4 },
+  headerSub:          { fontSize: 12, color: "rgba(255,255,255,.75)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
+  addBtn:             { width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  row:                { backgroundColor: Colors.white, borderRadius: Radius.md, padding: 14, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 },
+  name:               { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
+  role:               { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
+  activeBadge:        { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: Colors.success + "14", borderRadius: Radius.full, paddingHorizontal: 7, paddingVertical: 3 },
+  schedBadge:         { flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: Colors.blue + "12", borderRadius: Radius.full, paddingHorizontal: 7, paddingVertical: 3 },
+  badgeText:          { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold" },
+  inactiveBadge:      { backgroundColor: Colors.border, borderRadius: Radius.full, paddingHorizontal: 8, paddingVertical: 3 },
+  inactiveBadgeText:  { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted },
+  empty:              { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, padding: 48, alignItems: "center", marginTop: 20 },
+  emptyTitle:         { fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
+  emptySub:           { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, textAlign: "center" },
+  photoPicker:        { alignSelf: "center", marginBottom: 6 },
+  photoImg:           { width: 88, height: 88, borderRadius: 44 },
+  photoPlaceholder:   { width: 88, height: 88, borderRadius: 44, backgroundColor: Colors.red + "18", borderWidth: 1.5, borderColor: Colors.red + "30", alignItems: "center", justifyContent: "center" },
+  photoInitials:      { color: Colors.red, fontSize: 30, fontFamily: "SpaceGrotesk_700Bold" },
+  photoEditBadge:     { position: "absolute", bottom: 0, right: 0, width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.red, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: Colors.cream2 },
+  photoHint:          { textAlign: "center", fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginBottom: 4 },
+  mHeader:            { paddingTop: 16, paddingHorizontal: 20, paddingBottom: 20 },
+  mHeaderRow:         { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  closeBtn:           { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  mTitle:             { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
+  fieldLabel:         { fontSize: 11, fontFamily: "JetBrainsMono_500Medium", color: Colors.muted, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 },
+  input:              { backgroundColor: Colors.white, borderWidth: 1.5, borderColor: Colors.border, borderRadius: Radius.md, paddingHorizontal: 14, paddingVertical: 13, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular", color: Colors.text },
+  switchRow:          { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: Colors.white, borderRadius: Radius.md, padding: 16, marginTop: 16 },
+  switchLabel:        { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
+  switchSub:          { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
+  dayRow:             { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Colors.white, borderRadius: Radius.md, padding: 10, borderWidth: 1.5, borderColor: "transparent" },
+  dayPill:            { width: 32, height: 32, borderRadius: Radius.sm, alignItems: "center", justifyContent: "center" },
+  dayPillOpen:        { backgroundColor: Colors.success + "18" },
+  dayPillClosed:      { backgroundColor: Colors.border },
+  dayShort:           { fontSize: 9, fontFamily: "JetBrainsMono_500Medium", textTransform: "uppercase", letterSpacing: 0.5 },
+  dayShortOpen:       { color: Colors.success },
+  dayShortClosed:     { color: Colors.subtle },
+  dayName:            { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text, width: 70 },
+  accountCard:        { backgroundColor: Colors.white, borderRadius: Radius.md, padding: 16, borderWidth: 1.5, borderColor: Colors.border },
+  accountCardRow:     { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10 },
+  accountIcon:        { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  accountCardTitle:   { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
+  accountCardSub:     { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
+  accBtn:             { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: Colors.red, borderRadius: Radius.md, paddingVertical: 13, marginTop: 4 },
+  accBtnText:         { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
+  bottomBar:          { padding: 20, paddingBottom: 34, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.cream2 },
+  btn:                { borderRadius: Radius.full, overflow: "hidden" },
+  btnGrad:            { paddingVertical: 16, alignItems: "center", backgroundColor: Colors.red },
+  btnText:            { fontSize: 15, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 });

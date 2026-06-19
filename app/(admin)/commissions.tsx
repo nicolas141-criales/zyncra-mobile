@@ -638,7 +638,7 @@ export default function CommissionsScreen() {
                   onPress={() => setRuleType(t)}
                 >
                   <Ionicons
-                    name={t === "percentage" ? "percent-outline" : "cash-outline"}
+                    name={t === "percentage" ? "pricetag-outline" : "cash-outline"}
                     size={16}
                     color={ruleType === t ? Colors.white : Colors.muted}
                   />
