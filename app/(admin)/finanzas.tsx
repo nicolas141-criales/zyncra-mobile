@@ -649,18 +649,21 @@ export default function FinanzasScreen() {
         contentContainerStyle={s.tabBar}
         style={[s.tabBarScroll, { backgroundColor: t.bgAlt, borderBottomColor: t.border }]}
       >
-        {TABS.map(tb => (
-          <TouchableOpacity
-            key={tb.id}
-            style={[s.tabBtn, tab === tb.id && { backgroundColor: mode === "dark" ? Colors.red + "28" : Colors.ink }]}
-            onPress={() => setTab(tb.id)}
-            activeOpacity={0.7}
-          >
-            <Text style={[s.tabBtnText, { color: tab === tb.id ? (mode === "dark" ? Colors.red : Colors.white) : t.muted }]}>
-              {tb.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {TABS.map(tb => {
+          const active = tab === tb.id;
+          return (
+            <TouchableOpacity
+              key={tb.id}
+              style={[s.tabBtn, active && { backgroundColor: mode === "dark" ? Colors.red : Colors.ink }]}
+              onPress={() => setTab(tb.id)}
+              activeOpacity={0.7}
+            >
+              <Text style={[s.tabBtnText, { color: active ? Colors.white : t.muted }]}>
+                {tb.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
 
       {/* Content */}
@@ -687,8 +690,8 @@ const s = StyleSheet.create({
   headerLabel:  { fontSize: 14, fontFamily: Fonts.semibold, color: "rgba(255,255,255,.8)" },
   headerTitle:  { fontSize: 22, fontFamily: Fonts.bold, color: "white", letterSpacing: -0.5, marginBottom: 4, zIndex: 1 },
 
-  tabBarScroll: { borderBottomWidth: 1 },
-  tabBar:       { flexDirection: "row", padding: 6, gap: 4 },
+  tabBarScroll: { borderBottomWidth: 1, height: 48 },
+  tabBar:       { flexDirection: "row", padding: 6, gap: 4, alignItems: "center" },
   tabBtn:       { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
   tabBtnText:   { fontSize: 13, fontFamily: Fonts.semibold },
 
