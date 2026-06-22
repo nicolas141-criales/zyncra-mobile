@@ -66,44 +66,49 @@ export default function SettingsScreen() {
   const SECTIONS = [
     {
       title: "Marketing",
+      color: "#25D366",
       items: [
-        { icon: "logo-whatsapp" as IoniconName,        color: "#25D366",      label: "Campañas WhatsApp",       sub: "Mensajes masivos personalizados",       route: "/(admin)/whatsapp" },
-        { icon: "star-outline" as IoniconName,         color: "#f59e0b",      label: "Reseñas Google",          sub: "Solicita reseñas a tus clientes",       route: "/(admin)/reviews-google" },
-        { icon: "chatbubbles-outline" as IoniconName,  color: Colors.purple,  label: "Reseñas del negocio",     sub: "Modera las opiniones de tu negocio",    route: "/(admin)/reviews-site" },
+        { icon: "logo-whatsapp",        label: "Campañas WhatsApp",       sub: "Mensajes masivos personalizados",       route: "/(admin)/whatsapp" },
+        { icon: "star-outline",         label: "Reseñas Google",          sub: "Solicita reseñas a tus clientes",       route: "/(admin)/reviews-google" },
+        { icon: "chatbubbles-outline",  label: "Reseñas del negocio",     sub: "Modera las opiniones de tu negocio",    route: "/(admin)/reviews-site" },
       ],
     },
     {
       title: "Ventas",
+      color: Colors.red,
       items: [
-        { icon: "bar-chart-outline" as IoniconName,     color: Colors.red,     label: "Módulo Financiero",    sub: "Reportes de ventas y rentabilidad",    route: "/(admin)/finanzas" },
-        { icon: "cube-outline" as IoniconName,          color: "#8b5cf6",      label: "Inventario",           sub: "Stock y alertas de productos",         route: "/(admin)/inventario" },
-        { icon: "wallet-outline" as IoniconName,        color: Colors.success, label: "Caja",                 sub: "Control de ingresos y egresos",        route: "/(admin)/caja" },
-        { icon: "ribbon-outline" as IoniconName,        color: "#f59e0b",      label: "Comisiones",           sub: "Paga a tu equipo de trabajo",          route: "/(admin)/commissions" },
-        { icon: "document-text-outline" as IoniconName, color: Colors.blue,    label: "Factura Electrónica",  sub: "Emite facturas DIAN vía Factus",       route: "/(admin)/invoices" },
+        { icon: "bar-chart-outline",     label: "Módulo Financiero",    sub: "Reportes de ventas y rentabilidad",    route: "/(admin)/finanzas" },
+        { icon: "cube-outline",          label: "Inventario",           sub: "Stock y alertas de productos",         route: "/(admin)/inventario" },
+        { icon: "wallet-outline",        label: "Caja",                 sub: "Control de ingresos y egresos",        route: "/(admin)/caja" },
+        { icon: "ribbon-outline",        label: "Comisiones",           sub: "Paga a tu equipo de trabajo",          route: "/(admin)/commissions" },
+        { icon: "document-text-outline", label: "Factura Electrónica",  sub: "Emite facturas DIAN vía Factus",       route: "/(admin)/invoices" },
       ],
     },
     {
       title: "Negocio",
+      color: Colors.blue,
       items: [
-        { icon: "cut-outline" as IoniconName,         color: Colors.purple,  label: "Servicios",             sub: "Gestiona tu catálogo de precios",      route: "/settings/services" },
-        { icon: "people-outline" as IoniconName,      color: Colors.blue,    label: "Equipo de trabajo",     sub: "Profesionales y permisos",             route: "/settings/team" },
-        { icon: "time-outline" as IoniconName,        color: "#f59e0b",      label: "Horario de atención",   sub: "Días y horas disponibles",             route: "/settings/schedule" },
-        { icon: "storefront-outline" as IoniconName,  color: Colors.red,     label: "Mi Tienda",             sub: "Personalización y link de reservas",   route: "/settings/store" },
+        { icon: "cut-outline",         label: "Servicios",             sub: "Gestiona tu catálogo de precios",      route: "/settings/services" },
+        { icon: "people-outline",      label: "Equipo de trabajo",     sub: "Profesionales y permisos",             route: "/settings/team" },
+        { icon: "time-outline",        label: "Horario de atención",   sub: "Días y horas disponibles",             route: "/settings/schedule" },
+        { icon: "storefront-outline",  label: "Mi Tienda",             sub: "Personalización y link de reservas",   route: "/settings/store" },
       ],
     },
     {
       title: "Comunicación",
+      color: Colors.purple,
       items: [
-        { icon: "notifications-outline" as IoniconName, color: Colors.success, label: "Recordatorios",       sub: "Alertas automáticas a clientes",       route: "/settings/reminders" },
-        { icon: "bar-chart-outline" as IoniconName,     color: Colors.red,     label: "Reportes",            sub: "Ingresos, servicios y rendimiento",    route: "/(admin)/reports" },
-        { icon: "options-outline" as IoniconName,       color: "#8b5cf6",      label: "Campos personalizados", sub: "Datos extra para clientes y citas", route: "/(admin)/custom-fields" },
+        { icon: "notifications-outline", label: "Recordatorios",         sub: "Alertas automáticas a clientes",       route: "/settings/reminders" },
+        { icon: "bar-chart-outline",     label: "Reportes",              sub: "Ingresos, servicios y rendimiento",    route: "/(admin)/reports" },
+        { icon: "options-outline",       label: "Campos personalizados", sub: "Datos extra para clientes y citas",    route: "/(admin)/custom-fields" },
       ],
     },
     {
       title: "Cuenta",
+      color: "#f59e0b",
       items: [
-        { icon: "person-outline" as IoniconName,      color: Colors.purple,  label: "Mi perfil",            sub: "Datos personales y contraseña",        route: "/settings/profile" },
-        { icon: "card-outline" as IoniconName,        color: Colors.blue,    label: "Plan y facturación",   sub: "Plan actual: Trial",                   route: "/settings/billing" },
+        { icon: "person-outline",      label: "Mi perfil",            sub: "Datos personales y contraseña",        route: "/settings/profile" },
+        { icon: "card-outline",        label: "Plan y facturación",   sub: "Plan actual: Trial",                   route: "/settings/billing" },
       ],
     },
   ];
@@ -161,8 +166,8 @@ export default function SettingsScreen() {
               {sec.items.map((item, ii) => (
                 <View key={ii}>
                   <SettingRow
-                    icon={item.icon}
-                    color={item.color}
+                    icon={item.icon as IoniconName}
+                    color={sec.color}
                     label={item.label}
                     sub={item.sub}
                     onPress={item.route ? () => router.push(item.route as any) : undefined}
