@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
+import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 import { fmtMoney } from "@/lib/format";
@@ -50,7 +50,7 @@ function StatChip({ icon, value, label, color, delay }: {
 }
 
 const sc = StyleSheet.create({
-  chip:    { flex: 1, ...Glass.card, borderRadius: Radius.lg, padding: 14, alignItems: "center", gap: 6 },
+  chip:    { flex: 1, borderWidth: 1, borderRadius: Radius.lg, padding: 14, alignItems: "center", gap: 6 },
   iconBox: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   value:   { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", letterSpacing: -0.5 },
   label:   { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.muted, textAlign: "center" },
@@ -59,7 +59,7 @@ const sc = StyleSheet.create({
 // ─── Appointment row ──────────────────────────────────────────────────────────
 
 function ApptRow({ a, i, onPress }: { a: Appt; i: number; onPress: () => void }) {
-  const { t } = useTheme();
+  const { t, mode } = useTheme();
   const time  = a.appointment_time.substring(0, 5);
   const color = STATUS_META[a.status]?.color ?? Colors.subtle;
   const label = STATUS_META[a.status]?.label ?? a.status;
@@ -83,8 +83,8 @@ function ApptRow({ a, i, onPress }: { a: Appt; i: number; onPress: () => void })
 
         <View style={{ alignItems: "flex-end", gap: 4 }}>
           {isNext && (
-            <View style={ar.nextBadge}>
-              <Text style={ar.nextText}>Próxima</Text>
+            <View style={[ar.nextBadge, { backgroundColor: mode === "dark" ? "rgba(251,146,60,0.15)" : "#fff7ed" }]}>
+              <Text style={[ar.nextText, { color: mode === "dark" ? "#fb923c" : "#c2410c" }]}>Próxima</Text>
             </View>
           )}
           <View style={[ar.badge, { backgroundColor: color + "15" }]}>
@@ -97,7 +97,7 @@ function ApptRow({ a, i, onPress }: { a: Appt; i: number; onPress: () => void })
 }
 
 const ar = StyleSheet.create({
-  row:       { ...Glass.cardStrong, borderRadius: Radius.md, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10, overflow: "hidden" },
+  row:       { borderWidth: 1, borderRadius: Radius.md, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 10, overflow: "hidden" },
   accent:    { width: 4, alignSelf: "stretch" },
   timePill:  { borderRadius: 10, paddingHorizontal: 10, paddingVertical: 7, minWidth: 48, alignItems: "center" },
   time:      { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold" },
@@ -329,12 +329,12 @@ export default function DashboardScreen() {
 
             {appts.length === 0 ? (
               <View style={[s.empty, Shadow.sm]}>
-                <LinearGradient colors={["#f8f7f5", Colors.cream2]} style={s.emptyInner}>
-                  <View style={s.emptyIcon}>
-                    <Ionicons name="calendar-outline" size={28} color={Colors.subtle} />
+                <LinearGradient colors={[t.bgAlt, t.bg]} style={s.emptyInner}>
+                  <View style={[s.emptyIcon, { backgroundColor: t.card }]}>
+                    <Ionicons name="calendar-outline" size={28} color={t.subtle} />
                   </View>
-                  <Text style={s.emptyTitle}>Sin citas para hoy</Text>
-                  <Text style={s.emptySub}>Agenda la primera cita del día</Text>
+                  <Text style={[s.emptyTitle, { color: t.text }]}>Sin citas para hoy</Text>
+                  <Text style={[s.emptySub, { color: t.muted }]}>Agenda la primera cita del día</Text>
                   <TouchableOpacity style={s.emptyBtn} onPress={() => setShowNew(true)} activeOpacity={0.8}>
                     <Ionicons name="add" size={15} color="white" />
                     <Text style={s.emptyBtnText}>Agendar cita</Text>
@@ -415,7 +415,7 @@ const s = StyleSheet.create({
   newCitaBtn:       { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: Radius.full, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: Colors.red },
   newCitaBtnText:   { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
 
-  reportsBtn:       { flexDirection: "row", alignItems: "center", gap: 12, ...Glass.cardStrong, borderRadius: Radius.lg, padding: 14, ...Shadow.sm },
+  reportsBtn:       { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderRadius: Radius.lg, padding: 14, ...Shadow.sm },
   reportsBtnIcon:   { width: 36, height: 36, borderRadius: 11, backgroundColor: Colors.red + "14", alignItems: "center", justifyContent: "center" },
   reportsBtnTitle:  { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
   reportsBtnSub:    { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 1 },

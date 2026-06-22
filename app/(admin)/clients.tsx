@@ -12,7 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
-import { fmtDateShort } from "@/lib/format";
+import { fmtDateShort, fmtPhone } from "@/lib/format";
 import { STATUS_META } from "@/constants/status";
 import Avatar from "@/components/Avatar";
 
@@ -48,7 +48,7 @@ function EditModal({ visible, client, tenantId, onClose, onSaved }: {
   const handleSave = async () => {
     if (!canSave) return;
     setSaving(true);
-    const payload = { name: name.trim(), phone: phone.trim(), email: email.trim() || null };
+    const payload = { name: name.trim(), phone: fmtPhone(phone.trim()), email: email.trim() || null };
     if (isNew) {
       const { data } = await supabase.from("clients").insert({ ...payload, tenant_id: tenantId }).select().single();
       setSaving(false);

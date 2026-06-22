@@ -112,6 +112,10 @@ export default function AdminLayout() {
       <Tabs.Screen name="custom-fields"   options={{ tabBarButton: () => null }} />
       <Tabs.Screen name="reports"          options={{ tabBarButton: () => null }} />
       <Tabs.Screen name="pos-history"     options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="finanzas"        options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="inventario"      options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="branding"        options={{ tabBarButton: () => null }} />
+      <Tabs.Screen name="upcoming"        options={{ tabBarButton: () => null }} />
     </Tabs>
   );
 }

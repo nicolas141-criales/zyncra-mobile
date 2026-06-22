@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
-import { Colors, Gradients, Radius, Shadow, Glass } from "@/constants/theme";
+import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
 import { useTheme } from "@/lib/theme";
 import { useAuth } from "@/lib/auth";
 
@@ -65,48 +65,45 @@ export default function SettingsScreen() {
 
   const SECTIONS = [
     {
-      title: "Tu negocio",
+      title: "Marketing",
       items: [
-        { icon: "storefront-outline" as IoniconName,  color: Colors.red,     label: "Mi Tienda",                sub: "Personalización y link de reservas",          route: "/settings/store" },
-        { icon: "time-outline" as IoniconName,        color: "#f59e0b",      label: "Horario de atención",      sub: "Días y horas disponibles",                    route: "/settings/schedule" },
-        { icon: "cut-outline" as IoniconName,         color: Colors.purple,  label: "Servicios",                sub: "Gestiona tu catálogo de precios",             route: "/settings/services" },
-        { icon: "people-outline" as IoniconName,      color: Colors.blue,    label: "Equipo de trabajo",        sub: "Profesionales y permisos",                    route: "/settings/team" },
+        { icon: "logo-whatsapp" as IoniconName,        color: "#25D366",      label: "Campañas WhatsApp",       sub: "Mensajes masivos personalizados",       route: "/(admin)/whatsapp" },
+        { icon: "star-outline" as IoniconName,         color: "#f59e0b",      label: "Reseñas Google",          sub: "Solicita reseñas a tus clientes",       route: "/(admin)/reviews-google" },
+        { icon: "chatbubbles-outline" as IoniconName,  color: Colors.purple,  label: "Reseñas del negocio",     sub: "Modera las opiniones de tu negocio",    route: "/(admin)/reviews-site" },
+      ],
+    },
+    {
+      title: "Ventas",
+      items: [
+        { icon: "bar-chart-outline" as IoniconName,     color: Colors.red,     label: "Módulo Financiero",    sub: "Reportes de ventas y rentabilidad",    route: "/(admin)/finanzas" },
+        { icon: "cube-outline" as IoniconName,          color: "#8b5cf6",      label: "Inventario",           sub: "Stock y alertas de productos",         route: "/(admin)/inventario" },
+        { icon: "wallet-outline" as IoniconName,        color: Colors.success, label: "Caja",                 sub: "Control de ingresos y egresos",        route: "/(admin)/caja" },
+        { icon: "ribbon-outline" as IoniconName,        color: "#f59e0b",      label: "Comisiones",           sub: "Paga a tu equipo de trabajo",          route: "/(admin)/commissions" },
+        { icon: "document-text-outline" as IoniconName, color: Colors.blue,    label: "Factura Electrónica",  sub: "Emite facturas DIAN vía Factus",       route: "/(admin)/invoices" },
+      ],
+    },
+    {
+      title: "Negocio",
+      items: [
+        { icon: "cut-outline" as IoniconName,         color: Colors.purple,  label: "Servicios",             sub: "Gestiona tu catálogo de precios",      route: "/settings/services" },
+        { icon: "people-outline" as IoniconName,      color: Colors.blue,    label: "Equipo de trabajo",     sub: "Profesionales y permisos",             route: "/settings/team" },
+        { icon: "time-outline" as IoniconName,        color: "#f59e0b",      label: "Horario de atención",   sub: "Días y horas disponibles",             route: "/settings/schedule" },
+        { icon: "storefront-outline" as IoniconName,  color: Colors.red,     label: "Mi Tienda",             sub: "Personalización y link de reservas",   route: "/settings/store" },
       ],
     },
     {
       title: "Comunicación",
       items: [
-        { icon: "notifications-outline" as IoniconName, color: Colors.success, label: "Recordatorios",          sub: "Alertas automáticas a clientes",      route: "/settings/reminders" },
-      ],
-    },
-    {
-      title: "Marketing",
-      items: [
-        { icon: "logo-whatsapp" as IoniconName,        color: "#25D366",      label: "Campañas WhatsApp",       sub: "Mensajes masivos personalizados",      route: "/(admin)/whatsapp" },
-        { icon: "star-outline" as IoniconName,         color: "#f59e0b",      label: "Reseñas Google",           sub: "Solicita reseñas a tus clientes",      route: "/(admin)/reviews-google" },
-        { icon: "chatbubbles-outline" as IoniconName,  color: Colors.purple,  label: "Reseñas del sitio",        sub: "Modera las opiniones de tu negocio",   route: "/(admin)/reviews-site" },
-      ],
-    },
-    {
-      title: "Finanzas",
-      items: [
-        { icon: "wallet-outline" as IoniconName,      color: Colors.success, label: "Caja",                sub: "Control de ingresos y egresos",   route: "/(admin)/caja" },
-        { icon: "ribbon-outline" as IoniconName,      color: "#f59e0b",      label: "Comisiones",          sub: "Paga a tu equipo de trabajo",     route: "/(admin)/commissions" },
-        { icon: "document-text-outline" as IoniconName, color: Colors.blue,  label: "Factura Electrónica", sub: "Emite facturas DIAN vía Factus",  route: "/(admin)/invoices" },
-      ],
-    },
-    {
-      title: "Herramientas",
-      items: [
-        { icon: "bar-chart-outline" as IoniconName,   color: Colors.red,     label: "Reportes",              sub: "Ingresos, servicios y rendimiento", route: "/(admin)/reports" },
-        { icon: "options-outline" as IoniconName,     color: "#8b5cf6",      label: "Campos Personalizados", sub: "Datos extra para clientes y citas", route: "/(admin)/custom-fields" },
+        { icon: "notifications-outline" as IoniconName, color: Colors.success, label: "Recordatorios",       sub: "Alertas automáticas a clientes",       route: "/settings/reminders" },
+        { icon: "bar-chart-outline" as IoniconName,     color: Colors.red,     label: "Reportes",            sub: "Ingresos, servicios y rendimiento",    route: "/(admin)/reports" },
+        { icon: "options-outline" as IoniconName,       color: "#8b5cf6",      label: "Campos personalizados", sub: "Datos extra para clientes y citas", route: "/(admin)/custom-fields" },
       ],
     },
     {
       title: "Cuenta",
       items: [
-        { icon: "person-outline" as IoniconName,      color: Colors.purple,  label: "Mi perfil",         sub: "Datos personales y contraseña", route: "/settings/profile" },
-        { icon: "card-outline" as IoniconName,        color: Colors.blue,    label: "Plan y facturación", sub: "Plan actual: Trial",            route: "/settings/billing" },
+        { icon: "person-outline" as IoniconName,      color: Colors.purple,  label: "Mi perfil",            sub: "Datos personales y contraseña",        route: "/settings/profile" },
+        { icon: "card-outline" as IoniconName,        color: Colors.blue,    label: "Plan y facturación",   sub: "Plan actual: Trial",                   route: "/settings/billing" },
       ],
     },
   ];
@@ -204,7 +201,7 @@ const s = StyleSheet.create({
   headerPill:      { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,.14)", borderRadius: Radius.full, paddingVertical: 8, paddingHorizontal: 14, alignSelf: "flex-start", borderWidth: 1, borderColor: "rgba(255,255,255,0.2)", position: "relative", zIndex: 1 },
   headerPillText:  { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.9)" },
   sectionTitle: { fontSize: 12, fontFamily: "SpaceGrotesk_700Bold", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10, marginTop: 20 },
-  group:        { ...Glass.cardStrong, borderRadius: Radius.lg, overflow: "hidden" },
+  group:        { borderWidth: 1, borderRadius: Radius.lg, overflow: "hidden" },
   row:          { flexDirection: "row", alignItems: "center", gap: 14, padding: 16 },
   rowIcon:      { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   rowLabel:     { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
