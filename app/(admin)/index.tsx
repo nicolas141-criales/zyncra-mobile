@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Image } from "react-native";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Image, Modal, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, { FadeInDown, FadeInRight, FadeInUp, FadeIn } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -120,6 +120,9 @@ export default function DashboardScreen() {
   const [metrics, setMetrics]       = useState({ total: 0, confirmed: 0, clients: 0, revenueDay: 0, revenueMonth: 0 });
   const [refreshing, setRefreshing] = useState(false);
   const [showNew, setShowNew]       = useState(false);
+  const [showNotif, setShowNotif]   = useState(false);
+  const [notifItems, setNotifItems] = useState<any[]>([]);
+  const [loadingNotif, setLoadingNotif] = useState(false);
 
   const load = async () => {
     if (!tenantId) return;
@@ -173,6 +176,31 @@ export default function DashboardScreen() {
   }, [tenantId]);
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
+  const openNotifications = async () => {
+    if (!tenantId) return;
+    setShowNotif(true);
+    setLoadingNotif(true);
+    const { data } = await supabase
+      .from("appointments")
+      .select("id, status, updated_at, appointment_date, appointment_time, clients(name), services(name)")
+      .eq("tenant_id", tenantId)
+      .order("updated_at", { ascending: false })
+      .limit(30);
+    setNotifItems(data ?? []);
+    setLoadingNotif(false);
+  };
+
+  function timeAgo(iso: string): string {
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "ahora mismo";
+    if (mins < 60) return `hace ${mins} min`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `hace ${hrs}h`;
+    const days = Math.floor(hrs / 24);
+    return `hace ${days}d`;
+  }
+
   const now = new Date();
   const todayLabel = now.toLocaleDateString("es-CO", { weekday: "short", day: "numeric", month: "short" });
   const pendingCount = appts.filter(a => a.status === "pending" || a.status === "confirmed").length;
@@ -202,7 +230,7 @@ export default function DashboardScreen() {
               <Image source={require("@/assets/zyncra-logo.png")} style={s.logoImg} />
               <Text style={s.logoText}>Zyncra</Text>
             </View>
-            <TouchableOpacity style={s.bellBtn} activeOpacity={0.7}>
+            <TouchableOpacity style={s.bellBtn} activeOpacity={0.7} onPress={openNotifications}>
               <Ionicons name="notifications-outline" size={18} color="white" />
             </TouchableOpacity>
           </Animated.View>
@@ -366,9 +394,81 @@ export default function DashboardScreen() {
           onSuccess={load}
         />
       )}
+
+      {/* ── Notifications sheet ── */}
+      <Modal visible={showNotif} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowNotif(false)}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
+          {/* Header */}
+          <View style={ns.header}>
+            <View>
+              <Text style={[ns.title, { color: t.text }]}>Notificaciones</Text>
+              <Text style={[ns.sub, { color: t.muted }]}>Actividad reciente</Text>
+            </View>
+            <TouchableOpacity style={[ns.closeBtn, { backgroundColor: t.card, borderColor: t.cardBorder }]} onPress={() => setShowNotif(false)} activeOpacity={0.7}>
+              <Ionicons name="close" size={18} color={t.subtle} />
+            </TouchableOpacity>
+          </View>
+
+          {loadingNotif ? (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+              <ActivityIndicator color={Colors.red} size="large" />
+            </View>
+          ) : notifItems.length === 0 ? (
+            <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 10 }}>
+              <Ionicons name="notifications-off-outline" size={40} color={t.subtle} />
+              <Text style={{ fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15, color: t.text }}>Sin actividad reciente</Text>
+              <Text style={{ fontFamily: "SpaceGrotesk_400Regular", fontSize: 13, color: t.muted }}>Las citas y cambios aparecerán aquí</Text>
+            </View>
+          ) : (
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {notifItems.map((item, idx) => {
+                const NOTIF_META: Record<string, { icon: IoniconName; color: string; label: string }> = {
+                  pending:   { icon: "time-outline",            color: "#f59e0b", label: "Nueva reserva"       },
+                  confirmed: { icon: "checkmark-circle-outline", color: "#10b981", label: "Cita confirmada"    },
+                  cancelled: { icon: "close-circle-outline",    color: "#ef4444", label: "Cita cancelada"      },
+                  completed: { icon: "trophy-outline",          color: Colors.purple ?? "#7c3aed", label: "Cita completada" },
+                  rescheduled:{ icon: "repeat-outline",         color: "#6366f1", label: "Cita reagendada"     },
+                };
+                const meta = NOTIF_META[item.status] ?? { icon: "calendar-outline" as IoniconName, color: t.subtle, label: item.status };
+                const clientName = (item.clients as any)?.name ?? "Cliente";
+                const serviceName = (item.services as any)?.name ?? "Servicio";
+                const apptDate = new Date(item.appointment_date + "T" + item.appointment_time);
+                const dateLabel = apptDate.toLocaleDateString("es-CO", { day: "numeric", month: "short" });
+                const timeLabel = apptDate.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
+
+                return (
+                  <View key={item.id} style={[ns.item, { borderBottomColor: t.divider }, idx === 0 && { borderTopWidth: 1, borderTopColor: t.divider }]}>
+                    <View style={[ns.iconBox, { backgroundColor: meta.color + "18" }]}>
+                      <Ionicons name={meta.icon as IoniconName} size={18} color={meta.color} />
+                    </View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={[ns.itemTitle, { color: t.text }]}>{meta.label}</Text>
+                      <Text style={[ns.itemSub, { color: t.muted }]} numberOfLines={1}>{clientName} · {serviceName}</Text>
+                      <Text style={[ns.itemDate, { color: t.subtle }]}>{dateLabel} {timeLabel} · {timeAgo(item.updated_at)}</Text>
+                    </View>
+                  </View>
+                );
+              })}
+              <View style={{ height: 40 }} />
+            </ScrollView>
+          )}
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
+
+const ns = StyleSheet.create({
+  header:    { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 18 },
+  title:     { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", letterSpacing: -0.5 },
+  sub:       { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
+  closeBtn:  { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center", borderWidth: 1 },
+  item:      { flexDirection: "row", alignItems: "flex-start", gap: 14, paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1 },
+  iconBox:   { width: 40, height: 40, borderRadius: 13, alignItems: "center", justifyContent: "center", marginTop: 1 },
+  itemTitle: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
+  itemSub:   { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular" },
+  itemDate:  { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", marginTop: 1 },
+});
 
 const s = StyleSheet.create({
   headerGrad:    { paddingTop: 14, paddingBottom: 20, overflow: "hidden" },

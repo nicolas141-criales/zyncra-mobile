@@ -163,7 +163,7 @@ function TabResumen({ sales, session, movements, period, loading }: {
   const card = [s.card, { backgroundColor: t.bgAlt, borderColor: t.border }] as const;
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
       <Animated.View entering={FadeInDown.duration(320)} style={s.kpiGrid}>
         {[
           { label: `Ingresos (${period}d)`, value: fmt(totalIngresos), sub: `${countSales} ventas` },
@@ -265,7 +265,7 @@ function TabCaja({ session, movements, loading }: {
 
   if (!session) {
     return (
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
         <Animated.View entering={FadeInDown.duration(320)}>
           <View style={[s.card, { alignItems: "center", paddingVertical: 36, backgroundColor: t.bgAlt, borderColor: t.border }]}>
             <Ionicons name="lock-open-outline" size={36} color={t.subtle} />
@@ -280,7 +280,7 @@ function TabCaja({ session, movements, loading }: {
   }
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
       <Animated.View entering={FadeInDown.duration(320)}>
         <LinearGradient colors={Gradients.ink} style={[s.sessionCard, { marginBottom: 12 }]}>
           <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.sessionAccent} />
@@ -366,7 +366,7 @@ function TabVentas({ sales, period, onPeriodChange, loading }: {
   const total    = filtered.reduce((a, s) => a + s.total, 0);
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
       <Animated.View entering={FadeInDown.duration(320)} style={{ marginBottom: 10 }}>
         <View style={[s.filterPills, { backgroundColor: t.border }]}>
           {(["7", "30", "90"] as const).map(d => (
@@ -447,7 +447,7 @@ function TabReportes({ sales, loading }: { sales: Sale[]; loading: boolean }) {
   const grandTotal    = Object.values(pmTotals).reduce((a, b) => a + b, 0) || 1;
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
       <Animated.View entering={FadeInDown.duration(320)} style={s.kpiGrid}>
         {[
           { label: "Ingresos totales",   value: fmt(totalIngresos)    },
@@ -515,7 +515,7 @@ function TabRentabilidad({ sales, loading }: { sales: Sale[]; loading: boolean }
   const topServices = groupByService(sales);
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false}>
+    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
       <Animated.View entering={FadeInDown.duration(320)}>
         <LinearGradient colors={Gradients.ink} style={[s.sessionCard, { marginBottom: 12 }]}>
           <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.sessionAccent} />
@@ -690,7 +690,7 @@ const s = StyleSheet.create({
   headerLabel:  { fontSize: 14, fontFamily: Fonts.semibold, color: "rgba(255,255,255,.8)" },
   headerTitle:  { fontSize: 22, fontFamily: Fonts.bold, color: "white", letterSpacing: -0.5, marginBottom: 4, zIndex: 1 },
 
-  tabBarScroll: { borderBottomWidth: 1, height: 48 },
+  tabBarScroll: { borderBottomWidth: 1, flexShrink: 0 },
   tabBar:       { flexDirection: "row", padding: 6, gap: 4, alignItems: "center" },
   tabBtn:       { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
   tabBtnText:   { fontSize: 13, fontFamily: Fonts.semibold },
