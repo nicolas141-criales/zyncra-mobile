@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Linking, Platform } from "react-native";
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Linking } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import Animated, { FadeInDown, FadeInRight } from "react-native-reanimated";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
-import { Colors, Gradients, Radius, Shadow } from "@/constants/theme";
+import { Colors, Fonts, Gradients, Radius, Shadow } from "@/constants/theme";
 import { useTheme } from "@/lib/theme";
 
 type IoniconName = React.ComponentProps<typeof Ionicons>["name"];
@@ -19,94 +19,92 @@ type TenantPlan = {
   plan_expires_at: string | null;
 };
 
-const PLANS = {
-  trial: {
-    label: "Trial gratuito",
-    color: "#f59e0b",
-    icon: "hourglass-outline" as IoniconName,
-    description: "Explora todas las funciones sin costo por 14 días.",
-  },
-  pro: {
-    label: "Pro",
-    color: Colors.red,
-    icon: "flash-outline" as IoniconName,
-    description: "Todo lo que tu negocio necesita para crecer.",
-  },
-  business: {
-    label: "Business",
-    color: Colors.purple,
-    icon: "business-outline" as IoniconName,
-    description: "Para cadenas y negocios con múltiples sedes.",
-  },
+const SALES_WA = "573188886055";
+
+const PLAN_META: Record<string, { label: string; color: string; icon: IoniconName }> = {
+  trial:      { label: "Trial gratuito", color: "#f59e0b",   icon: "hourglass-outline"   },
+  starter:    { label: "Starter",        color: "#22D3EE",   icon: "leaf-outline"         },
+  growth:     { label: "Growth",         color: "#A855F7",   icon: "trending-up-outline"  },
+  pro:        { label: "Pro",            color: Colors.blue, icon: "flash-outline"        },
+  enterprise: { label: "Enterprise",     color: Colors.red,  icon: "business-outline"     },
 };
 
-const TRIAL_FEATURES = [
-  { label: "Hasta 30 clientes",             ok: true },
-  { label: "Hasta 5 servicios",             ok: true },
-  { label: "Agenda semanal",                ok: true },
-  { label: "1 profesional",                 ok: true },
-  { label: "POS básico",                    ok: true },
-  { label: "Recordatorios automáticos",     ok: false },
-  { label: "Profesionales ilimitados",      ok: false },
-  { label: "Clientes y servicios ilimitados", ok: false },
-  { label: "Reportes avanzados",            ok: false },
-  { label: "Soporte prioritario",           ok: false },
+const PLAN_CARDS = [
+  {
+    slug: "starter",
+    name: "Starter",
+    price: "59.900",
+    sub: "Para comenzar tu negocio",
+    color: "#22D3EE",
+    features: [
+      "1 colaborador",
+      "Agenda online de citas",
+      "Hasta 100 confirmaciones WhatsApp",
+      "CRM y POS básico",
+      "Módulo financiero",
+      "Soporte por WhatsApp",
+    ],
+  },
+  {
+    slug: "growth",
+    name: "Growth",
+    price: "119.900",
+    sub: "El más popular en Colombia",
+    color: "#A855F7",
+    popular: true,
+    features: [
+      "2 a 5 colaboradores",
+      "Confirmaciones WhatsApp ilimitadas",
+      "IA Hanna Básica (agendamiento y cancelaciones)",
+      "100 mensajes WhatsApp Marketing/mes",
+      "Proveedores, comisiones e inventario",
+      "Soporte por WhatsApp",
+    ],
+  },
+  {
+    slug: "pro",
+    name: "Pro",
+    price: "229.900",
+    sub: "Para equipos en crecimiento",
+    color: Colors.blue,
+    features: [
+      "6 a 15 colaboradores",
+      "Confirmaciones WhatsApp ilimitadas",
+      "IA Hanna Pro — personalizada y analítica",
+      "300 mensajes WhatsApp Marketing/mes",
+      "Hasta 3 sucursales",
+      "Soporte por WhatsApp",
+    ],
+  },
+  {
+    slug: "enterprise",
+    name: "Enterprise",
+    price: "449.900",
+    sub: "Para cadenas y multi-sede",
+    color: Colors.red,
+    features: [
+      "15+ colaboradores / ilimitados",
+      "Confirmaciones WhatsApp ilimitadas",
+      "IA Hanna Avanzada — marketing y ventas",
+      "700 mensajes WhatsApp Marketing/mes",
+      "Multi-sucursal ilimitada",
+      "API pública",
+      "Account Manager dedicado",
+    ],
+  },
 ];
-
-const PRO_FEATURES = [
-  { label: "Clientes ilimitados",           ok: true },
-  { label: "Servicios ilimitados",          ok: true },
-  { label: "Agenda completa + historial",   ok: true },
-  { label: "Hasta 10 profesionales",        ok: true },
-  { label: "POS completo con reportes",     ok: true },
-  { label: "Recordatorios automáticos",     ok: true },
-  { label: "Página de reservas en línea",   ok: true },
-  { label: "Soporte prioritario",           ok: true },
-];
-
-const BUSINESS_FEATURES = [
-  { label: "Todo lo de Pro",                ok: true },
-  { label: "Profesionales ilimitados",      ok: true },
-  { label: "Múltiples sedes",               ok: true },
-  { label: "Dashboard centralizado",        ok: true },
-  { label: "Personalización de marca",      ok: true },
-  { label: "Integración con WhatsApp",      ok: true },
-  { label: "Gerente de cuenta dedicado",    ok: true },
-];
-
-function FeatureRow({ label, ok, delay }: { label: string; ok: boolean; delay: number }) {
-  return (
-    <Animated.View entering={FadeInRight.delay(delay).duration(300)} style={f.row}>
-      <View style={[f.dot, { backgroundColor: ok ? Colors.success + "18" : Colors.border }]}>
-        <Ionicons name={ok ? "checkmark" : "close"} size={12} color={ok ? Colors.success : Colors.subtle} />
-      </View>
-      <Text style={[f.label, !ok && { color: Colors.subtle }]}>{label}</Text>
-    </Animated.View>
-  );
-}
-
-const f = StyleSheet.create({
-  row:   { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
-  dot:   { width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center" },
-  label: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text, flex: 1 },
-});
 
 function daysLeft(createdAt: string, expiresAt: string | null): number {
   if (expiresAt) {
-    const diff = new Date(expiresAt).getTime() - Date.now();
-    return Math.max(0, Math.ceil(diff / 86400000));
+    return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000));
   }
   const trialEnd = new Date(createdAt);
   trialEnd.setDate(trialEnd.getDate() + 14);
-  const diff = trialEnd.getTime() - Date.now();
-  return Math.max(0, Math.ceil(diff / 86400000));
+  return Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / 86400000));
 }
 
-const SALES_PHONE = "573160000000"; // número de ventas Zyncra
-
 function openWhatsApp(msg: string) {
-  const url = `https://wa.me/${SALES_PHONE}?text=${encodeURIComponent(msg)}`;
-  Linking.openURL(url);
+  Linking.openURL(`https://wa.me/${SALES_WA}?text=${encodeURIComponent(msg)}`);
 }
 
 export default function BillingScreen() {
@@ -123,28 +121,23 @@ export default function BillingScreen() {
       .select("name, plan, created_at, plan_expires_at")
       .eq("id", tenantId)
       .single()
-      .then(({ data }) => {
-        if (!cancelled && data) setTenant(data as TenantPlan);
-      });
+      .then(({ data }) => { if (!cancelled && data) setTenant(data as TenantPlan); });
     return () => { cancelled = true; };
   }, [tenantId]);
 
-  const plan = (tenant?.plan ?? "trial") as keyof typeof PLANS;
-  const planMeta = PLANS[plan] ?? PLANS.trial;
+  const planSlug = (tenant?.plan ?? "trial").toLowerCase();
+  const planMeta = PLAN_META[planSlug] ?? PLAN_META.trial;
+  const isTrial  = planSlug === "trial";
   const remaining = tenant ? daysLeft(tenant.created_at, tenant.plan_expires_at) : 0;
-  const isTrial = plan === "trial";
-  const isPro   = plan === "pro";
-
-  const upgradeMsg = `Hola, quiero actualizar mi negocio "${tenant?.name ?? ""}" al plan Pro de Zyncra.`;
-  const businessMsg = `Hola, quiero más información sobre el plan Business de Zyncra para mi negocio "${tenant?.name ?? ""}".`;
+  const currentCard = PLAN_CARDS.find(p => p.slug === planSlug);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
 
-        {/* ── Header ── */}
+        {/* Header */}
         <LinearGradient colors={Gradients.ink} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.header}>
-          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 }} />
+          <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.headerAccent} />
           <View style={s.headerBlob} />
           <View style={s.headerRow}>
             <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
@@ -156,129 +149,174 @@ export default function BillingScreen() {
             </View>
           </View>
 
-          {/* Current plan badge */}
           <Animated.View entering={FadeInDown.delay(100).duration(400)} style={s.planBadge}>
-            <View style={[s.planBadgeIcon, { backgroundColor: planMeta.color + "22" }]}>
-              <Ionicons name={planMeta.icon} size={22} color="white" />
+            <View style={[s.planBadgeIcon, { backgroundColor: planMeta.color + "30" }]}>
+              <Ionicons name={planMeta.icon} size={22} color={planMeta.color} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.planBadgeLabel}>Plan actual</Text>
               <Text style={s.planBadgeName}>{planMeta.label}</Text>
             </View>
-            {isTrial && (
-              <View style={s.trialPill}>
-                <Text style={s.trialPillText}>{remaining}d restantes</Text>
+            {isTrial ? (
+              <View style={s.pill}>
+                <Text style={s.pillText}>{remaining}d restantes</Text>
               </View>
-            )}
-            {isPro && (
-              <View style={[s.trialPill, { backgroundColor: Colors.success + "22" }]}>
+            ) : (
+              <View style={[s.pill, { backgroundColor: Colors.success + "22" }]}>
                 <Ionicons name="checkmark-circle" size={13} color={Colors.success} />
-                <Text style={[s.trialPillText, { color: Colors.success }]}>Activo</Text>
+                <Text style={[s.pillText, { color: Colors.success }]}>Activo</Text>
               </View>
             )}
           </Animated.View>
         </LinearGradient>
 
-        <View style={{ padding: 20 }}>
+        <View style={{ padding: 20, gap: 24 }}>
 
-          {/* ── Trial warning ── */}
+          {/* Trial expiry warnings */}
           {isTrial && remaining <= 5 && remaining > 0 && (
             <Animated.View entering={FadeInDown.duration(350)} style={[s.warnCard, Shadow.sm]}>
               <Ionicons name="warning-outline" size={18} color="#f59e0b" />
               <Text style={s.warnText}>
-                Tu trial vence en <Text style={{ fontFamily: "SpaceGrotesk_700Bold" }}>{remaining} día{remaining !== 1 ? "s" : ""}</Text>. Actualiza para no perder el acceso.
+                Tu trial vence en{" "}
+                <Text style={{ fontFamily: Fonts.bold }}>{remaining} día{remaining !== 1 ? "s" : ""}</Text>.
+                {" "}Activa un plan para no perder el acceso.
               </Text>
             </Animated.View>
           )}
           {isTrial && remaining === 0 && (
             <Animated.View entering={FadeInDown.duration(350)} style={[s.warnCard, { borderColor: Colors.red + "33", backgroundColor: Colors.red + "08" }, Shadow.sm]}>
               <Ionicons name="alert-circle-outline" size={18} color={Colors.red} />
-              <Text style={[s.warnText, { color: Colors.red }]}>Tu trial ha expirado. Actualiza tu plan para seguir usando Zyncra.</Text>
+              <Text style={[s.warnText, { color: Colors.red }]}>Tu trial ha expirado. Activa un plan para seguir usando Zyncra.</Text>
             </Animated.View>
           )}
 
-          {/* ── Current plan features ── */}
-          <Animated.View entering={FadeInDown.delay(80).duration(400)} style={[s.card, Shadow.sm]}>
-            <Text style={s.cardTitle}>Tu plan incluye</Text>
-            {(isTrial ? TRIAL_FEATURES : isPro ? PRO_FEATURES : BUSINESS_FEATURES).map((feat, i) => (
-              <FeatureRow key={i} label={feat.label} ok={feat.ok} delay={i * 30} />
-            ))}
-          </Animated.View>
-
-          {/* ── Pro plan card (show if on trial) ── */}
-          {isTrial && (
-            <Animated.View entering={FadeInDown.delay(200).duration(400)} style={{ marginTop: 20 }}>
-              <Text style={s.sectionLabel}>Actualiza tu plan</Text>
-              <View style={[s.proCard, Shadow.md]}>
-                <LinearGradient colors={Gradients.brand} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.proCardHeader}>
-                  <View style={s.proCardHeaderBlob} />
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                    <View style={s.proIconBox}>
-                      <Ionicons name="flash" size={18} color="white" />
+          {/* Current plan features */}
+          {currentCard && (
+            <Animated.View entering={FadeInDown.delay(60).duration(400)}>
+              <Text style={[s.sectionLabel, { color: t.muted }]}>Tu plan incluye</Text>
+              <View style={[s.card, { backgroundColor: t.card, borderColor: currentCard.color + "33" }]}>
+                {currentCard.features.map((feat, i) => (
+                  <View key={i} style={s.featRow}>
+                    <View style={[s.featDot, { backgroundColor: currentCard.color + "22" }]}>
+                      <Ionicons name="checkmark" size={12} color={currentCard.color} />
                     </View>
-                    <View>
-                      <Text style={s.proCardName}>Plan Pro</Text>
-                      <Text style={s.proCardTagline}>Todo lo que necesitas</Text>
-                    </View>
-                    <View style={{ flex: 1, alignItems: "flex-end" }}>
-                      <Text style={s.proPrice}>$89.900</Text>
-                      <Text style={s.proPeriod}>COP / mes</Text>
-                    </View>
+                    <Text style={[s.featText, { color: t.text }]}>{feat}</Text>
                   </View>
-                  <TouchableOpacity
-                    style={s.upgradeBtn}
-                    onPress={() => openWhatsApp(upgradeMsg)}
-                    activeOpacity={0.85}
-                  >
-                    <Ionicons name="logo-whatsapp" size={18} color={Colors.red} />
-                    <Text style={s.upgradeBtnText}>Contactar para actualizar</Text>
-                  </TouchableOpacity>
-                </LinearGradient>
-
-                <View style={{ padding: 16 }}>
-                  {PRO_FEATURES.map((feat, i) => (
-                    <FeatureRow key={i} label={feat.label} ok={feat.ok} delay={i * 25} />
-                  ))}
-                </View>
+                ))}
               </View>
             </Animated.View>
           )}
 
-          {/* ── Business card ── */}
-          {!isPro ? (
-            <Animated.View entering={FadeInDown.delay(300).duration(400)} style={{ marginTop: isTrial ? 16 : 20 }}>
-              {!isTrial && <Text style={s.sectionLabel}>Más opciones</Text>}
-              <TouchableOpacity
-                style={[s.businessCard, Shadow.sm]}
-                onPress={() => openWhatsApp(businessMsg)}
-                activeOpacity={0.8}
-              >
-                <View style={[s.businessIconBox, { backgroundColor: Colors.purple + "14" }]}>
-                  <Ionicons name="business-outline" size={20} color={Colors.purple} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.businessCardTitle}>Plan Business</Text>
-                  <Text style={s.businessCardSub}>Múltiples sedes · Profesionales ilimitados · Precio personalizado</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={Colors.subtle} />
-              </TouchableOpacity>
-            </Animated.View>
-          ) : null}
+          {/* All plans */}
+          <Animated.View entering={FadeInDown.delay(160).duration(400)}>
+            <Text style={[s.sectionLabel, { color: t.muted }]}>
+              {isTrial ? "Elige tu plan" : "Todos los planes"}
+            </Text>
+            <View style={{ gap: 14 }}>
+              {PLAN_CARDS.map((plan, idx) => {
+                const isCurrent = plan.slug === planSlug;
+                const msg = isCurrent
+                  ? `Hola, tengo una consulta sobre mi plan ${plan.name} de Zyncra (negocio: ${tenant?.name ?? ""}).`
+                  : `Hola, quiero ${isCurrent ? "info" : "cambiar mi plan a"} ${plan.name} de Zyncra (negocio: ${tenant?.name ?? ""}).`;
 
-          {/* ── FAQ ── */}
-          <Animated.View entering={FadeInDown.delay(360).duration(400)} style={{ marginTop: 28 }}>
-            <Text style={s.sectionLabel}>Preguntas frecuentes</Text>
-            {[
-              { q: "¿Qué pasa si mi trial expira?", a: "Tu información se guarda de forma segura. Actualiza en cualquier momento para recuperar el acceso completo." },
-              { q: "¿Cómo se realiza el pago?", a: "Aceptamos transferencia bancaria, Nequi, Daviplata y tarjeta. Te guiamos por WhatsApp." },
-              { q: "¿Puedo cancelar en cualquier momento?", a: "Sí. Sin contratos ni cláusulas de permanencia." },
-            ].map((item, i) => (
-              <Animated.View key={i} entering={FadeInDown.delay(360 + i * 60).duration(350)} style={[s.faqCard, Shadow.sm]}>
-                <Text style={s.faqQ}>{item.q}</Text>
-                <Text style={s.faqA}>{item.a}</Text>
-              </Animated.View>
-            ))}
+                return (
+                  <Animated.View key={plan.slug} entering={FadeInDown.delay(160 + idx * 60).duration(350)}>
+                    <View style={[
+                      s.planCard,
+                      Shadow.sm,
+                      { backgroundColor: t.card, borderColor: isCurrent ? plan.color + "55" : t.border },
+                      isCurrent && { borderWidth: 1.5 },
+                    ]}>
+                      {plan.popular && !isCurrent && (
+                        <View style={[s.popularBadge, { backgroundColor: plan.color }]}>
+                          <Text style={s.popularText}>Más popular</Text>
+                        </View>
+                      )}
+                      {isCurrent && (
+                        <View style={[s.popularBadge, { backgroundColor: plan.color }]}>
+                          <Ionicons name="checkmark-circle" size={11} color="white" />
+                          <Text style={s.popularText}>Plan actual</Text>
+                        </View>
+                      )}
+
+                      <View style={s.planCardHeader}>
+                        <View style={[s.planIcon, { backgroundColor: plan.color + "18" }]}>
+                          <Ionicons name={PLAN_META[plan.slug]?.icon ?? "flash-outline"} size={18} color={plan.color} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[s.planName, { color: t.text }]}>{plan.name}</Text>
+                          <Text style={[s.planSub, { color: t.muted }]}>{plan.sub}</Text>
+                        </View>
+                        <View style={{ alignItems: "flex-end" }}>
+                          <Text style={[s.planPrice, { color: t.text }]}>${plan.price}</Text>
+                          <Text style={[s.planPeriod, { color: t.muted }]}>COP/mes</Text>
+                        </View>
+                      </View>
+
+                      <View style={[s.planDivider, { backgroundColor: t.border }]} />
+
+                      <View style={{ gap: 8 }}>
+                        {plan.features.slice(0, 5).map((feat, i) => (
+                          <View key={i} style={s.featRow}>
+                            <View style={[s.featDot, { backgroundColor: plan.color + "18" }]}>
+                              <Ionicons name="checkmark" size={11} color={plan.color} />
+                            </View>
+                            <Text style={[s.featText, { color: t.muted }]}>{feat}</Text>
+                          </View>
+                        ))}
+                        {plan.features.length > 5 && (
+                          <Text style={[s.moreFeats, { color: plan.color }]}>+{plan.features.length - 5} más incluidos</Text>
+                        )}
+                      </View>
+
+                      {plan.slug === "enterprise" ? (
+                        <TouchableOpacity
+                          style={[s.ctaBtn, { backgroundColor: plan.color + "14", borderColor: plan.color + "33" }]}
+                          onPress={() => openWhatsApp(msg)}
+                          activeOpacity={0.8}
+                        >
+                          <Ionicons name="logo-whatsapp" size={15} color={plan.color} />
+                          <Text style={[s.ctaBtnText, { color: plan.color }]}>Hablar con ventas</Text>
+                        </TouchableOpacity>
+                      ) : isCurrent ? (
+                        <View style={[s.ctaBtn, { backgroundColor: plan.color + "10", borderColor: plan.color + "22" }]}>
+                          <Ionicons name="checkmark-circle-outline" size={15} color={plan.color} />
+                          <Text style={[s.ctaBtnText, { color: plan.color }]}>Tu plan actual</Text>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          style={[s.ctaBtn, { backgroundColor: plan.color + "14", borderColor: plan.color + "33" }]}
+                          onPress={() => openWhatsApp(msg)}
+                          activeOpacity={0.8}
+                        >
+                          <Ionicons name="logo-whatsapp" size={15} color={plan.color} />
+                          <Text style={[s.ctaBtnText, { color: plan.color }]}>Cambiar a {plan.name}</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </Animated.View>
+                );
+              })}
+            </View>
           </Animated.View>
+
+          {/* FAQ */}
+          <Animated.View entering={FadeInDown.delay(400).duration(400)}>
+            <Text style={[s.sectionLabel, { color: t.muted }]}>Preguntas frecuentes</Text>
+            <View style={{ gap: 10 }}>
+              {[
+                { q: "¿Qué pasa si mi trial expira?", a: "Tu información se guarda de forma segura. Activa un plan en cualquier momento para recuperar el acceso completo." },
+                { q: "¿Cómo se realiza el pago?", a: "Aceptamos transferencia bancaria, Nequi, Daviplata y tarjeta. Te guiamos por WhatsApp." },
+                { q: "¿Puedo cancelar en cualquier momento?", a: "Sí. Sin contratos ni cláusulas de permanencia." },
+              ].map((item, i) => (
+                <View key={i} style={[s.faqCard, { backgroundColor: t.card, borderColor: t.border }]}>
+                  <Text style={[s.faqQ, { color: t.text }]}>{item.q}</Text>
+                  <Text style={[s.faqA, { color: t.muted }]}>{item.a}</Text>
+                </View>
+              ))}
+            </View>
+          </Animated.View>
+
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -286,38 +324,40 @@ export default function BillingScreen() {
 }
 
 const s = StyleSheet.create({
-  header:           { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 28, overflow: "hidden" },
-  headerBlob:       { position: "absolute", width: 220, height: 220, borderRadius: 110, backgroundColor: "rgba(255,255,255,.07)", top: -70, right: -50 },
-  headerRow:        { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 20 },
-  backBtn:          { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
-  headerTitle:      { fontSize: 20, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.4 },
-  headerSub:        { fontSize: 12, color: "rgba(255,255,255,.7)", fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
-  planBadge:        { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "rgba(255,255,255,.14)", borderRadius: Radius.lg, padding: 14 },
-  planBadgeIcon:    { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  planBadgeLabel:   { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: "rgba(255,255,255,.7)" },
-  planBadgeName:    { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.3 },
-  trialPill:        { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(255,255,255,.18)", borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 6 },
-  trialPillText:    { fontSize: 11, fontFamily: "SpaceGrotesk_700Bold", color: "white" },
-  warnCard:         { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: "#fffbeb", borderRadius: Radius.md, padding: 14, borderWidth: 1, borderColor: "#f59e0b33", marginBottom: 16 },
-  warnText:         { flex: 1, fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "#92400e", lineHeight: 19 },
-  card:             { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 18 },
-  cardTitle:        { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 14 },
-  sectionLabel:     { fontSize: 12, fontFamily: "JetBrainsMono_500Medium", color: Colors.subtle, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 12 },
-  proCard:          { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.xl, overflow: "hidden" },
-  proCardHeader:    { padding: 18, overflow: "hidden" },
-  proCardHeaderBlob:{ position: "absolute", width: 160, height: 160, borderRadius: 80, backgroundColor: "rgba(255,255,255,.08)", top: -50, right: -30 },
-  proIconBox:       { width: 36, height: 36, borderRadius: 12, backgroundColor: "rgba(255,255,255,.2)", alignItems: "center", justifyContent: "center" },
-  proCardName:      { fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.4 },
-  proCardTagline:   { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.75)" },
-  proPrice:         { fontSize: 22, fontFamily: "SpaceGrotesk_700Bold", color: "white", letterSpacing: -0.5 },
-  proPeriod:        { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", color: "rgba(255,255,255,.7)", textAlign: "right" },
-  upgradeBtn:       { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "white", borderRadius: Radius.full, paddingVertical: 12 },
-  upgradeBtnText:   { fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: Colors.red },
-  businessCard:     { flexDirection: "row", alignItems: "center", gap: 14, backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.lg, padding: 16 },
-  businessIconBox:  { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  businessCardTitle:{ fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: Colors.text },
-  businessCardSub:  { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, marginTop: 2 },
-  faqCard:          { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border, borderRadius: Radius.md, padding: 16, marginBottom: 10 },
-  faqQ:             { fontSize: 13, fontFamily: "SpaceGrotesk_700Bold", color: Colors.text, marginBottom: 6 },
-  faqA:             { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", color: Colors.muted, lineHeight: 19 },
+  header:          { paddingTop: 16, paddingHorizontal: 24, paddingBottom: 28, overflow: "hidden" },
+  headerAccent:    { position: "absolute", top: 0, left: 0, right: 0, height: 3, zIndex: 1 },
+  headerBlob:      { position: "absolute", width: 220, height: 220, borderRadius: 110, backgroundColor: "rgba(255,255,255,.07)", top: -70, right: -50 },
+  headerRow:       { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 20 },
+  backBtn:         { width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(255,255,255,.10)", alignItems: "center", justifyContent: "center" },
+  headerTitle:     { fontSize: 20, fontFamily: Fonts.bold, color: "white", letterSpacing: -0.4 },
+  headerSub:       { fontSize: 12, color: "rgba(255,255,255,.7)", fontFamily: Fonts.regular, marginTop: 2 },
+  planBadge:       { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "rgba(255,255,255,.12)", borderRadius: Radius.lg, padding: 14 },
+  planBadgeIcon:   { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  planBadgeLabel:  { fontSize: 11, fontFamily: Fonts.semibold, color: "rgba(255,255,255,.7)" },
+  planBadgeName:   { fontSize: 18, fontFamily: Fonts.bold, color: "white", letterSpacing: -0.3 },
+  pill:            { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "rgba(255,255,255,.18)", borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 6 },
+  pillText:        { fontSize: 11, fontFamily: Fonts.bold, color: "white" },
+  warnCard:        { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: "#fffbeb", borderRadius: Radius.md, padding: 14, borderWidth: 1, borderColor: "#f59e0b33" },
+  warnText:        { flex: 1, fontSize: 13, fontFamily: Fonts.semibold, color: "#92400e", lineHeight: 19 },
+  sectionLabel:    { fontSize: 11, fontFamily: Fonts.mono, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 12 },
+  card:            { borderWidth: 1, borderRadius: Radius.lg, padding: 18, gap: 10 },
+  featRow:         { flexDirection: "row", alignItems: "center", gap: 10 },
+  featDot:         { width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center" },
+  featText:        { fontSize: 13, fontFamily: Fonts.semibold, flex: 1, lineHeight: 18 },
+  moreFeats:       { fontSize: 12, fontFamily: Fonts.semibold, paddingLeft: 32 },
+  planCard:        { borderWidth: 1, borderRadius: Radius.xl, padding: 18, overflow: "hidden", gap: 14 },
+  popularBadge:    { position: "absolute", top: 0, right: 0, flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 5, borderBottomLeftRadius: Radius.md },
+  popularText:     { fontSize: 10, fontFamily: Fonts.bold, color: "white" },
+  planCardHeader:  { flexDirection: "row", alignItems: "center", gap: 12, paddingTop: 6 },
+  planIcon:        { width: 40, height: 40, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  planName:        { fontSize: 17, fontFamily: Fonts.bold, letterSpacing: -0.3 },
+  planSub:         { fontSize: 12, fontFamily: Fonts.regular, marginTop: 2 },
+  planPrice:       { fontSize: 20, fontFamily: Fonts.bold, letterSpacing: -0.5 },
+  planPeriod:      { fontSize: 11, fontFamily: Fonts.regular, textAlign: "right" },
+  planDivider:     { height: StyleSheet.hairlineWidth },
+  ctaBtn:          { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderRadius: Radius.full, paddingVertical: 11 },
+  ctaBtnText:      { fontSize: 13, fontFamily: Fonts.bold },
+  faqCard:         { borderWidth: 1, borderRadius: Radius.md, padding: 16 },
+  faqQ:            { fontSize: 13, fontFamily: Fonts.bold, marginBottom: 6 },
+  faqA:            { fontSize: 13, fontFamily: Fonts.regular, lineHeight: 19 },
 });
